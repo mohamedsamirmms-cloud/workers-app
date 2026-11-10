@@ -196,6 +196,7 @@
     function showApp() {
       document.getElementById("loginBox").hidden = true;
       document.getElementById("app").hidden = false;
+            loadWorkers();
     }
 
     // تسجيل الدخول
@@ -228,7 +229,18 @@
       if (data.session) showApp();
     });
     // 1. نجيب العمال المحفوظين، ولو مفيش نبدأ بقائمة فاضية
-    let workers = JSON.parse(localStorage.getItem("workers")) || [];
+    let workers = [];
+
+    // نجيب العمال من Supabase
+    async function loadWorkers() {
+      const { data, error } = await db.from("workers").select("*").order("id", { ascending: false });
+      if (error) {
+        alert("❌ مشكلة في تحميل العمال: " + error.message);
+        return;
+      }
+      workers = data.map(w => ({ ...w, idNo: w.id_no, iqamaImg: w.iqama_img }));
+      showWorkers();
+    }
 
     // 2. دالة بتعرض العمال في الصفحة
     function showWorkers() {
@@ -254,31 +266,33 @@
         `;
       });
     }
-
     // 3. لما ندوس زرار "إضافة"
-    document.getElementById("workerForm").addEventListener("submit", function (event) {
+    document.getElementById("workerForm").addEventListener("submit", async function (event) {
       event.preventDefault();
+      const form = event.target;
 
       const worker = {
-        id: Date.now(),
         name: document.getElementById("name").value,
-                idNo: document.getElementById("idNo").value,
-                        iqamaImg: lastIqamaImage,
+        id_no: document.getElementById("idNo").value,
         country: document.getElementById("country").value,
         language: document.getElementById("language").value,
-               room: document.getElementById("room").value,
-        arrival: document.getElementById("arrival").value,
+        room: document.getElementById("room").value,
+        arrival: document.getElementById("arrival").value || null,
         blanket: document.getElementById("blanket").value
       };
 
-      workers.push(worker);
-      localStorage.setItem("workers", JSON.stringify(workers));
+      const { error } = await db.from("workers").insert(worker);
+      if (error) {
+        alert("❌ العامل متحفظش: " + error.message);
+        return;
+      }
 
-      this.reset();
-            lastIqamaImage = "";
+      form.reset();
+      lastIqamaImage = "";
       document.getElementById("iqamaPreview").hidden = true;
-      showWorkers();
-              });   
+      loadWorkers();
+    });
+    
        // 6. الملف الشخصي (بيانات السكن)
     function showProfile(workerId) {
       const worker = workers.find(w => w.id === workerId);
@@ -424,16 +438,19 @@
     
     
     
-       // 9. حذف عامل
-    function deleteWorker(workerId) {
+        // 9. حذف عامل
+    async function deleteWorker(workerId) {
       const worker = workers.find(w => w.id === workerId);
       if (!confirm("متأكد إنك عايز تحذف " + worker.name + "؟")) return;
 
-      workers = workers.filter(w => w.id !== workerId);
-      localStorage.setItem("workers", JSON.stringify(workers));
+      const { error } = await db.from("workers").delete().eq("id", workerId);
+      if (error) {
+        alert("❌ محصلش حذف: " + error.message);
+        return;
+      }
 
-      showWorkers();
       document.getElementById("profile").innerHTML = "اختار عامل من القائمة لعرض ملفه";
+      loadWorkers();
     }
      // 4. أول ما الصفحة تفتح، اعرض العمال
     showWorkers();
