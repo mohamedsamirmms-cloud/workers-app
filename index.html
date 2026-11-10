@@ -115,10 +115,26 @@
     }
   </style>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
   <h1>سجل العمالة</h1>
+  
+  <!-- شاشة تسجيل الدخول -->
+  <div id="loginBox">
+    <h2>تسجيل الدخول</h2>
+    <form id="loginForm">
+      <input id="loginEmail" type="email" placeholder="الإيميل" required>
+      <input id="loginPassword" type="password" placeholder="الباسورد" required>
+      <button type="submit">دخول</button>
+    </form>
+    <p id="loginMsg"></p>
+  </div>
+
+  <!-- البرنامج نفسه (مخفي لحد ما تسجل دخول) -->
+  <div id="app" hidden>
+    <button onclick="logout()" style="background:#c0392b">🚪 تسجيل خروج</button>
 
   <h2>إضافة عامل جديد</h2>
    <div id="scanBox">
@@ -168,8 +184,49 @@
     <button onclick="document.getElementById('importFile').click()">📤 استرجاع من ملف</button>
     <input type="file" id="importFile" accept=".json" onchange="importData(this)" hidden>
   </div>
-
+  </div> <!-- نهاية app -->
     <script>
+          // 0. الاتصال بـ Supabase
+        const SUPABASE_URL = "https://xbckfzqifaywhrpuqkyo.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_FyUepLOGo7wUTpj7cdSZsg_TXi1r8bl";
+
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // إظهار البرنامج وإخفاء شاشة الدخول
+    function showApp() {
+      document.getElementById("loginBox").hidden = true;
+      document.getElementById("app").hidden = false;
+    }
+
+    // تسجيل الدخول
+    document.getElementById("loginForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const msg = document.getElementById("loginMsg");
+      msg.textContent = "⏳ جاري الدخول...";
+
+      const { error } = await db.auth.signInWithPassword({
+        email: document.getElementById("loginEmail").value,
+        password: document.getElementById("loginPassword").value
+      });
+
+      if (error) {
+        msg.textContent = "❌ الإيميل أو الباسورد غلط";
+        return;
+      }
+      msg.textContent = "";
+      showApp();
+    });
+
+    // تسجيل الخروج
+    async function logout() {
+      await db.auth.signOut();
+      location.reload();
+    }
+
+    // لو مسجّل دخول من قبل، افتح البرنامج على طول
+    db.auth.getSession().then(function ({ data }) {
+      if (data.session) showApp();
+    });
     // 1. نجيب العمال المحفوظين، ولو مفيش نبدأ بقائمة فاضية
     let workers = JSON.parse(localStorage.getItem("workers")) || [];
 
