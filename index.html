@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>سجل العمالة</title>
+    <style>
+          /* صورة الإقامة */
+    #iqamaPreview, .iqama-img {
+      max-width: 300px;
+      width: 100%;
+      border-radius: 10px;
+      margin-top: 10px;
+      border: 1px solid #cbd5e1;
+    }
+       
+    /* شكل الصفحة كلها */
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      background: #eef1f5;
+      color: #1f2937;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* العنوان الكبير */
+    h1 {
+      background: #1e3a5f;
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    /* العناوين الصغيرة */
+    h2 {
+      color: #1e3a5f;
+      border-right: 5px solid #e08a1e;
+      padding-right: 10px;
+      margin-top: 35px;
+    }
+
+    /* فورم الإضافة */
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    /* الخانات */
+        input, select {
+      padding: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+      input:focus, select:focus {
+      outline: none;
+      border-color: #e08a1e;
+    }
+
+    /* الزراير */
+    button {
+      background: #1e3a5f;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    button:hover {
+      background: #e08a1e;
+    }
+
+    /* كروت العمال والحضور والملف الشخصي */
+    #workersList > div,
+    #attendanceList > div,
+    #profile {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      line-height: 1.9;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+
+    /* نخفي الخطوط الفاصلة لأن الكروت كفاية */
+    hr {
+      display: none;
+    }
+
+    #attendanceList button {
+      margin: 0 4px;
+    }
+
+    /* الملف الشخصي */
+    #profile h3 {
+      margin-top: 0;
+      color: #e08a1e;
+      font-size: 22px;
+    }
+
+    #profile h4 {
+      background: #eef1f5;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+  </style>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+  <h1>سجل العمالة</h1>
+
+  <h2>إضافة عامل جديد</h2>
+   <div id="scanBox">
+    <button type="button" onclick="document.getElementById('iqamaFile').click()">📷 قراءة صورة الإقامة</button>
+    <input type="file" id="iqamaFile" accept="image/*" onchange="scanIqama(this)" hidden>
+    <span id="scanStatus"></span>
+        <br><img id="iqamaPreview" hidden>
+  </div>
+  <form id="workerForm">
+    <input id="name" placeholder="اسم العامل" required>
+        <input id="idNo" placeholder="رقم الإقامة">
+    <select id="country">
+      <option value="">اختار البلد</option>
+      <option>هندي</option>
+      <option>بنجلاديشي</option>
+      <option>نيبالي</option>
+      <option>باكستاني</option>
+      <option>مصري</option>
+      <option>يمني</option>
+      <option>فلبيني</option>
+    </select>
+
+    <select id="language">
+      <option value="">اختار اللغة</option>
+      <option>عربي</option>
+      <option>إنجليزي</option>
+      <option>أوردو</option>
+    </select>
+    <input id="room" placeholder="رقم الغرفة">
+    <label>تاريخ القدوم <input id="arrival" type="date"></label>
+    <select id="blanket">
+      <option value="لا">لم يستلم بطانية</option>
+      <option value="نعم">استلم بطانية</option>
+    </select>
+    
+    <button type="submit">إضافة</button>
+  </form>
+
+  <h2>قائمة العمال</h2>
+  <div id="workersList"></div>
+  
+  <h2>الملف الشخصي</h2>
+  <div id="profile">اختار عامل من القائمة لعرض ملفه</div>
+    <h2>النسخة الاحتياطية</h2>
+  <div id="backupBox">
+    <button onclick="exportData()">📥 حفظ نسخة احتياطية</button>
+    <button onclick="document.getElementById('importFile').click()">📤 استرجاع من ملف</button>
+    <input type="file" id="importFile" accept=".json" onchange="importData(this)" hidden>
+  </div>
+
+    <script>
+    // 1. نجيب العمال المحفوظين، ولو مفيش نبدأ بقائمة فاضية
+    let workers = JSON.parse(localStorage.getItem("workers")) || [];
+
+    // 2. دالة بتعرض العمال في الصفحة
+    function showWorkers() {
+      const list = document.getElementById("workersList");
+      list.innerHTML = "";
+
+      if (workers.length === 0) {
+        list.innerHTML = "<p>لا يوجد عمال بعد</p>";
+        return;
+      }
+
+      workers.forEach(function (worker) {
+        list.innerHTML += `
+          <div>
+            <b>${worker.name}</b><br>
+            البلد: ${worker.country} | اللغة: ${worker.language}<br>
+                        رقم الإقامة: ${worker.idNo || "-"}<br>
+                       الغرفة: ${worker.room || "-"} | القدوم: ${worker.arrival || "-"} | بطانية: ${worker.blanket || "لا"}
+    <br><button onclick="showProfile(${worker.id})">📄 الملف الشخصي</button>
+                <button onclick="deleteWorker(${worker.id})" style="background:#c0392b">🗑️ حذف</button>
+          </div>
+          <hr>
+        `;
+      });
+    }
+
+    // 3. لما ندوس زرار "إضافة"
+    document.getElementById("workerForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const worker = {
+        id: Date.now(),
+        name: document.getElementById("name").value,
+                idNo: document.getElementById("idNo").value,
+                        iqamaImg: lastIqamaImage,
+        country: document.getElementById("country").value,
+        language: document.getElementById("language").value,
+               room: document.getElementById("room").value,
+        arrival: document.getElementById("arrival").value,
+        blanket: document.getElementById("blanket").value
+      };
+
+      workers.push(worker);
+      localStorage.setItem("workers", JSON.stringify(workers));
+
+      this.reset();
+            lastIqamaImage = "";
+      document.getElementById("iqamaPreview").hidden = true;
+      showWorkers();
+              });   
+       // 6. الملف الشخصي (بيانات السكن)
+    function showProfile(workerId) {
+      const worker = workers.find(w => w.id === workerId);
+
+      document.getElementById("profile").innerHTML = `
+        <h3>${worker.name}</h3>
+        ${worker.iqamaImg ? `<img src="${worker.iqamaImg}" class="iqama-img"><br>` : ""}
+        رقم الإقامة: ${worker.idNo || "-"}<br>
+        البلد: ${worker.country}<br>
+        اللغة: ${worker.language}
+
+        <h4>بيانات السكن</h4>
+        رقم الغرفة: ${worker.room || "-"}<br>
+        تاريخ القدوم: ${worker.arrival || "-"}<br>
+        استلم بطانية: ${worker.blanket || "لا"}
+      `;
+    }
+     
+    
+    // 7. النسخة الاحتياطية: حفظ البيانات في ملف
+    function exportData() {
+      const data = { workers: workers };
+      const text = JSON.stringify(data);
+      const file = new Blob([text], { type: "application/json" });
+
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(file);
+      link.download = "backup-" + new Date().toISOString().slice(0, 10) + ".json";
+      link.click();
+    }
+
+    // استرجاع البيانات من ملف
+    function importData(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (!confirm("البيانات الحالية هتتبدّل بالبيانات اللي في الملف. متأكد؟")) {
+        input.value = "";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const data = JSON.parse(reader.result);
+        workers = data.workers || [];
+        localStorage.setItem("workers", JSON.stringify(workers));
+        showWorkers();
+        input.value = "";
+        alert("تم استرجاع البيانات بنجاح ✅");
+      };
+      reader.readAsText(file);
+    }
+      // 8. قراءة صورة الإقامة
+    const countries = {
+      "هندي": ["الهند", "INDIA"],
+      "بنجلاديشي": ["بنجلاديش", "بنغلاديش", "BANGLADESH"],
+      "نيبالي": ["نيبال", "NEPAL"],
+      "باكستاني": ["باكستان", "PAKISTAN"],
+      "مصري": ["مصر", "EGYPT"],
+      "يمني": ["اليمن", "YEMEN"],
+      "فلبيني": ["الفلبين", "PHILIPPINES"]
+    };
+    // الصورة الأخيرة اللي اتقرت
+    let lastIqamaImage = "";
+
+    // تصغير الصورة عشان متاخدش مساحة كبيرة
+    function resizeImage(file) {
+      return new Promise(function (resolve) {
+        const img = new Image();
+        img.onload = function () {
+          const scale = Math.min(1, 800 / img.width);
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.src = URL.createObjectURL(file);
+      });
+    }
+    async function scanIqama(input) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      lastIqamaImage = await resizeImage(file);
+      const preview = document.getElementById("iqamaPreview");
+      preview.src = lastIqamaImage;
+      preview.hidden = false;
+
+      const status = document.getElementById("scanStatus");
+      status.textContent = "⏳ جاري قراءة الصورة... استنى شوية";
+
+      try {
+        const result = await Tesseract.recognize(file, "ara+eng");
+        const text = result.data.text;
+        console.log(text);
+
+        // رقم الإقامة: 10 أرقام بتبدأ بـ 2
+        const idMatch = text.match(/2\d{9}/);
+        if (idMatch) {
+          document.getElementById("idNo").value = idMatch[0];
+}
+                // الاسم: أطول سطر فيه حروف إنجليزي كبيرة
+        const ignore = ["KINGDOM", "SAUDI", "ARABIA", "MINISTRY", "INTERIOR", "RESIDENT", "IDENTITY", "PERMIT"];
+        let bestName = "";
+
+        text.split("\n").forEach(function (line) {
+          const clean = line
+            .replace(/[^A-Z ]/g, "")
+            .split(" ")
+            .filter(w => w.length >= 2)
+            .join(" ");
+
+          const isIgnored = ignore.some(w => clean.includes(w));
+          const words = clean.split(" ").length;
+
+          if (!isIgnored && words >= 2 && clean.length > bestName.length) {
+            bestName = clean;
+          }
+        });
+
+        if (bestName) {
+          document.getElementById("name").value = bestName;
+        }
+        
+       
+
+        // البلد
+        const upperText = text.toUpperCase();
+        for (const key in countries) {
+          if (countries[key].some(w => upperText.includes(w))) {
+            document.getElementById("country").value = key;
+          }
+        }
+
+        status.textContent = "✅ خلصت القراءة، راجع البيانات قبل ما تدوس إضافة";
+      } catch (error) {
+        status.textContent = "❌ معرفتش أقرا الصورة، اتأكد إنك متصل بالإنترنت";
+      }
+
+      input.value = "";
+    }
+    
+    
+    
+       // 9. حذف عامل
+    function deleteWorker(workerId) {
+      const worker = workers.find(w => w.id === workerId);
+      if (!confirm("متأكد إنك عايز تحذف " + worker.name + "؟")) return;
+
+      workers = workers.filter(w => w.id !== workerId);
+      localStorage.setItem("workers", JSON.stringify(workers));
+
+      showWorkers();
+      document.getElementById("profile").innerHTML = "اختار عامل من القائمة لعرض ملفه";
+    }
+     // 4. أول ما الصفحة تفتح، اعرض العمال
+    showWorkers();
+      
+  </script>
+
+</body>
+</html>
