@@ -138,8 +138,12 @@
 
   <h2>إضافة عامل جديد</h2>
    <div id="scanBox">
-    <button type="button" onclick="document.getElementById('iqamaFile').click()">📷 قراءة صورة الإقامة</button>
+    <button type="button" onclick="document.getElementById('iqamaCamera').click()">📷 صوّر الإقامة</button>
+    <button type="button" onclick="document.getElementById('iqamaFile').click()">🖼️ اختار صورة</button>
+    <input type="file" id="iqamaCamera" accept="image/*" capture="environment" onchange="scanIqama(this)" hidden>
     <input type="file" id="iqamaFile" accept="image/*" onchange="scanIqama(this)" hidden>
+    <p>💡 حط الإقامة على سطح غامق، في نور كويس، وقرّب لحد ما الكارت يملا الصورة.</p>
+
     <span id="scanStatus"></span>
         <br><img id="iqamaPreview" hidden>
   </div>
