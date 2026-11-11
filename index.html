@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+      
           /* صورة الإقامة */
     #iqamaPreview, .iqama-img {
       max-width: 300px;
@@ -138,7 +139,7 @@
 
   <h2>إضافة عامل جديد</h2>
    <div id="scanBox">
-    <button type="button" onclick="document.getElementById('iqamaCamera').click()">📷 صوّر الإقامة</button>
+        <button type="button" onclick="openCamera()">📷 صوّر الإقامة</button>
     <button type="button" onclick="document.getElementById('iqamaFile').click()">🖼️ اختار صورة</button>
     <input type="file" id="iqamaCamera" accept="image/*" capture="environment" onchange="scanIqama(this)" hidden>
     <input type="file" id="iqamaFile" accept="image/*" onchange="scanIqama(this)" hidden>
@@ -188,7 +189,16 @@
     <button onclick="document.getElementById('importFile').click()">📤 استرجاع من ملف</button>
     <input type="file" id="importFile" accept=".json" onchange="importData(this)" hidden>
   </div>
-  </div> <!-- نهاية app -->
+   <div id="cameraBox" hidden>
+    <div id="cameraWrap">
+      <video id="cameraVideo" autoplay playsinline muted></video>
+      <div id="cameraFrame"></div>
+    </div>
+    <p>حط الإقامة جوه الإطار البرتقالي</p>
+    <button type="button" onclick="takePhoto()">📸 التقط الصورة</button>
+    <button type="button" onclick="closeCamera()" style="background:#c0392b">إلغاء</button>
+  </div>
+</div> <!-- نهاية app -->
     <script>
           // 0. الاتصال بـ Supabase
         const SUPABASE_URL = "https://xbckfzqifaywhrpuqkyo.supabase.co";
@@ -457,7 +467,47 @@
       input.value = "";
     }
     
-    
+        // 10. الكاميرا بإطار
+    let cameraStream = null;
+
+    async function openCamera() {
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+        document.getElementById("cameraVideo").srcObject = cameraStream;
+        document.getElementById("cameraBox").hidden = false;
+      } catch (e) {
+        alert("❌ الكاميرا مفتحتش. اسمح للموقع يستخدم الكاميرا، أو استخدم زرار اختار صورة");
+      }
+    }
+
+    function closeCamera() {
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+      document.getElementById("cameraBox").hidden = true;
+    }
+
+    function takePhoto() {
+      const video = document.getElementById("cameraVideo");
+      const v = video.getBoundingClientRect();
+      const f = document.getElementById("cameraFrame").getBoundingClientRect();
+      const scale = video.videoWidth / v.width;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = f.width * scale;
+      canvas.height = f.height * scale;
+      canvas.getContext("2d").drawImage(
+        video,
+        (f.left - v.left) * scale, (f.top - v.top) * scale, canvas.width, canvas.height,
+        0, 0, canvas.width, canvas.height
+      );
+
+      closeCamera();
+      canvas.toBlob(function (blob) {
+        scanIqama({ files: [blob], value: "" });
+      }, "image/jpeg", 0.92);
+    }
     
         // 9. حذف عامل
     async function deleteWorker(workerId) {
