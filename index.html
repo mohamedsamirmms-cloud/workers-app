@@ -281,6 +281,18 @@
         blanket: document.getElementById("blanket").value
       };
 
+            // رفع صورة الإقامة لو موجودة
+      if (lastIqamaImage) {
+        const blob = await (await fetch(lastIqamaImage)).blob();
+        const path = Date.now() + ".jpg";
+        const { error: upErr } = await db.storage.from("iqama").upload(path, blob, { contentType: "image/jpeg" });
+        if (upErr) {
+          alert("❌ الصورة مترفعتش: " + upErr.message);
+          return;
+        }
+        worker.iqama_img = path;
+      }
+      
       const { error } = await db.from("workers").insert(worker);
       if (error) {
         alert("❌ العامل متحفظش: " + error.message);
@@ -294,12 +306,17 @@
     });
     
        // 6. الملف الشخصي (بيانات السكن)
-    function showProfile(workerId) {
+        async function showProfile(workerId) {
       const worker = workers.find(w => w.id === workerId);
-
+      // نجيب رابط مؤقت للصورة
+      let imgUrl = "";
+      if (worker.iqamaImg) {
+        const { data } = await db.storage.from("iqama").createSignedUrl(worker.iqamaImg, 3600);
+        if (data) imgUrl = data.signedUrl;
+      }
       document.getElementById("profile").innerHTML = `
         <h3>${worker.name}</h3>
-        ${worker.iqamaImg ? `<img src="${worker.iqamaImg}" class="iqama-img"><br>` : ""}
+        ${imgUrl ? `<img src="${imgUrl}" class="iqama-img"><br>` : ""}
         رقم الإقامة: ${worker.idNo || "-"}<br>
         البلد: ${worker.country}<br>
         اللغة: ${worker.language}
@@ -448,7 +465,8 @@
         alert("❌ محصلش حذف: " + error.message);
         return;
       }
-
+      if (worker.iqamaImg) await db.storage.from("iqama").remove([worker.iqamaImg]);
+     
       document.getElementById("profile").innerHTML = "اختار عامل من القائمة لعرض ملفه";
       loadWorkers();
     }
