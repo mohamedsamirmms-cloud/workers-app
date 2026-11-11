@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
-      
+          #filterBox { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    #search { flex: 1; min-width: 200px; }
           /* صورة الإقامة */
     #iqamaPreview, .iqama-img {
       max-width: 300px;
@@ -179,6 +180,15 @@
   </form>
 
   <h2>قائمة العمال</h2>
+    <div id="filterBox">
+    <input id="search" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="showWorkers()">
+    <select id="filterBuilding" onchange="showWorkers()">
+      <option value="">كل المساكن</option>
+      <option>السكن الأول</option>
+      <option>السكن الثاني</option>
+    </select>
+    <b id="resultCount"></b>
+  </div>
   <div id="workersList"></div>
   
   <h2>الملف الشخصي</h2>
@@ -247,7 +257,7 @@
 
     // نجيب العمال من Supabase
     async function loadWorkers() {
-      const { data, error } = await db.from("workers").select("*").order("id", { ascending: false });
+      const { data, error } = await db.from("workers").select("*").order("building").order("room").order("bed_no");
       if (error) {
         alert("❌ مشكلة في تحميل العمال: " + error.message);
         return;
@@ -257,28 +267,44 @@
     }
 
     // 2. دالة بتعرض العمال في الصفحة
-    function showWorkers() {
+       function showWorkers() {
       const list = document.getElementById("workersList");
-      list.innerHTML = "";
+      const q = document.getElementById("search").value.trim().toLowerCase();
+      const b = document.getElementById("filterBuilding").value;
 
-      if (workers.length === 0) {
-        list.innerHTML = "<p>لا يوجد عمال بعد</p>";
+      // نختار العمال اللي مطابقين البحث والسكن
+      const result = workers.filter(function (w) {
+        if (b && w.building !== b) return false;
+        if (!q) return true;
+        const text = (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase();
+        return text.includes(q);
+      });
+
+      document.getElementById("resultCount").textContent = "العدد: " + result.length;
+
+      if (result.length === 0) {
+        list.innerHTML = "<p>لا يوجد نتائج</p>";
         return;
       }
 
-      workers.forEach(function (worker) {
-        list.innerHTML += `
+      let html = "";
+      result.slice(0, 50).forEach(function (worker) {
+        html += `
           <div>
             <b>${worker.name}</b><br>
-            البلد: ${worker.country} | اللغة: ${worker.language}<br>
-                        رقم الإقامة: ${worker.idNo || "-"}<br>
-                       الغرفة: ${worker.room || "-"} | القدوم: ${worker.arrival || "-"} | بطانية: ${worker.blanket || "لا"}
-    <br><button onclick="showProfile(${worker.id})">📄 الملف الشخصي</button>
-                <button onclick="deleteWorker(${worker.id})" style="background:#c0392b">🗑️ حذف</button>
+            ${worker.building || "-"} | غرفة: ${worker.room || "-"} | سرير: ${worker.bed_no || "-"}<br>
+            رقم الإقامة: ${worker.idNo || "-"} | البلد: ${worker.country || "-"}<br>
+            المهنة: ${worker.job || "-"} | بطانية: ${worker.blanket || "لا"}
+            <br><button onclick="showProfile(${worker.id})">📄 الملف الشخصي</button>
+            <button onclick="deleteWorker(${worker.id})" style="background:#c0392b">🗑️ حذف</button>
           </div>
-          <hr>
         `;
       });
+
+      if (result.length > 50) {
+        html += `<p>معروض أول 50 من ${result.length}. اكتب في البحث عشان تضيّق النتيجة.</p>`;
+      }
+      list.innerHTML = html;
     }
     // 3. لما ندوس زرار "إضافة"
     document.getElementById("workerForm").addEventListener("submit", async function (event) {
