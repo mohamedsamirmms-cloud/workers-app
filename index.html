@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* نافذة الإضافة */
+    #addBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #addBox[hidden] { display: none; }
+    #addInner { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
           /* نافذة الملف الشخصي */
     #profileBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #profileBox[hidden] { display: none; }
@@ -170,8 +174,11 @@
   <!-- البرنامج نفسه (مخفي لحد ما تسجل دخول) -->
   <div id="app" hidden>
     <button onclick="logout()" style="background:#c0392b">🚪 تسجيل خروج</button>
-
-  <h2>إضافة عامل جديد</h2>
+  <button onclick="openAdd()" style="background:#16a34a">➕ إضافة ساكن</button>
+  <div id="addBox" hidden onclick="if (event.target === this) closeAdd()">
+  <div id="addInner">
+  
+    <h2>إضافة عامل جديد</h2>
    <div id="scanBox">
         <button type="button" onclick="openCamera()">📷 صوّر الإقامة</button>
     <button type="button" onclick="document.getElementById('iqamaFile').click()">🖼️ اختار صورة</button>
@@ -196,13 +203,15 @@
       <option>فلبيني</option>
     </select>
 
-    <select id="language">
-      <option value="">اختار اللغة</option>
-      <option>عربي</option>
-      <option>إنجليزي</option>
-      <option>أوردو</option>
-    </select>
+    
     <input id="room" placeholder="رقم الغرفة">
+        <select id="building">
+      <option>السكن الأول</option>
+      <option>السكن الثاني</option>
+    </select>
+    <input id="bedNo" type="number" placeholder="رقم السرير">
+    <input id="job" placeholder="المهنة">
+    <input id="sponsor" list="sponsorList" placeholder="الكفيل">
     <label>تاريخ القدوم <input id="arrival" type="date"></label>
     <select id="blanket">
       <option value="لا">لم يستلم بطانية</option>
@@ -211,7 +220,9 @@
     
     <button type="submit">إضافة</button>
   </form>
-
+  <button type="button" onclick="closeAdd()" style="background:#c0392b">إلغاء</button>
+  </div>
+  </div>
   <h2>قائمة العمال</h2>
       <div id="stats"></div>
         <div id="buildingTabs">
@@ -249,7 +260,15 @@
    <div id="profileBox" hidden onclick="if (event.target === this) closeProfile()">
     <div id="profile"></div>
   </div>
-    <div id="editBox" hidden>
+     <datalist id="sponsorList">
+    <option value="TDC">
+    <option value="Local Rental">
+    <option value="Contract Rental">
+    <option value="Talent House">
+    <option value="Saudi Reliance">
+    <option value="Alfauj">
+  </datalist>
+  <div id="editBox" hidden>
     <form id="editForm">
       <h3>✏️ تعديل بيانات ساكن</h3>
       <label>الاسم <input id="e_name" required></label>
@@ -265,6 +284,7 @@
       <label>الغرفة <input id="e_room"></label>
       <label>السرير <input id="e_bed" type="number"></label>
       <label>المهنة <input id="e_job"></label>
+            <label>الكفيل <input id="e_sponsor" list="sponsorList"></label>
       <label>البطانية
         <select id="e_blanket">
           <option value="لا">لم يستلم</option>
@@ -449,10 +469,14 @@
         name: document.getElementById("name").value,
         id_no: document.getElementById("idNo").value,
         country: document.getElementById("country").value,
-        language: document.getElementById("language").value,
+       
         room: document.getElementById("room").value,
         arrival: document.getElementById("arrival").value || null,
-        blanket: document.getElementById("blanket").value
+                blanket: document.getElementById("blanket").value,
+        building: document.getElementById("building").value,
+        bed_no: Number(document.getElementById("bedNo").value) || null,
+        job: document.getElementById("job").value,
+        sponsor: document.getElementById("sponsor").value
       };
 
             // رفع صورة الإقامة لو موجودة
@@ -474,6 +498,7 @@
       }
 
       form.reset();
+            closeAdd();
       lastIqamaImage = "";
       document.getElementById("iqamaPreview").hidden = true;
       loadWorkers();
@@ -495,11 +520,10 @@
         ${imgUrl ? `<img src="${imgUrl}" class="iqama-img"><br>` : '<span class="badge miss">صورة الإقامة ناقصة</span><br>'}
         رقم الإقامة: ${w.idNo || "-"}<br>
         البلد: ${w.country || "-"}<br>
-        اللغة: ${w.language || "-"}<br>
+       
         المهنة: ${w.job || "-"}<br>
         الكفيل: ${w.sponsor || "-"}<br>
-        المشروع: ${w.project || "-"}
-
+       
         <h4>بيانات السكن</h4>
         السكن: ${w.building || "-"}<br>
         الغرفة: ${w.room || "-"} | السرير: ${w.bed_no || "-"}<br>
@@ -709,16 +733,17 @@
 
       // ننسخ قوائم البلد واللغة من فورم الإضافة
       document.getElementById("e_country").innerHTML = document.getElementById("country").innerHTML;
-      document.getElementById("e_language").innerHTML = document.getElementById("language").innerHTML;
+      document.getElementById.innerHTML = document.getElementById.innerHTML;
 
       document.getElementById("e_name").value = w.name || "";
       document.getElementById("e_idNo").value = w.idNo || "";
       document.getElementById("e_country").value = w.country || "";
-      document.getElementById("e_language").value = w.language || "";
+      document.getElementById.value ="";
       document.getElementById("e_building").value = w.building || "السكن الأول";
       document.getElementById("e_room").value = w.room || "";
       document.getElementById("e_bed").value = w.bed_no || "";
       document.getElementById("e_job").value = w.job || "";
+      document.getElementById("e_sponsor").value = w.sponsor || "";
       document.getElementById("e_blanket").value = w.blanket || "لا";
       document.getElementById("e_img").value = "";
       document.getElementById("editMsg").textContent = "";
@@ -744,6 +769,7 @@
         room: document.getElementById("e_room").value.trim().toUpperCase(),
         bed_no: Number(document.getElementById("e_bed").value) || null,
         job: document.getElementById("e_job").value,
+         sponsor: document.getElementById("e_sponsor").value,
         blanket: document.getElementById("e_blanket").value
       };
 
@@ -768,7 +794,17 @@
       closeEdit();
       loadWorkers();
     });
-     // 4. أول ما الصفحة تفتح، اعرض العمال
+       // 12. نافذة الإضافة
+    function openAdd() {
+      document.getElementById("addBox").hidden = false;
+      if (currentBuilding) document.getElementById("building").value = currentBuilding;
+      if (currentRoom) document.getElementById("room").value = currentRoom;
+    }
+
+    function closeAdd() {
+      document.getElementById("addBox").hidden = true;
+    }
+    // 4. أول ما الصفحة تفتح، اعرض العمال
     showWorkers();
       
   </script>
