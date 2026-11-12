@@ -4,6 +4,23 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* كروت الأرقام */
+    #stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
+    .stat { background: white; padding: 15px; border-radius: 12px; text-align: center; }
+    .stat b { display: block; font-size: 28px; color: #1e3a5f; }
+
+    /* الجدول */
+    #workersList > div { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    th { color: #64748b; font-size: 13px; }
+    td button { padding: 6px 10px; font-size: 13px; }
+
+    /* العلامات الملوّنة */
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 13px; }
+    .ok { background: #dcfce7; color: #166534; }
+    .bad { background: #fee2e2; color: #991b1b; }
+    .miss { background: #e2e8f0; color: #475569; }
           #filterBox { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
     #search { flex: 1; min-width: 200px; }
           /* صورة الإقامة */
@@ -180,7 +197,8 @@
   </form>
 
   <h2>قائمة العمال</h2>
-    <div id="filterBox">
+      <div id="stats"></div>
+  <div id="filterBox">
     <input id="search" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="showWorkers()">
     <select id="filterBuilding" onchange="showWorkers()">
       <option value="">كل المساكن</option>
@@ -267,6 +285,21 @@
     }
 
     // 2. دالة بتعرض العمال في الصفحة
+          // كروت الأرقام
+    function showStats() {
+      const b1 = workers.filter(w => w.building === "السكن الأول").length;
+      const b2 = workers.filter(w => w.building === "السكن الثاني").length;
+      const blanket = workers.filter(w => w.blanket === "نعم").length;
+      const noImg = workers.filter(w => !w.iqamaImg).length;
+
+      document.getElementById("stats").innerHTML = `
+        <div class="stat"><b>${workers.length}</b>إجمالي الساكنين</div>
+        <div class="stat"><b>${b1}</b>السكن الأول</div>
+        <div class="stat"><b>${b2}</b>السكن الثاني</div>
+        <div class="stat"><b>${blanket}</b>استلموا بطانية</div>
+        <div class="stat"><b style="color:#c0392b">${noImg}</b>بدون صورة إقامة</div>
+      `;
+    }
        function showWorkers() {
       const list = document.getElementById("workersList");
       const q = document.getElementById("search").value.trim().toLowerCase();
@@ -287,20 +320,29 @@
         return;
       }
 
-      let html = "";
-      result.slice(0, 50).forEach(function (worker) {
-        html += `
-          <div>
-            <b>${worker.name}</b><br>
-            ${worker.building || "-"} | غرفة: ${worker.room || "-"} | سرير: ${worker.bed_no || "-"}<br>
-            رقم الإقامة: ${worker.idNo || "-"} | البلد: ${worker.country || "-"}<br>
-            المهنة: ${worker.job || "-"} | بطانية: ${worker.blanket || "لا"}
-            <br><button onclick="showProfile(${worker.id})">📄 الملف الشخصي</button>
-            <button onclick="deleteWorker(${worker.id})" style="background:#c0392b">🗑️ حذف</button>
-          </div>
-        `;
+            let html = `<div><table>
+        <tr><th>#</th><th>الاسم</th><th>السكن</th><th>الغرفة</th><th>السرير</th><th>الإقامة</th><th>الجنسية</th><th>المهنة</th><th>البطانية</th><th>صورة الإقامة</th><th></th></tr>`;
+
+      result.slice(0, 50).forEach(function (worker, i) {
+        html += `<tr>
+          <td>${i + 1}</td>
+          <td><b>${worker.name}</b></td>
+          <td>${worker.building || "-"}</td>
+          <td>${worker.room || "-"}</td>
+          <td>${worker.bed_no || "-"}</td>
+          <td>${worker.idNo || "-"}</td>
+          <td>${worker.country || "-"}</td>
+          <td>${worker.job || "-"}</td>
+          <td>${worker.blanket === "نعم" ? '<span class="badge ok">استلم</span>' : '<span class="badge bad">لم يستلم</span>'}</td>
+          <td>${worker.iqamaImg ? '<span class="badge ok">موجودة</span>' : '<span class="badge miss">ناقصة</span>'}</td>
+          <td>
+            <button onclick="showProfile(${worker.id})">الملف</button>
+            <button onclick="deleteWorker(${worker.id})" style="background:#c0392b">حذف</button>
+          </td>
+        </tr>`;
       });
 
+      html += `</table></div>`;
       if (result.length > 50) {
         html += `<p>معروض أول 50 من ${result.length}. اكتب في البحث عشان تضيّق النتيجة.</p>`;
       }
@@ -397,6 +439,7 @@
         workers = data.workers || [];
         localStorage.setItem("workers", JSON.stringify(workers));
         showWorkers();
+              showStats();
         input.value = "";
         alert("تم استرجاع البيانات بنجاح ✅");
       };
