@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* بيانات الوحدة */
+    .room .tags { display: block; font-size: 12px; margin-top: 4px; }
+    #roomInfo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
+    #roomInfo:empty { display: none; }
+    #roomInfo label { display: inline-flex; gap: 6px; align-items: center; }
           /* نافذة الإضافة */
     #addBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #addBox[hidden] { display: none; }
@@ -155,13 +160,14 @@
   </style>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
   <h1>سجل العمالة</h1>
   
   <!-- شاشة تسجيل الدخول -->
-  <div id="loginBox">
+    <div id="loginBox">
     <h2>تسجيل الدخول</h2>
     <form id="loginForm">
       <input id="loginEmail" type="email" placeholder="الإيميل" required>
@@ -230,6 +236,7 @@
     <button onclick="openBuilding('السكن الثاني')">🏢 السكن الثاني</button>
   </div>
   <div id="roomsGrid"></div>
+    <div id="roomInfo"></div>
   <div id="filterBox">
         <input id="search" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="currentRoom = ''; showRooms(); showWorkers()">
     <select id="filterBuilding" onchange="showWorkers()">
@@ -238,16 +245,11 @@
       <option>السكن الثاني</option>
     </select>
     <b id="resultCount"></b>
+        <button onclick="exportExcel()" style="background:#16a34a">📊 تصدير Excel</button>
   </div>
   <div id="workersList"></div>
-  
-  
-    <h2>النسخة الاحتياطية</h2>
-  <div id="backupBox">
-    <button onclick="exportData()">📥 حفظ نسخة احتياطية</button>
-    <button onclick="document.getElementById('importFile').click()">📤 استرجاع من ملف</button>
-    <input type="file" id="importFile" accept=".json" onchange="importData(this)" hidden>
-  </div>
+       
+   
    <div id="cameraBox" hidden>
     <div id="cameraWrap">
       <video id="cameraVideo" autoplay playsinline muted></video>
@@ -312,6 +314,7 @@
       document.getElementById("loginBox").hidden = true;
       document.getElementById("app").hidden = false;
             loadWorkers();
+                  loadRooms();
     }
 
     // تسجيل الدخول
@@ -376,12 +379,15 @@
           // مربعات الغرف
     let currentBuilding = "";
     let currentRoom = "";
+        let lastResult = [];
+            let roomsInfo = {};
     function openBuilding(name) {
       currentBuilding = name;
             currentRoom = "";
       document.getElementById("filterBuilding").value = name;
       document.getElementById("search").value = "";
       showRooms();
+            showRoomInfo("");
       showWorkers();
     }
 
@@ -401,13 +407,15 @@
       grid.innerHTML = names.map(r => `
         <div class="room ${r === activeRoom ? "active" : ""}" onclick="openRoom('${r}')">
           <b>${r}</b><small>${rooms[r]} ساكن</small>
-        </div>`).join("");
+          <small class="tags">${roomTags(r)}</small>
+          </div>`).join("");
     }
 
     function openRoom(room) {
           currentRoom = room;
       document.getElementById("search").value = "";
       showRooms(room);
+            showRoomInfo(room);
       showWorkers();
       document.getElementById("workersList").scrollIntoView({ behavior: "smooth" });
     }
@@ -425,6 +433,7 @@
         return text.includes(q);
       });
 
+           lastResult = result;
       document.getElementById("resultCount").textContent = "العدد: " + result.length;
 
       if (result.length === 0) {
@@ -571,7 +580,7 @@
         showWorkers();
               showStats();
                     showRooms();
-        input.value = "";
+                               input.value = "";
         alert("تم استرجاع البيانات بنجاح ✅");
       };
       reader.readAsText(file);
@@ -723,6 +732,7 @@
      
       document.getElementById("profile").innerHTML = "اختار عامل من القائمة لعرض ملفه";
       loadWorkers();
+            loadRooms();
     }
        // 11. تعديل ساكن
     let editingId = null;
@@ -732,13 +742,10 @@
       editingId = id;
 
       // ننسخ قوائم البلد واللغة من فورم الإضافة
-      document.getElementById("e_country").innerHTML = document.getElementById("country").innerHTML;
-      document.getElementById.innerHTML = document.getElementById.innerHTML;
-
+           document.getElementById("e_country").innerHTML = document.getElementById("country").innerHTML;
       document.getElementById("e_name").value = w.name || "";
       document.getElementById("e_idNo").value = w.idNo || "";
       document.getElementById("e_country").value = w.country || "";
-      document.getElementById.value ="";
       document.getElementById("e_building").value = w.building || "السكن الأول";
       document.getElementById("e_room").value = w.room || "";
       document.getElementById("e_bed").value = w.bed_no || "";
@@ -803,6 +810,80 @@
 
     function closeAdd() {
       document.getElementById("addBox").hidden = true;
+    }
+        // 13. تصدير Excel
+    function exportExcel() {
+      if (lastResult.length === 0) {
+        alert("مفيش بيانات للتصدير");
+        return;
+      }
+
+      const rows = lastResult.map((w, i) => ({
+        "#": i + 1,
+        "الاسم": w.name,
+        "رقم الإقامة": w.idNo || "",
+        "الجنسية": w.country || "",
+        "السكن": w.building || "",
+        "الغرفة": w.room || "",
+        "السرير": w.bed_no || "",
+        "المهنة": w.job || "",
+        "الكفيل": w.sponsor || "",
+        "تاريخ القدوم": w.arrival || "",
+        "البطانية": w.blanket === "نعم" ? "استلم" : "لم يستلم",
+        "صورة الإقامة": w.iqamaImg ? "موجودة" : "ناقصة"
+      }));
+
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, sheet, "الساكنين");
+      XLSX.writeFile(book, "سكن-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+    }
+       // 14. بيانات الوحدات (غرف، حمامات، مطبخ)
+    async function loadRooms() {
+      const { data, error } = await db.from("rooms").select("*");
+      if (error) return;
+      roomsInfo = {};
+      data.forEach(r => roomsInfo[r.building + "|" + r.room] = r);
+      showRooms(currentRoom);
+    }
+
+    function roomTags(room) {
+      const info = roomsInfo[currentBuilding + "|" + room];
+      if (!info) return "";
+      return "🛏️" + info.bedrooms + " 🚿" + info.bathrooms + (info.kitchen ? " 🍳" : "");
+    }
+
+    function showRoomInfo(room) {
+      const box = document.getElementById("roomInfo");
+      if (!room) { box.innerHTML = ""; return; }
+      const info = roomsInfo[currentBuilding + "|" + room] || { bedrooms: 1, bathrooms: 1, kitchen: false };
+
+      box.innerHTML = `
+        <b>وحدة ${room}</b>
+        <label>الغرف
+          <select id="r_bed">${[1, 2, 3].map(n => `<option ${n == info.bedrooms ? "selected" : ""}>${n}</option>`).join("")}</select>
+        </label>
+        <label>الحمامات
+          <select id="r_bath">${[1, 2].map(n => `<option ${n == info.bathrooms ? "selected" : ""}>${n}</option>`).join("")}</select>
+        </label>
+        <label><input type="checkbox" id="r_kitchen" ${info.kitchen ? "checked" : ""}> مطبخ</label>
+        <button onclick="saveRoomInfo('${room}')">💾 حفظ</button>
+      `;
+    }
+
+    async function saveRoomInfo(room) {
+      const row = {
+        building: currentBuilding,
+        room: room,
+        bedrooms: Number(document.getElementById("r_bed").value),
+        bathrooms: Number(document.getElementById("r_bath").value),
+        kitchen: document.getElementById("r_kitchen").checked
+      };
+      const { error } = await db.from("rooms").upsert(row);
+      if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
+      roomsInfo[currentBuilding + "|" + room] = row;
+      showRooms(room);
     }
     // 4. أول ما الصفحة تفتح، اعرض العمال
     showWorkers();
