@@ -4,6 +4,22 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* القائمة الجانبية */
+    #app { display: flex; gap: 20px; align-items: flex-start; }
+    #app[hidden] { display: none; }
+    #sidebar { position: sticky; top: 10px; width: 220px; flex: none; background: #1e3a5f; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 6px; }
+    .brand { color: white; font-size: 20px; font-weight: bold; padding: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); }
+    .nav { background: transparent; color: #cbd5e1; text-align: right; }
+    .nav:hover { background: rgba(255,255,255,0.1); }
+    .nav.active { background: #e08a1e; color: white; }
+    .nav.logout { margin-top: 20px; color: #fca5a5; }
+    #content { flex: 1; min-width: 0; }
+    @media (max-width: 800px) {
+      #app { flex-direction: column; }
+      #sidebar { position: static; width: 100%; flex-direction: row; overflow-x: auto; }
+      .brand { display: none; }
+      .nav { white-space: nowrap; }
+    }
           /* بيانات الوحدة */
     .room .tags { display: block; font-size: 12px; margin-top: 4px; }
     #roomInfo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
@@ -179,7 +195,20 @@
 
   <!-- البرنامج نفسه (مخفي لحد ما تسجل دخول) -->
   <div id="app" hidden>
-    <button onclick="logout()" style="background:#c0392b">🚪 تسجيل خروج</button>
+      <nav id="sidebar">
+    <div class="brand">🏢 سجل السكن</div>
+    <button class="nav" data-page="dashboard" onclick="showPage('dashboard')">📊 لوحة التحكم</button>
+    <button class="nav active" data-page="residents" onclick="showPage('residents')">👷 الساكنين</button>
+    <button class="nav" data-page="moves" onclick="showPage('moves')">🧳 الحركة</button>
+    <button class="nav" data-page="archive" onclick="showPage('archive')">🗂️ الأرشيف</button>
+    <button class="nav" data-page="reports" onclick="showPage('reports')">📄 التقارير</button>
+    <button class="nav" data-page="users" onclick="showPage('users')">👥 المستخدمين</button>
+    <button class="nav" data-page="settings" onclick="showPage('settings')">⚙️ الإعدادات</button>
+    <button class="nav logout" onclick="logout()">🚪 تسجيل خروج</button>
+  </nav>
+
+  <main id="content">
+  <section id="page-residents" class="page">
   <button onclick="openAdd()" style="background:#16a34a">➕ إضافة ساكن</button>
   <div id="addBox" hidden onclick="if (event.target === this) closeAdd()">
   <div id="addInner">
@@ -248,7 +277,15 @@
         <button onclick="exportExcel()" style="background:#16a34a">📊 تصدير Excel</button>
   </div>
   <div id="workersList"></div>
-       
+         </section>
+
+  <section id="page-dashboard" class="page" hidden><h2>📊 لوحة التحكم</h2><p>قريبًا</p></section>
+  <section id="page-moves" class="page" hidden><h2>🧳 الحركة</h2><p>قريبًا</p></section>
+  <section id="page-archive" class="page" hidden><h2>🗂️ الأرشيف</h2><p>قريبًا</p></section>
+  <section id="page-reports" class="page" hidden><h2>📄 التقارير</h2><p>قريبًا</p></section>
+  <section id="page-users" class="page" hidden><h2>👥 المستخدمين</h2><p>قريبًا</p></section>
+  <section id="page-settings" class="page" hidden><h2>⚙️ الإعدادات</h2><p>قريبًا</p></section>
+  </main>
    
    <div id="cameraBox" hidden>
     <div id="cameraWrap">
@@ -313,6 +350,7 @@
     function showApp() {
       document.getElementById("loginBox").hidden = true;
       document.getElementById("app").hidden = false;
+            document.querySelector("h1").hidden = true;
             loadWorkers();
                   loadRooms();
     }
@@ -884,6 +922,11 @@
       if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
       roomsInfo[currentBuilding + "|" + room] = row;
       showRooms(room);
+    }
+       // 15. التنقل بين الصفحات
+    function showPage(name) {
+      document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + name);
+      document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
     }
     // 4. أول ما الصفحة تفتح، اعرض العمال
     showWorkers();
