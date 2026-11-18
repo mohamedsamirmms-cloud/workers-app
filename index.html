@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* الرسوم البيانية */
+    #charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+    .chart-box { background: white; padding: 15px 20px; border-radius: 12px; }
+    .chart-box h3 { margin-top: 0; color: #1e3a5f; }
+    .bar-row { display: grid; grid-template-columns: 90px 1fr 45px; gap: 10px; align-items: center; margin: 10px 0; font-size: 14px; }
+    .bar-track { background: #eef1f5; border-radius: 6px; height: 14px; overflow: hidden; }
+    .bar-fill { background: #1e3a5f; height: 100%; border-radius: 6px; }
           /* القائمة الجانبية */
     #app { display: flex; gap: 20px; align-items: flex-start; }
     #app[hidden] { display: none; }
@@ -259,7 +266,6 @@
   </div>
   </div>
   <h2>قائمة العمال</h2>
-      <div id="stats"></div>
         <div id="buildingTabs">
     <button onclick="openBuilding('السكن الأول')">🏢 السكن الأول</button>
     <button onclick="openBuilding('السكن الثاني')">🏢 السكن الثاني</button>
@@ -278,9 +284,15 @@
   </div>
   <div id="workersList"></div>
          </section>
-
-  <section id="page-dashboard" class="page" hidden><h2>📊 لوحة التحكم</h2><p>قريبًا</p></section>
-  <section id="page-moves" class="page" hidden><h2>🧳 الحركة</h2><p>قريبًا</p></section>
+  <section id="page-dashboard" class="page" hidden>
+    <h2>📊 لوحة التحكم</h2>
+    <div id="stats"></div>
+    <div id="charts">
+      <div class="chart-box"><h3>الساكنين حسب الجنسية</h3><div id="chartCountry"></div></div>
+      <div class="chart-box"><h3>البطاطين</h3><div id="chartBlanket"></div></div>
+    </div>
+  </section>
+17  <section id="page-moves" class="page" hidden><h2>🧳 الحركة</h2><p>قريبًا</p></section>
   <section id="page-archive" class="page" hidden><h2>🗂️ الأرشيف</h2><p>قريبًا</p></section>
   <section id="page-reports" class="page" hidden><h2>📄 التقارير</h2><p>قريبًا</p></section>
   <section id="page-users" class="page" hidden><h2>👥 المستخدمين</h2><p>قريبًا</p></section>
@@ -396,6 +408,9 @@
       }
       workers = data.map(w => ({ ...w, idNo: w.id_no, iqamaImg: w.iqama_img }));
       showWorkers();
+      showStats();
+      showCharts();
+      showRooms(currentRoom);
     }
 
     // 2. دالة بتعرض العمال في الصفحة
@@ -617,6 +632,7 @@
         localStorage.setItem("workers", JSON.stringify(workers));
         showWorkers();
               showStats();
+                    showCharts();
                     showRooms();
                                input.value = "";
         alert("تم استرجاع البيانات بنجاح ✅");
@@ -927,6 +943,30 @@
     function showPage(name) {
       document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + name);
       document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
+    }
+       // 16. الرسوم البيانية
+    function barRows(counts) {
+      const max = Math.max(...Object.values(counts), 1);
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, n]) => `
+          <div class="bar-row">
+            <span>${name}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${n / max * 100}%"></div></div>
+            <b>${n}</b>
+          </div>`).join("");
+    }
+
+    function showCharts() {
+      const byCountry = {};
+      workers.forEach(function (w) {
+        const c = w.country || "غير محدد";
+        byCountry[c] = (byCountry[c] || 0) + 1;
+      });
+      document.getElementById("chartCountry").innerHTML = barRows(byCountry);
+
+      const yes = workers.filter(w => w.blanket === "نعم").length;
+      document.getElementById("chartBlanket").innerHTML = barRows({ "استلم": yes, "لم يستلم": workers.length - yes });
     }
     // 4. أول ما الصفحة تفتح، اعرض العمال
     showWorkers();
