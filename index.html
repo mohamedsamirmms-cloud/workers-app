@@ -185,6 +185,51 @@
     .eq-doc small { grid-column: 2 / 4; color: #475569; }
     @media (max-width: 600px) { .eq-doc { grid-template-columns: 1fr; } .eq-doc small { grid-column: auto; } }
     #eqList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
+    #page-moves input, #page-moves button { box-sizing: border-box; }
+    #eqStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #eqStats .stat { border-top: 4px solid #1e3a5f; }
+    #eqStats .stat.red { border-color: #c0392b; } #eqStats .stat.red b { color: #c0392b; }
+    #eqStats .stat.amber { border-color: #f59e0b; } #eqStats .stat.amber b { color: #b45309; }
+    #eqStats .stat.green { border-color: #16a34a; } #eqStats .stat.green b { color: #16a34a; }
+    #eqStats .stat.on { background: #fff7ed; box-shadow: 0 0 0 2px #e08a1e inset; }
+    #eqBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    #eqSearch { flex: 1; min-width: 180px; }
+    #eqList th { position: sticky; top: 0; background: white; z-index: 1; }
+    #eqList td { white-space: nowrap; }
+    #eqList tr.eq-row:hover td { background: #fff7ed; }
+    #eqList tr.eq-row.eq-bad td:first-child { box-shadow: inset -4px 0 0 #c0392b; }
+    #eqList tr.eq-row.eq-warn td:first-child { box-shadow: inset -4px 0 0 #f59e0b; }
+    .eq-who { display: flex; align-items: center; gap: 10px; white-space: normal; }
+    .eq-thumb { width: 56px; height: 46px; flex: none; border-radius: 10px; background: #eef1f5; display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; border: 1px solid #e2e8f0; }
+    .eq-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+    .eq-who b { display: block; color: #1e3a5f; min-width: 110px; max-width: 160px; }
+    #eqList th, #eqList td { padding: 8px 5px; }
+    .eq-who small { color: #64748b; font-size: 12px; }
+    .eq-num { font-family: monospace, Tahoma; direction: ltr; display: inline-block; }
+    .eq-photo-box { display: flex; align-items: center; gap: 12px; background: #eef1f5; border-radius: 10px; padding: 10px; }
+    .eq-photo-prev { width: 120px; height: 90px; flex: none; border-radius: 10px; background: white; border: 2px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 34px; overflow: hidden; }
+    .eq-photo-prev img { width: 100%; height: 100%; object-fit: cover; }
+    .eq-photo-box .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    #eqPhotoView { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; cursor: zoom-out; }
+    #eqPhotoView[hidden] { display: none; }
+    #eqPhotoView img { max-width: 100%; max-height: 90vh; border-radius: 12px; }
+    @media (max-width: 700px) {
+      #eqList > div { padding: 8px; }
+      #eqList table, #eqList tbody { display: block; width: 100%; }
+      #eqList tr.eq-head { display: none; }
+      #eqList tr.eq-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; padding: 10px; }
+      #eqList tr.eq-row.eq-bad { border-color: #fca5a5; }
+      #eqList tr.eq-row.eq-warn { border-color: #fcd34d; }
+      #eqList tr.eq-row td { display: block; border: none; padding: 0; background: transparent !important; box-shadow: none !important; white-space: normal; }
+      #eqList tr.eq-row td.eq-whocell, #eqList tr.eq-row td.eq-actions { grid-column: 1 / -1; }
+      #eqList tr.eq-row td.eq-numcell { display: none; }
+      #eqList tr.eq-row td[data-label]::before { content: attr(data-label); display: block; color: #64748b; font-size: 12px; margin-bottom: 2px; }
+      #eqList .eq-thumb { width: 90px; height: 70px; }
+      #eqList .icon-btns button { flex: 1; padding: 9px; }
+      #eqBar > button { flex: 1; }
+      .eq-photo-box { flex-direction: column; align-items: stretch; }
+      .eq-photo-prev { width: 100%; height: 160px; }
+    }
     .file-link { cursor: pointer; text-decoration: none; margin-right: 4px; }
     .eq-scan { background: #f5f3ff; border: 1px dashed #7c3aed; border-radius: 10px; padding: 10px; }
     #eqScanStatus { font-size: 14px; margin-top: 6px; line-height: 1.7; }
@@ -574,13 +619,18 @@
     </div>
   </section>
   <section id="page-moves" class="page" hidden>
-    <h2>🏗️ معدات المشروع</h2>
-    <div id="eqBar" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px">
+    <div class="res-head">
+      <h2>🏗️ معدات المشروع</h2>
       <button onclick="openEq()" style="background:#16a34a">➕ إضافة معدة</button>
-      <input id="eqSearch" placeholder="ابحث بالمعدة أو السائق" oninput="showEquipment()" style="flex:1; min-width:200px">
+    </div>
+    <div id="eqStats"></div>
+    <div id="eqBar" class="res-panel">
+      <input id="eqSearch" placeholder="🔍 ابحث بالمعدة أو السائق أو أي رقم" oninput="showEquipment()">
+      <b id="eqCount"></b>
       <button onclick="exportEquipment()" style="background:#16a34a">📊 تصدير Excel</button>
     </div>
     <div id="eqList"></div>
+    <div id="eqPhotoView" hidden onclick="this.hidden = true"><img id="eqPhotoBig"></div>
 
     <div id="eqBox" hidden onclick="if (event.target === this) closeEq()">
       <form id="eqForm">
@@ -589,6 +639,19 @@
           <button type="button" onclick="document.getElementById('eqScanFile').click()" style="background:#7c3aed">📄 اقرا البيانات من ملف PDF أو صورة</button>
           <input type="file" id="eqScanFile" accept="application/pdf,image/*" onchange="readEqFile(this)" hidden>
           <div id="eqScanStatus"></div>
+        </div>
+        <div class="eq-photo-box">
+          <div class="eq-photo-prev" id="eqPhotoPrev">🏗️</div>
+          <div>
+            <b style="color:#1e3a5f">📷 صورة المعدة</b>
+            <div class="btns" style="margin-top:6px">
+              <button type="button" onclick="document.getElementById('eqPhotoCam').click()">📷 صوّر</button>
+              <button type="button" onclick="document.getElementById('eqPhotoFile').click()">🖼️ اختار صورة</button>
+              <button type="button" id="eqPhotoDel" onclick="removeEqPhoto()" style="background:#c0392b" hidden>✖ شيل الصورة</button>
+            </div>
+            <input type="file" id="eqPhotoCam" accept="image/*" capture="environment" onchange="pickEqPhoto(this)" hidden>
+            <input type="file" id="eqPhotoFile" accept="image/*" onchange="pickEqPhoto(this)" hidden>
+          </div>
         </div>
         <label>المعدة <input id="eq_name" required placeholder="مثلًا: لودر كاتربلر 950"></label>
         <label>السائق <input id="eq_driver" list="eqDriverList" placeholder="اسم السائق"></label>
@@ -1910,6 +1973,48 @@
       if (error) { document.getElementById("eqList").innerHTML = "<div>❌ مشكلة في تحميل المعدات: " + error.message + "</div>"; return; }
       equipment = data;
       showEquipment();
+      loadEqPhotos();
+    }
+
+    // روابط مؤقتة لصور المعدات (التخزين خاص)
+    let eqPhotoUrls = {};
+    async function loadEqPhotos() {
+      const paths = equipment.map(e => e.photo).filter(p => p && !eqPhotoUrls[p]);
+      if (!paths.length) return;
+      const { data, error } = await db.storage.from("equipment").createSignedUrls(paths, 3600);
+      if (error || !data) return;
+      data.forEach(x => { if (x.signedUrl) eqPhotoUrls[x.path] = x.signedUrl; });
+      showEquipment();
+    }
+
+    function viewEqPhoto(path) {
+      if (!eqPhotoUrls[path]) return;
+      document.getElementById("eqPhotoBig").src = eqPhotoUrls[path];
+      document.getElementById("eqPhotoView").hidden = false;
+    }
+
+    // صورة المعدة في نافذة الإضافة/التعديل
+    let eqPhotoNew = null;     // صورة جديدة (data URL) مستنية الرفع
+    let eqPhotoRemoved = false;
+
+    function showEqPhotoPrev(src) {
+      document.getElementById("eqPhotoPrev").innerHTML = src ? `<img src="${src}">` : "🏗️";
+      document.getElementById("eqPhotoDel").hidden = !src;
+    }
+
+    async function pickEqPhoto(input) {
+      const file = input.files[0];
+      input.value = "";
+      if (!file) return;
+      eqPhotoNew = await resizeImage(file);
+      eqPhotoRemoved = false;
+      showEqPhotoPrev(eqPhotoNew);
+    }
+
+    function removeEqPhoto() {
+      eqPhotoNew = null;
+      eqPhotoRemoved = true;
+      showEqPhotoPrev("");
     }
 
     // نفتح الملف من التخزين برابط مؤقت
@@ -1924,24 +2029,58 @@
       return path ? `<a class="file-link" title="عرض المرفق" onclick="openFile('${path}')">📎</a>` : "";
     }
 
+    let eqFilter = "all";
+
+    function setEqFilter(f) {
+      eqFilter = eqFilter === f ? "all" : f;
+      showEquipment();
+    }
+
+    // أسوأ حالة لمستندات المعدة اللي ليها تاريخ انتهاء
+    function eqState(e) {
+      const st = EQ_DOCS.filter(d => !d.num).map(d => expiryState(e[eqField(d)]));
+      return st.includes("bad") ? "bad" : st.includes("warn") ? "warn" : "ok";
+    }
+
     function showEquipment() {
       const list = document.getElementById("eqList");
-      const q = document.getElementById("eqSearch").value.trim().toLowerCase();
-      const result = equipment.filter(e => !q || ((e.name || "") + " " + (e.driver || "")).toLowerCase().includes(q));
-      if (result.length === 0) { list.innerHTML = "<div><p>لا يوجد معدات" + (q ? " مطابقة للبحث" : " بعد") + "</p></div>"; return; }
+      const cnt = f => equipment.filter(e => eqState(e) === f).length;
+      const card = (f, cls, n, label) => `<div class="stat click ${cls} ${eqFilter === f ? "on" : ""}" onclick="setEqFilter('${f}')"><b>${n}</b>${label}</div>`;
+      document.getElementById("eqStats").innerHTML =
+        card("all", "", equipment.length, "🏗️ إجمالي المعدات") +
+        card("bad", "red", cnt("bad"), "⛔ فيها مستند منتهي") +
+        card("warn", "amber", cnt("warn"), "⏳ مستند قرب يخلص") +
+        card("ok", "green", cnt("ok"), "✅ ورقها سليم");
 
-      let html = `<div><table><tr><th>#</th><th>المعدة</th><th>السائق</th>`;
+      const q = document.getElementById("eqSearch").value.trim().toLowerCase();
+      const result = equipment
+        .filter(e => eqFilter === "all" || eqState(e) === eqFilter)
+        .filter(e => !q || [e.name, e.driver, e.iqama_no, e.license_no, e.operator_no].join(" ").toLowerCase().includes(q));
+      document.getElementById("eqCount").textContent = "العدد: " + result.length;
+      if (equipment.length === 0) { list.innerHTML = "<div><p>لا يوجد معدات بعد — دوس ➕ إضافة معدة</p></div>"; return; }
+      if (result.length === 0) { list.innerHTML = "<div><p>لا يوجد نتائج</p></div>"; return; }
+
+      let html = `<div><table><tr class="eq-head"><th>#</th><th>المعدة</th>`;
       EQ_DOCS.forEach(d => html += `<th>${d.label}</th>`);
-      html += `<th>مرفقات أخرى</th><th></th></tr>`;
+      html += `<th>مرفقات</th><th></th></tr>`;
       result.forEach(function (e, i) {
-        html += `<tr><td>${i + 1}</td><td><b>${e.name}</b></td><td>${e.driver || "-"}</td>`;
-        EQ_DOCS.forEach(d => html += `<td style="white-space:nowrap">${d.num ? (e[eqField(d)] || "-") : expiryBadge(e[eqField(d)])} ${fileLink(e[d.key + "_file"])}</td>`);
+        const state = eqState(e);
+        const url = e.photo && eqPhotoUrls[e.photo];
+        html += `<tr class="eq-row ${state === "bad" ? "eq-bad" : state === "warn" ? "eq-warn" : ""}">
+          <td class="eq-numcell">${i + 1}</td>
+          <td class="eq-whocell"><div class="eq-who">
+            <span class="eq-thumb">${url ? `<img src="${url}" onclick="viewEqPhoto('${e.photo}')" alt="">` : "🏗️"}</span>
+            <span><b>${e.name}</b><small>${e.driver ? "👤 " + e.driver : "بدون سائق"}</small></span>
+          </div></td>`;
+        EQ_DOCS.forEach(d => html += `<td data-label="${d.label}">${d.num
+          ? (e[eqField(d)] ? `<span class="eq-num">${e[eqField(d)]}</span>` : "-")
+          : expiryBadge(e[eqField(d)])} ${fileLink(e[d.key + "_file"])}</td>`);
         const others = e.other_files || [];
-        html += `<td>${others.length ? others.map(f => `<a class="file-link" title="${f.name}" onclick="openFile('${f.path}')">📎</a>`).join("") : "-"}</td>
-          <td style="white-space:nowrap">
-            <button onclick="openEq(${e.id})" style="background:#e08a1e">تعديل</button>
-            <button onclick="deleteEq(${e.id})" style="background:#c0392b">حذف</button>
-          </td></tr>`;
+        html += `<td data-label="مرفقات أخرى">${others.length ? others.map(f => `<a class="file-link" title="${f.name}" onclick="openFile('${f.path}')">📎</a>`).join("") : "-"}</td>
+          <td class="eq-actions"><div class="icon-btns">
+            <button class="edit" onclick="openEq(${e.id})">✏️ تعديل</button>
+            <button class="del" onclick="deleteEq(${e.id})" title="حذف">🗑️</button>
+          </div></td></tr>`;
       });
       list.innerHTML = html + "</table></div>";
     }
@@ -1951,6 +2090,9 @@
       editingEqId = id || null;
       eqOtherFiles = (e.other_files || []).slice();
       eqPendingFiles = [];
+      eqPhotoNew = null;
+      eqPhotoRemoved = false;
+      showEqPhotoPrev(e.photo ? eqPhotoUrls[e.photo] || "" : "");
       document.getElementById("eqScanStatus").innerHTML = "";
       eqRemoved = [];
       document.getElementById("eq_name").value = e.name || "";
@@ -2197,6 +2339,14 @@
             if (old[d.key + "_file"]) toRemove.push(old[d.key + "_file"]);
           }
         }
+        if (eqPhotoNew) {
+          const blob = await (await fetch(eqPhotoNew)).blob();
+          row.photo = await uploadEqFile(new File([blob], "photo.jpg", { type: "image/jpeg" }), "photo");
+          if (old.photo) toRemove.push(old.photo);
+        } else if (eqPhotoRemoved) {
+          row.photo = null;
+          if (old.photo) toRemove.push(old.photo);
+        }
         const others = eqOtherFiles.slice();
         for (const file of eqPendingFiles) {
           others.push({ name: file.name, path: await uploadEqFile(file, "other") });
@@ -2227,7 +2377,7 @@
       if (!confirm("متأكد إنك عايز تحذف " + e.name + " وكل مرفقاتها؟")) return;
       const { error } = await db.from("equipment").delete().eq("id", id);
       if (error) { alert("❌ محصلش حذف: " + error.message); return; }
-      const files = EQ_DOCS.map(d => e[d.key + "_file"]).filter(Boolean).concat((e.other_files || []).map(f => f.path));
+      const files = EQ_DOCS.map(d => e[d.key + "_file"]).concat([e.photo]).filter(Boolean).concat((e.other_files || []).map(f => f.path));
       if (files.length) await db.storage.from("equipment").remove(files);
       loadEquipment();
     }
