@@ -41,9 +41,58 @@
     tr.absent td { background: #fef2f2; }
     .ts-name { cursor: pointer; color: #1e3a5f; text-decoration: underline; }
           /* التايم شيت */
-    #tsBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
-    #tsSearch { flex: 1; min-width: 200px; }
-    td input[type="time"] { padding: 6px; }
+    #page-timesheet input, #page-timesheet button { box-sizing: border-box; }
+    #tsBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
+    #tsSearch { flex: 1; min-width: 180px; }
+    .ts-day { display: flex; gap: 6px; align-items: center; }
+    .ts-day button { padding: 8px 12px; background: #eef1f5; color: #1e3a5f; }
+    .ts-day button:hover { background: #e08a1e; color: white; }
+    #tsDayName { font-weight: bold; color: #1e3a5f; min-width: 60px; text-align: center; }
+    #tsStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #tsStats .stat { border-top: 4px solid #1e3a5f; }
+    #tsStats .stat.green { border-color: #16a34a; } #tsStats .stat.green b { color: #16a34a; }
+    #tsStats .stat.red { border-color: #c0392b; } #tsStats .stat.red b { color: #c0392b; }
+    #tsStats .stat.orange { border-color: #e08a1e; } #tsStats .stat.orange b { color: #e08a1e; }
+    .ts-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .chip { background: white; color: #475569; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 14px; font-size: 14px; }
+    .chip:hover { background: #fff7ed; color: #9a3412; }
+    .chip.on { background: #1e3a5f; color: white; border-color: #1e3a5f; }
+    #tsList th { position: sticky; top: 0; background: white; z-index: 1; }
+    #tsList tr.ts-row td { vertical-align: middle; }
+    #tsList tr.is-present td { background: #f0fdf4; }
+    #tsList tr.is-present td:first-child { box-shadow: inset -4px 0 0 #16a34a; }
+    #tsList tr.ts-row:hover td { background: #fff7ed; }
+    .ts-who b { display: block; font-size: 14px; }
+    .ts-who small { color: #64748b; font-size: 12px; }
+    .ts-who .ts-name { text-decoration: none; }
+    .ts-who .ts-name:hover { text-decoration: underline; }
+    .ts-status { display: flex; gap: 6px; align-items: center; }
+    .ts-status .btn-in { background: #16a34a; padding: 6px 14px; }
+    .ts-status .btn-x { background: transparent; color: #c0392b; border: 1px solid #fecaca; padding: 5px 9px; }
+    .ts-status .btn-x:hover { background: #fee2e2; }
+    td input[type="time"] { padding: 6px; width: 120px; }
+    .ts-hours { display: inline-block; min-width: 42px; text-align: center; background: #eef1f5; border-radius: 20px; padding: 3px 10px; font-weight: bold; color: #1e3a5f; }
+    .ts-ot { width: 70px; text-align: center; }
+    .ts-ot.has { border-color: #e08a1e; background: #fff7ed; color: #9a3412; font-weight: bold; }
+    @media (max-width: 700px) {
+      #tsBar { padding: 10px; }
+      .ts-day { flex-wrap: wrap; width: 100%; }
+      .ts-day input { flex: 1; min-width: 0; }
+      #tsSearch { min-width: 0; width: 100%; }
+      #tsBar > button { width: 100%; }
+      #tsList > div { padding: 8px; }
+      #tsList table, #tsList tbody { display: block; width: 100%; }
+      #tsList tr.ts-head { display: none; }
+      #tsList tr.ts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; padding: 10px; }
+      #tsList tr.is-present { border-color: #86efac; background: #f0fdf4; }
+      #tsList tr.ts-row td { display: flex; flex-direction: column; align-items: stretch; gap: 3px; border: none; padding: 0; min-width: 0; background: transparent !important; box-shadow: none !important; }
+      #tsList tr.ts-row td[data-label]::before { content: attr(data-label); color: #64748b; font-size: 12px; }
+      #tsList tr.ts-row td.ts-num { display: none; }
+      #tsList tr.ts-row td.ts-who, #tsList tr.ts-row td.ts-state { grid-column: 1 / -1; }
+      #tsList tr.ts-row td.ts-state { flex-direction: row; align-items: center; justify-content: space-between; }
+      #tsList td input[type="time"], #tsList .ts-ot { width: 100%; min-width: 0; }
+      .ts-hours { align-self: flex-start; }
+    }
       #carsList > div, #tsList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
           /* السيارات */
     #carBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
@@ -433,11 +482,18 @@
     <section id="page-timesheet" class="page" hidden>
     <h2>⏱️ التايم شيت</h2>
     <div id="tsBar">
-      <input type="date" id="tsDate" onchange="loadTimesheet()">
-     <input id="tsSearch" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="tsPage = 0; showTimesheet()">
-      <b id="tsTotals"></b>
+      <div class="ts-day">
+        <button onclick="shiftTsDate(-1)" title="اليوم اللي قبله">→</button>
+        <input type="date" id="tsDate" onchange="loadTimesheet()">
+        <button onclick="shiftTsDate(1)" title="اليوم اللي بعده">←</button>
+        <button onclick="shiftTsDate(0)">النهارده</button>
+        <span id="tsDayName"></span>
+      </div>
+      <input id="tsSearch" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="tsPage = 0; showTimesheet()">
       <button onclick="markAll()" style="background:#16a34a">✅ حضّر الكل</button>
     </div>
+    <div id="tsStats"></div>
+    <div class="ts-chips" id="tsChips"></div>
     <div id="tsList"></div>
         <div id="tsMonthBox" hidden onclick="if (event.target === this) closeTsMonth()">
       <div id="tsMonthInner">
@@ -1281,33 +1337,84 @@
         let tsResult = [];
     const DEFAULT_IN = "07:00";
 
+    let tsFilter = "all";
+
+    function setTsFilter(f) {
+      tsFilter = f;
+      tsPage = 0;
+      showTimesheet();
+    }
+
+    // التنقل بين الأيام: -1 امبارح، 1 بكره، 0 النهارده
+    function shiftTsDate(n) {
+      const input = document.getElementById("tsDate");
+      if (n === 0 || !input.value) {
+        input.value = new Date().toLocaleDateString("en-CA");
+      } else {
+        const d = new Date(input.value + "T12:00:00");
+        d.setDate(d.getDate() + n);
+        input.value = d.toLocaleDateString("en-CA");
+      }
+      loadTimesheet();
+    }
+
     function showTimesheet() {
+      const date = document.getElementById("tsDate").value;
+      document.getElementById("tsDayName").textContent = date
+        ? new Date(date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long" }) : "";
+
       const q = document.getElementById("tsSearch").value.trim().toLowerCase();
-      tsResult = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
+      const searched = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
+      const isIn = w => !!(tsRecords[w.id] && tsRecords[w.id].time_in);
+      tsResult = searched.filter(w => tsFilter === "all" || (tsFilter === "present" ? isIn(w) : !isIn(w)));
       if (tsPage * PAGE_SIZE >= tsResult.length) tsPage = 0;
-      const recs = Object.values(tsRecords);
-      const present = recs.filter(r => r.time_in).length;
-      const totalOt = recs.reduce((s, r) => s + Number(r.overtime || 0), 0);
-      document.getElementById("tsTotals").textContent = `حضر: ${present} | أوفر تايم: ${totalOt} ساعة`;
+
+      // الأرقام فوق
+      const recs = Object.values(tsRecords).filter(r => r.time_in);
+      const present = recs.length;
+      const totalHours = Math.round(recs.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
+      const totalOt = Math.round(recs.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
+      const notYet = Math.max(0, workers.length - present);
+      document.getElementById("tsStats").innerHTML = `
+        <div class="stat green"><b>${present}</b>✅ حاضر</div>
+        <div class="stat red"><b>${notYet}</b>⏳ لم يسجّل</div>
+        <div class="stat"><b>${totalHours}</b>🕒 إجمالي الساعات</div>
+        <div class="stat orange"><b>${totalOt}</b>⚡ أوفر تايم</div>`;
+
+      const presentShown = searched.filter(isIn).length;
+      const chip = (f, label) => `<button class="chip ${tsFilter === f ? "on" : ""}" onclick="setTsFilter('${f}')">${label}</button>`;
+      document.getElementById("tsChips").innerHTML =
+        chip("all", "الكل (" + searched.length + ")") +
+        chip("present", "✅ الحاضرين (" + presentShown + ")") +
+        chip("absent", "⏳ لم يسجّل (" + (searched.length - presentShown) + ")");
+
+      if (tsResult.length === 0) {
+        document.getElementById("tsList").innerHTML = "<div><p>لا يوجد عمال هنا</p></div>";
+        return;
+      }
 
       let html = `<div><table>
-        <tr><th>الاسم</th><th>الغرفة</th><th></th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>أوفر تايم</th></tr>`;
-         tsResult.slice(tsPage * PAGE_SIZE, (tsPage + 1) * PAGE_SIZE).forEach(function (w) {
+        <tr class="ts-head"><th>#</th><th>العامل</th><th>الحالة</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>أوفر تايم</th></tr>`;
+      tsResult.slice(tsPage * PAGE_SIZE, (tsPage + 1) * PAGE_SIZE).forEach(function (w, i) {
         const r = tsRecords[w.id] || {};
         const ot = Number(r.overtime || 0);
-        html += `<tr>
-          <td><b class="ts-name" onclick="openTsMonth(${w.id})">${w.name}</b></td>
-          <td>${w.room || "-"}</td>
-          <td>
-            ${r.time_in
-              ? '<span class="badge ok">حاضر</span>'
-              : `<button onclick="markPresent(${w.id})" style="background:#16a34a">✅ حاضر</button>`}
-            <button onclick="markAbsent(${w.id})" style="background:#c0392b">✖</button>
+        const here = !!r.time_in;
+        html += `<tr class="ts-row ${here ? "is-present" : ""}">
+          <td class="ts-num">${tsPage * PAGE_SIZE + i + 1}</td>
+          <td class="ts-who">
+            <b class="ts-name" onclick="openTsMonth(${w.id})" title="الكشف الشهري">${w.name}</b>
+            <small>🚪 غرفة ${w.room || "-"}${w.idNo ? " · " + w.idNo : ""} · <a href="#" onclick="openTsMonth(${w.id}); return false;">📅 الكشف</a></small>
           </td>
-          <td><input type="time" id="in_${w.id}" value="${(r.time_in || "").slice(0, 5)}" onchange="saveTime(${w.id})"></td>
-          <td><input type="time" id="out_${w.id}" value="${(r.time_out || "").slice(0, 5)}" onchange="saveTime(${w.id})"></td>
-          <td>${r.hours || "-"}</td>
-          <td><input type="number" min="0" step="0.5" id="ot_${w.id}" value="${ot || ""}" placeholder="0" style="width:70px" onchange="setOvertime(${w.id})"></td>
+          <td class="ts-state" data-label="الحالة"><div class="ts-status">
+            ${here
+              ? `<span class="badge ok">✅ حاضر</span>
+                 <button class="btn-x" onclick="markAbsent(${w.id})" title="شيل الحضور">✖</button>`
+              : `<button class="btn-in" onclick="markPresent(${w.id})">تسجيل حضور</button>`}
+          </div></td>
+          <td data-label="الحضور"><input type="time" id="in_${w.id}" value="${(r.time_in || "").slice(0, 5)}" onchange="saveTime(${w.id})"></td>
+          <td data-label="الانصراف"><input type="time" id="out_${w.id}" value="${(r.time_out || "").slice(0, 5)}" onchange="saveTime(${w.id})"></td>
+          <td data-label="الساعات"><span class="ts-hours">${r.hours || "-"}</span></td>
+          <td data-label="أوفر تايم"><input type="number" min="0" step="0.5" id="ot_${w.id}" class="ts-ot ${ot ? "has" : ""}" value="${ot || ""}" placeholder="0" onchange="setOvertime(${w.id})"></td>
         </tr>`;
       });
       html += "</table></div>";
