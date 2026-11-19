@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* التنقل بين الصفحات */
+    .pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+    button:disabled { opacity: 0.4; cursor: default; }
           /* الكشف الشهري */
     #tsMonthBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #tsMonthBox[hidden] { display: none; }
@@ -298,7 +301,7 @@
   <div id="roomsGrid"></div>
     <div id="roomInfo"></div>
   <div id="filterBox">
-        <input id="search" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="currentRoom = ''; showRooms(); showWorkers()">
+        <input id="search" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="currentRoom = ''; wPage = 0; showRooms(); showWorkers()"
     <select id="filterBuilding" onchange="showWorkers()">
       <option value="">كل المساكن</option>
       <option>السكن الأول</option>
@@ -346,7 +349,7 @@
     <h2>⏱️ التايم شيت</h2>
     <div id="tsBar">
       <input type="date" id="tsDate" onchange="loadTimesheet()">
-      <input id="tsSearch" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="showTimesheet()">
+     <input id="tsSearch" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="tsPage = 0; showTimesheet()">
       <b id="tsTotals"></b>
       <button onclick="markAll()" style="background:#16a34a">✅ حضّر الكل</button>
     </div>
@@ -562,7 +565,7 @@
         const text = (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase();
         return text.includes(q);
       });
-
+      if (wPage * PAGE_SIZE >= result.length) wPage = 0;
            lastResult = result;
       document.getElementById("resultCount").textContent = "العدد: " + result.length;
 
@@ -572,11 +575,10 @@
       }
 
             let html = `<div><table>
-        <tr><th>#</th><th>الاسم</th>><th>الغرفة</th><th>السرير</th><th>الإقامة</th><th>الجنسية</th><th>المهنة</th><th>البطانية</th><th>صورة الإقامة</th><th></th></tr>`;
-
-      result.slice(0, 50).forEach(function (worker, i) {
+        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>السرير</th><th>الإقامة</th><th>الجنسية</th><th>المهنة</th><th>البطانية</th><th>صورة الإقامة</th><th></th></tr>`;
+      result.slice(wPage * PAGE_SIZE, (wPage + 1) * PAGE_SIZE).forEach(function (worker, i) {
         html += `<tr>
-          <td>${i + 1}</td>
+            <td>${wPage * PAGE_SIZE + i + 1}</td>
           <td><b>${worker.name}</b></td>
                     <td>${worker.room || "-"}</td>
           <td>${worker.bed_no || "-"}</td>
@@ -594,9 +596,7 @@
       });
 
       html += `</table></div>`;
-      if (result.length > 50) {
-        html += `<p>معروض أول 50 من ${result.length}. اكتب في البحث عشان تضيّق النتيجة.</p>`;
-      }
+     html += pager(result.length, wPage, "goWPage");
       list.innerHTML = html;
     }
     // 3. لما ندوس زرار "إضافة"
@@ -1168,7 +1168,7 @@
     function showTimesheet() {
       const q = document.getElementById("tsSearch").value.trim().toLowerCase();
       tsResult = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
-
+      if (tsPage * PAGE_SIZE >= tsResult.length) tsPage = 0;
       const recs = Object.values(tsRecords);
       const present = recs.filter(r => r.time_in).length;
       const totalOt = recs.reduce((s, r) => s + Number(r.overtime || 0), 0);
@@ -1176,7 +1176,7 @@
 
       let html = `<div><table>
         <tr><th>الاسم</th><th>الغرفة</th><th></th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>أوفر تايم</th></tr>`;
-      tsResult.slice(0, 50).forEach(function (w) {
+         tsResult.slice(tsPage * PAGE_SIZE, (tsPage + 1) * PAGE_SIZE).forEach(function (w) {
         const r = tsRecords[w.id] || {};
         const ot = Number(r.overtime || 0);
         html += `<tr>
@@ -1195,7 +1195,7 @@
         </tr>`;
       });
       html += "</table></div>";
-      if (tsResult.length > 50) html += `<p>معروض أول 50 من ${tsResult.length}. اكتب في البحث عشان تضيّق النتيجة.</p>`;
+      html += pager(tsResult.length, tsPage, "goTsPage");
       document.getElementById("tsList").innerHTML = html;
     }
 
@@ -1395,6 +1395,32 @@
       book.Workbook = { Views: [{ RTL: true }] };
       XLSX.utils.book_append_sheet(book, sheet, "التايم شيت");
       XLSX.writeFile(book, "تايم-شيت-" + w.name + "-" + ym + ".xlsx");
+    }
+       // 20. التنقل بين الصفحات
+    const PAGE_SIZE = 50;
+    let tsPage = 0;
+    let wPage = 0;
+
+    function pager(total, page, fn) {
+      const pages = Math.ceil(total / PAGE_SIZE);
+      if (pages <= 1) return "";
+      return `<div class="pager">
+        <button ${page === 0 ? "disabled" : ""} onclick="${fn}(${page - 1})">→ السابق</button>
+        <b>صفحة ${page + 1} من ${pages} (${total} عامل)</b>
+        <button ${page >= pages - 1 ? "disabled" : ""} onclick="${fn}(${page + 1})">التالي ←</button>
+      </div>`;
+    }
+
+    function goTsPage(p) {
+      tsPage = p;
+      showTimesheet();
+      document.getElementById("tsList").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function goWPage(p) {
+      wPage = p;
+      showWorkers();
+      document.getElementById("workersList").scrollIntoView({ behavior: "smooth" });
     }
     // 4. أول ما الصفحة تفتح، اعرض العمال
     showWorkers();
