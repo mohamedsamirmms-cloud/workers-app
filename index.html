@@ -407,7 +407,50 @@
           /* نافذة الملف الشخصي */
     #profileBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #profileBox[hidden] { display: none; }
-    #profileBox #profile { width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; margin: 0; }
+    #profileBox #profile { width: 100%; max-width: 820px; max-height: 92vh; overflow-y: auto; margin: 0; padding: 0; background: #eef1f5; line-height: 1.6; box-sizing: border-box; }
+    #profile button { box-sizing: border-box; }
+    #profile .tsm-head h3 { color: white; font-size: 18px; margin: 0; }
+    .pf-body { padding: 15px 18px 18px; display: grid; gap: 12px; }
+    .pf-card { background: white; border-radius: 12px; padding: 12px 15px; }
+    .pf-card h4 { margin: 0 0 10px !important; padding: 0 !important; background: none !important; color: #1e3a5f; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pf-card h4 button { font-size: 13px; padding: 6px 12px; }
+    .pf-top { display: grid; grid-template-columns: 300px 1fr; gap: 12px; }
+    .pf-iqama { display: flex; flex-direction: column; gap: 8px; }
+    .pf-iqama .img { border-radius: 10px; overflow: hidden; background: #f8fafc; border: 2px dashed #cbd5e1; min-height: 170px; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #94a3b8; gap: 6px; }
+    .pf-iqama .img.has { border: 1px solid #e2e8f0; }
+    .pf-iqama .img img { width: 100%; display: block; cursor: zoom-in; }
+    .pf-iqama .btns { display: flex; gap: 6px; }
+    .pf-iqama .btns button { flex: 1; font-size: 13px; padding: 8px; }
+    .pf-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+    .pf-info div { border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+    .pf-info small { display: block; color: #64748b; font-size: 12px; }
+    .pf-info b { color: #1f2937; font-size: 14px; }
+    .pf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+    .pf-stats .stat { background: #f8fafc; padding: 10px; }
+    .pf-stats .stat b { font-size: 22px; }
+    .pf-list a { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; color: #1e3a5f; text-decoration: none; cursor: pointer; }
+    .pf-list a:hover { background: #fff7ed; }
+    .pf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    #iqamaView { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 70; display: flex; align-items: center; justify-content: center; padding: 15px; cursor: zoom-out; }
+    #iqamaView[hidden] { display: none; }
+    #iqamaView img { max-width: 100%; max-height: 92vh; border-radius: 10px; }
+    @media (max-width: 700px) {
+      #profileBox { padding: 0; align-items: stretch; }
+      #profileBox #profile { max-height: 100vh; border-radius: 0; }
+      .pf-body { padding: 10px; }
+      .pf-top { grid-template-columns: 1fr; }
+      .pf-actions button { flex: 1; }
+    }
+    @media print {
+      body { background: white !important; padding: 0 !important; max-width: none !important; }
+      body * { visibility: hidden; }
+      #profileBox, #profileBox * { visibility: visible; }
+      #profileBox { position: absolute; inset: 0; background: none; padding: 0; display: block; }
+      #profileBox #profile { max-width: none; max-height: none; overflow: visible; background: white; box-shadow: none; }
+      #app { display: block !important; }
+      .no-print { display: none !important; }
+      .pf-card { border: 1px solid #e2e8f0; break-inside: avoid; }
+    }
           /* نافذة التعديل */
     #editBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #editBox[hidden] { display: none; }
@@ -874,6 +917,7 @@
         </div>
         <div class="tsm-body">
           <div class="ts-month-bar">
+            <button onclick="closeTsMonth(); showProfile(tsMonthWorker.id)" style="background:#7c3aed">🪪 الملف الشامل</button>
             <button class="nav-btn" onclick="shiftTsMonth(-1)" title="الشهر اللي قبله">→</button>
             <input type="month" id="tsMonth" onchange="showTsMonth()">
             <button class="nav-btn" onclick="shiftTsMonth(1)" title="الشهر اللي بعده">←</button>
@@ -961,6 +1005,9 @@
    <div id="profileBox" hidden onclick="if (event.target === this) closeProfile()">
     <div id="profile"></div>
   </div>
+  <div id="iqamaView" hidden onclick="this.hidden = true"><img id="iqamaBig"></div>
+  <input type="file" id="pfIqamaCam" accept="image/*" capture="environment" onchange="uploadProfileIqama(this)" hidden>
+  <input type="file" id="pfIqamaFile" accept="image/*" onchange="uploadProfileIqama(this)" hidden>
      <datalist id="sponsorList">
     <option value="TDC">
     <option value="Local Rental">
@@ -1254,8 +1301,13 @@
     
        // 6. الملف الشخصي (بيانات السكن)
            // 6. الملف الشخصي (نافذة)
+    // ===== الملف الشامل للعامل =====
+    let profileId = null;
+
     async function showProfile(workerId) {
       const w = workers.find(x => x.id === workerId);
+      if (!w) return;
+      profileId = workerId;
 
       let imgUrl = "";
       if (w.iqamaImg) {
@@ -1263,28 +1315,149 @@
         if (data) imgUrl = data.signedUrl;
       }
 
+      const ym = new Date().toLocaleDateString("en-CA").slice(0, 7);
+      const [y, m] = ym.split("-").map(Number);
+      const monthName = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+      const initials = w.name.split(" ").filter(Boolean).slice(0, 2).map(x => x[0]).join("");
+      const info = (label, value) => `<div><small>${label}</small><b>${value || "-"}</b></div>`;
+
+      // المعدات والسيارات اللي بيسوقها
+      const myEq = equipment.filter(e => (e.driver && e.driver.trim().toLowerCase() === w.name.trim().toLowerCase()) || (w.idNo && e.iqama_no === w.idNo));
+      const myCars = cars.filter(c => c.driver && c.driver.trim().toLowerCase() === w.name.trim().toLowerCase());
+      const vehicles = myEq.map(e => `<a onclick="closeProfile(); showPage('moves'); openEq(${e.id})">🏗️ <b>${e.name}</b> ${eqState(e) === "bad" ? '<span class="badge bad">فيها مستند منتهي</span>' : eqState(e) === "warn" ? '<span class="badge warn">مستند قرب يخلص</span>' : ""}</a>`)
+        .concat(myCars.map(c => `<a onclick="closeProfile(); showPage('cars')">🚗 <b>${c.car_type || "سيارة"}</b> <span class="plate">${c.plate}</span></a>`));
+
       document.getElementById("profile").innerHTML = `
-        <h3>${w.name}</h3>
-        ${imgUrl ? `<img src="${imgUrl}" class="iqama-img"><br>` : '<span class="badge miss">صورة الإقامة ناقصة</span><br>'}
-        رقم الإقامة: ${w.idNo || "-"}<br>
-        البلد: ${w.country || "-"}<br>
-       
-        المهنة: ${w.job || "-"}<br>
-        الكفيل: ${w.sponsor || "-"}<br>
-       
-        <h4>بيانات السكن</h4>
-        السكن: ${w.building || "-"}<br>
-        الغرفة: ${w.room || "-"} | السرير: ${w.bed_no || "-"}<br>
-        تاريخ القدوم: ${w.arrival || "-"}<br>
-        البطانية: ${w.blanket === "نعم" ? '<span class="badge ok">استلم</span>' : '<span class="badge bad">لم يستلم</span>'}
-        <br><br>
-        <button onclick="closeProfile(); openEdit(${w.id})" style="background:#e08a1e">✏️ تعديل</button>
-        <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+        <div class="tsm-head">
+          <span class="tsm-avatar">${initials}</span>
+          <div><h3>🪪 الملف الشامل — ${w.name}</h3><small>${[w.country, w.job].filter(Boolean).join(" · ") || ""}</small></div>
+          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+        </div>
+        <div class="pf-body">
+          <div class="pf-top">
+            <div class="pf-card pf-iqama">
+              <h4>🪪 صورة الإقامة</h4>
+              <div class="img ${imgUrl ? "has" : ""}">
+                ${imgUrl ? `<img src="${imgUrl}" onclick="document.getElementById('iqamaBig').src = this.src; document.getElementById('iqamaView').hidden = false" alt="الإقامة">`
+                         : '<span style="font-size:40px">🪪</span><span>صورة الإقامة ناقصة</span>'}
+              </div>
+              <div class="btns no-print">
+                <button type="button" onclick="document.getElementById('pfIqamaCam').click()">📷 صوّر</button>
+                <button type="button" onclick="document.getElementById('pfIqamaFile').click()">🖼️ ${imgUrl ? "غيّر الصورة" : "ارفع صورة"}</button>
+              </div>
+              <span id="pfIqamaMsg" style="font-size:13px"></span>
+            </div>
+            <div class="pf-card">
+              <h4>👤 البيانات الشخصية</h4>
+              <div class="pf-info">
+                ${info("رقم الإقامة", w.idNo)}
+                ${info("الجنسية", w.country)}
+                ${info("المهنة", w.job)}
+                ${info("الكفيل", w.sponsor)}
+                ${info("السكن", w.building)}
+                ${info("الغرفة / السرير", (w.room || "-") + (w.bed_no ? " · سرير " + w.bed_no : ""))}
+                ${info("تاريخ القدوم", w.arrival)}
+                ${info("البطانية", w.blanket === "نعم" ? '<span class="badge ok">استلم</span>' : '<span class="badge bad">لم يستلم</span>')}
+              </div>
+            </div>
+          </div>
+          <div class="pf-card">
+            <h4>⏱️ الحضور — ${monthName} <button class="no-print" onclick="closeProfile(); openTsMonth(${w.id}, '${ym}')">📅 الكشف الشهري</button></h4>
+            <div class="pf-stats" id="pfAtt"><p>⏳ جاري التحميل...</p></div>
+          </div>
+          <div class="pf-card">
+            <h4>🍽️ الوجبات — ${monthName}</h4>
+            <div class="pf-stats" id="pfMeals"><p>⏳ جاري التحميل...</p></div>
+          </div>
+          <div class="pf-card pf-list">
+            <h4>🏗️ المعدات والسيارات اللي بيسوقها</h4>
+            ${vehicles.length ? vehicles.join("") : '<p style="color:#64748b;margin:0">مفيش معدات أو سيارات متسجّل إنه سواقها</p>'}
+          </div>
+          <div class="pf-actions no-print">
+            <button onclick="closeProfile(); openEdit(${w.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>
+            <button onclick="window.print()" style="background:#1e3a5f">🖨️ طباعة الملف</button>
+            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+          </div>
+        </div>
       `;
       document.getElementById("profileBox").hidden = false;
+      document.getElementById("profile").scrollTop = 0;
+      loadProfileMonth(w, ym);
+    }
+
+    // حضور ووجبات الشهر الحالي في الملف
+    async function loadProfileMonth(w, ym) {
+      const [y, m] = ym.split("-").map(Number);
+      const days = new Date(y, m, 0).getDate();
+      const first = ym + "-01", last = ym + "-" + String(days).padStart(2, "0");
+      const today = new Date().toLocaleDateString("en-CA");
+
+      const [ts, ml] = await Promise.all([
+        db.from("timesheet").select("work_date,time_in,hours,overtime").eq("worker_id", w.id).gte("work_date", first).lte("work_date", last),
+        db.from("meals").select("breakfast,lunch").eq("worker_id", w.id).gte("meal_date", first).lte("meal_date", last)
+      ]);
+      if (profileId !== w.id) return;
+
+      const att = document.getElementById("pfAtt");
+      if (ts.error) att.innerHTML = "<p>❌ مشكلة في تحميل الحضور</p>";
+      else {
+        const recs = ts.data.filter(r => r.time_in);
+        const dates = new Set(recs.map(r => r.work_date));
+        let absent = 0;
+        for (let d = 1; d <= days; d++) {
+          const date = ym + "-" + String(d).padStart(2, "0");
+          if (date < today && (!w.arrival || date >= w.arrival) && !dates.has(date)) absent++;
+        }
+        const hours = Math.round(recs.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
+        const ot = Math.round(recs.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
+        const rate = recs.length + absent ? Math.round(recs.length / (recs.length + absent) * 100) : 0;
+        att.innerHTML = `
+          <div class="stat"><b style="color:#16a34a">${recs.length}</b>✅ حضور</div>
+          <div class="stat"><b style="color:#c0392b">${absent}</b>❌ غياب</div>
+          <div class="stat"><b>${hours}</b>🕒 ساعات</div>
+          <div class="stat"><b style="color:#e08a1e">${ot}</b>⚡ أوفر تايم</div>
+          <div class="stat"><b>${rate}%</b>📈 نسبة الحضور</div>`;
+      }
+
+      const meals = document.getElementById("pfMeals");
+      if (ml.error) meals.innerHTML = "<p>❌ مشكلة في تحميل الوجبات</p>";
+      else {
+        const b = ml.data.filter(r => r.breakfast).length;
+        const l = ml.data.filter(r => r.lunch).length;
+        meals.innerHTML = `
+          <div class="stat"><b>${b}</b>🍳 فطار<small style="display:block;color:#64748b">${money(b * BREAKFAST_PRICE)}</small></div>
+          <div class="stat"><b>${l}</b>🍛 غداء<small style="display:block;color:#64748b">${money(l * LUNCH_PRICE)}</small></div>
+          <div class="stat"><b style="color:#e08a1e">${money(b * BREAKFAST_PRICE + l * LUNCH_PRICE)}</b>💰 الإجمالي</div>`;
+      }
+    }
+
+    // رفع أو تغيير صورة الإقامة من جوه الملف
+    async function uploadProfileIqama(input) {
+      const file = input.files[0];
+      input.value = "";
+      if (!file || !profileId) return;
+      const w = workers.find(x => x.id === profileId);
+      const msg = document.getElementById("pfIqamaMsg");
+      msg.textContent = "⏳ جاري رفع الصورة...";
+
+      const blob = await (await fetch(await resizeImage(file))).blob();
+      const path = Date.now() + ".jpg";
+      const { error: upErr } = await db.storage.from("iqama").upload(path, blob, { contentType: "image/jpeg" });
+      if (upErr) { msg.textContent = "❌ الصورة مترفعتش: " + upErr.message; return; }
+
+      const { error } = await db.from("workers").update({ iqama_img: path }).eq("id", w.id);
+      if (error) { msg.textContent = "❌ محصلش حفظ: " + error.message; await db.storage.from("iqama").remove([path]); return; }
+
+      if (w.iqamaImg) await db.storage.from("iqama").remove([w.iqamaImg]);
+      w.iqama_img = path;
+      w.iqamaImg = path;
+      showWorkers();
+      showStats();
+      showProfile(w.id);
     }
 
     function closeProfile() {
+      profileId = null;
       document.getElementById("profileBox").hidden = true;
     }
      
