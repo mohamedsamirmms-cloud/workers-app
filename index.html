@@ -348,6 +348,7 @@
       <input type="date" id="tsDate" onchange="loadTimesheet()">
       <input id="tsSearch" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="showTimesheet()">
       <b id="tsTotals"></b>
+      <button onclick="markAll()" style="background:#16a34a">✅ حضّر الكل</button>
     </div>
     <div id="tsList"></div>
         <div id="tsMonthBox" hidden onclick="if (event.target === this) closeTsMonth()">
@@ -1161,9 +1162,12 @@
       return Math.round(mins / 60 * 100) / 100;
     }
 
+        let tsResult = [];
+    const DEFAULT_IN = "07:00";
+
     function showTimesheet() {
       const q = document.getElementById("tsSearch").value.trim().toLowerCase();
-      const result = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
+      tsResult = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
 
       const recs = Object.values(tsRecords);
       const present = recs.filter(r => r.time_in).length;
@@ -1171,23 +1175,88 @@
       document.getElementById("tsTotals").textContent = `حضر: ${present} | أوفر تايم: ${totalOt} ساعة`;
 
       let html = `<div><table>
-        <tr><th>الاسم</th><th>السكن</th><th>الغرفة</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>أوفر تايم</th></tr>`;
-      result.slice(0, 50).forEach(function (w) {
+        <tr><th>الاسم</th><th>الغرفة</th><th></th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>أوفر تايم</th></tr>`;
+      tsResult.slice(0, 50).forEach(function (w) {
         const r = tsRecords[w.id] || {};
         const ot = Number(r.overtime || 0);
         html += `<tr>
           <td><b class="ts-name" onclick="openTsMonth(${w.id})">${w.name}</b></td>
-          <td>${w.building || "-"}</td>
           <td>${w.room || "-"}</td>
+          <td>
+            ${r.time_in
+              ? '<span class="badge ok">حاضر</span>'
+              : `<button onclick="markPresent(${w.id})" style="background:#16a34a">✅ حاضر</button>`}
+            <button onclick="markAbsent(${w.id})" style="background:#c0392b">✖</button>
+          </td>
           <td><input type="time" id="in_${w.id}" value="${(r.time_in || "").slice(0, 5)}" onchange="saveTime(${w.id})"></td>
           <td><input type="time" id="out_${w.id}" value="${(r.time_out || "").slice(0, 5)}" onchange="saveTime(${w.id})"></td>
           <td>${r.hours || "-"}</td>
-          <td>${ot > 0 ? `<span class="badge warn">${ot}</span>` : "-"}</td>
+          <td><input type="number" min="0" step="0.5" id="ot_${w.id}" value="${ot || ""}" placeholder="0" style="width:70px" onchange="setOvertime(${w.id})"></td>
         </tr>`;
       });
       html += "</table></div>";
-      if (result.length > 50) html += `<p>معروض أول 50 من ${result.length}. اكتب في البحث عشان تضيّق النتيجة.</p>`;
+      if (tsResult.length > 50) html += `<p>معروض أول 50 من ${tsResult.length}. اكتب في البحث عشان تضيّق النتيجة.</p>`;
       document.getElementById("tsList").innerHTML = html;
+    }
+
+    // نزوّد ساعات على وقت (مثلًا 07:00 + 12 = 19:00)
+    function addHours(time, h) {
+      const [hh, mm] = time.split(":").map(Number);
+      const total = (hh * 60 + mm + Math.round(h * 60)) % (24 * 60);
+      return String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
+    }
+
+    // صف جاهز للحفظ: 10 ساعات + أوفر تايم
+    function makeTsRow(workerId, tin, ot) {
+      const hours = BASE_HOURS + ot;
+      return {
+        worker_id: workerId,
+        work_date: document.getElementById("tsDate").value,
+        time_in: tin,
+        time_out: addHours(tin, hours),
+        hours: hours,
+        overtime: ot
+      };
+    }
+
+    async function markPresent(workerId) {
+      const ot = Number(document.getElementById("ot_" + workerId).value) || 0;
+      const row = makeTsRow(workerId, DEFAULT_IN, ot);
+      const { error } = await db.from("timesheet").upsert(row, { onConflict: "worker_id,work_date" });
+      if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
+      tsRecords[workerId] = row;
+      showTimesheet();
+    }
+
+    async function setOvertime(workerId) {
+      const ot = Number(document.getElementById("ot_" + workerId).value) || 0;
+      const old = tsRecords[workerId];
+      const tin = old && old.time_in ? old.time_in.slice(0, 5) : DEFAULT_IN;
+      const row = makeTsRow(workerId, tin, ot);
+      const { error } = await db.from("timesheet").upsert(row, { onConflict: "worker_id,work_date" });
+      if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
+      tsRecords[workerId] = row;
+      showTimesheet();
+    }
+
+    async function markAbsent(workerId) {
+      const date = document.getElementById("tsDate").value;
+      const { error } = await db.from("timesheet").delete().eq("worker_id", workerId).eq("work_date", date);
+      if (error) { alert("❌ محصلش حذف: " + error.message); return; }
+      delete tsRecords[workerId];
+      showTimesheet();
+    }
+
+    async function markAll() {
+      const todo = tsResult.filter(w => !(tsRecords[w.id] && tsRecords[w.id].time_in));
+      if (todo.length === 0) { alert("كل العمال الظاهرين متسجّلين بالفعل"); return; }
+      if (!confirm("هيتسجّل " + todo.length + " عامل حاضر 10 ساعات. متأكد؟")) return;
+
+      const rows = todo.map(w => makeTsRow(w.id, DEFAULT_IN, 0));
+      const { error } = await db.from("timesheet").upsert(rows, { onConflict: "worker_id,work_date" });
+      if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
+      rows.forEach(r => tsRecords[r.worker_id] = r);
+      showTimesheet();
     }
 
     async function saveTime(workerId) {
@@ -1258,7 +1327,7 @@
           hours += Number(r.hours || 0);
           ot += Number(r.overtime || 0);
           if (Number(r.overtime) > 0) otDays.push(d);
-        } else if (date > today) {
+         } else if (date >= today) {
           status = "لسه";
         } else {
           status = "غياب";
