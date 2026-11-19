@@ -99,8 +99,51 @@
     .pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
     button:disabled { opacity: 0.4; cursor: default; }
           /* الكشف الشهري */
-    #tsMonthBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #tsMonthBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 55; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #tsMonthBox[hidden] { display: none; }
+    /* الكشف الشهري لكل العمال */
+    #tsAllBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #tsAllBox[hidden] { display: none; }
+    #tsAllInner { background: #eef1f5; border-radius: 16px; width: 100%; max-width: 1200px; max-height: 94vh; overflow-y: auto; box-sizing: border-box; }
+    #tsAllInner input, #tsAllInner button { box-sizing: border-box; }
+    #tsAllName { font-weight: bold; color: #1e3a5f; flex: 1; min-width: 100px; }
+    #tsAllTotals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #tsAllTotals .stat { border-top: 4px solid #1e3a5f; }
+    #tsAllTotals .stat.green { border-color: #16a34a; } #tsAllTotals .stat.green b { color: #16a34a; }
+    #tsAllTotals .stat.red { border-color: #c0392b; } #tsAllTotals .stat.red b { color: #c0392b; }
+    #tsAllTotals .stat.orange { border-color: #e08a1e; } #tsAllTotals .stat.orange b { color: #e08a1e; }
+    .tsa-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    #tsAllSearch { flex: 1; min-width: 180px; }
+    #tsAllList { background: white; border-radius: 12px; padding: 12px; overflow: auto; max-height: 60vh; }
+    #tsAllList table { border-collapse: separate; border-spacing: 0; }
+    #tsAllList th { position: sticky; top: 0; background: white; z-index: 2; white-space: nowrap; }
+    #tsAllList td { white-space: nowrap; }
+    #tsAllList tr.tsa-row { cursor: pointer; }
+    #tsAllList tr.tsa-row:hover td { background: #fff7ed; }
+    #tsAllList .tsa-who b { display: block; color: #1e3a5f; }
+    #tsAllList .tsa-who small { color: #64748b; font-size: 12px; }
+    .tsa-rate { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+    .tsa-rate .bar { flex: 1; height: 8px; background: #fee2e2; border-radius: 8px; overflow: hidden; }
+    .tsa-rate .bar span { display: block; height: 100%; background: #16a34a; }
+    .tsa-rate.low .bar span { background: #f59e0b; }
+    .tsa-rate b { font-size: 12px; min-width: 34px; }
+    /* عرض الأيام */
+    #tsAllList table.tsa-grid th, #tsAllList table.tsa-grid td { padding: 4px 2px; text-align: center; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
+    #tsAllList table.tsa-grid th.fri { color: #c0392b; }
+    #tsAllList table.tsa-grid .sticky { position: sticky; right: 0; background: white; z-index: 1; text-align: right; padding: 4px 8px; min-width: 150px; box-shadow: -2px 0 0 #eef1f5; }
+    #tsAllList table.tsa-grid th.sticky { z-index: 3; }
+    .gd { display: inline-block; width: 26px; height: 22px; line-height: 22px; border-radius: 5px; font-size: 11px; font-weight: bold; }
+    .gd.p { background: #dcfce7; color: #166534; }
+    .gd.o { background: #fed7aa; color: #9a3412; }
+    .gd.a { background: #fee2e2; color: #991b1b; }
+    .gd.f { background: #f8fafc; color: #cbd5e1; }
+    @media (max-width: 700px) {
+      #tsAllBox { padding: 0; align-items: stretch; }
+      #tsAllInner { max-height: 100vh; border-radius: 0; }
+      #tsAllList { max-height: none; padding: 6px; }
+      #tsAllList table.tsa-sum th:nth-child(1), #tsAllList table.tsa-sum td:nth-child(1) { display: none; }
+      #tsAllList table.tsa-grid .sticky { min-width: 110px; }
+    }
     #tsMonthInner { background: #eef1f5; border-radius: 16px; width: 100%; max-width: 900px; max-height: 92vh; overflow-y: auto; box-sizing: border-box; }
     #tsMonthInner input, #tsMonthInner button { box-sizing: border-box; }
     .tsm-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; padding: 16px 18px; border-radius: 16px 16px 0 0; }
@@ -817,6 +860,7 @@
       </div>
       <input id="tsSearch" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="tsPage = 0; showTimesheet()">
       <button onclick="markAll()" style="background:#16a34a">✅ حضّر الكل</button>
+      <button onclick="openTsAll()" style="background:#7c3aed">📅 الكشف الشهري لكل العمال</button>
     </div>
     <div id="tsStats"></div>
     <div class="ts-chips" id="tsChips"></div>
@@ -840,6 +884,30 @@
           <div class="tsm-rate" id="tsMonthRate"></div>
           <div class="tsm-tabs" id="tsMonthTabs"></div>
           <div id="tsMonthList"></div>
+        </div>
+      </div>
+    </div>
+    <div id="tsAllBox" hidden onclick="if (event.target === this) closeTsAll()">
+      <div id="tsAllInner">
+        <div class="tsm-head">
+          <span class="tsm-avatar">📅</span>
+          <div><h3>الكشف الشهري لكل العمال</h3><small id="tsAllSub"></small></div>
+          <button class="tsm-close" onclick="closeTsAll()" title="إغلاق">✖</button>
+        </div>
+        <div class="tsm-body">
+          <div class="ts-month-bar">
+            <button class="nav-btn" onclick="shiftTsAll(-1)" title="الشهر اللي قبله">→</button>
+            <input type="month" id="tsAllMonth" onchange="loadTsAll()">
+            <button class="nav-btn" onclick="shiftTsAll(1)" title="الشهر اللي بعده">←</button>
+            <span id="tsAllName"></span>
+            <button onclick="exportTsAll()" style="background:#16a34a">📊 تصدير Excel</button>
+          </div>
+          <div id="tsAllTotals"></div>
+          <div class="tsa-tools">
+            <div class="tsm-tabs" id="tsAllTabs" style="margin:0"></div>
+            <input id="tsAllSearch" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="showTsAll()">
+          </div>
+          <div id="tsAllList"></div>
         </div>
       </div>
     </div>
@@ -1928,9 +1996,9 @@
     let tsMonthRows = [];
     let tsMonthSum = {};
 
-    function openTsMonth(workerId) {
+    function openTsMonth(workerId, ym) {
       tsMonthWorker = workers.find(w => w.id === workerId);
-      document.getElementById("tsMonth").value = document.getElementById("tsDate").value.slice(0, 7);
+      document.getElementById("tsMonth").value = ym || document.getElementById("tsDate").value.slice(0, 7);
       document.getElementById("tsMonthBox").hidden = false;
       showTsMonth();
     }
@@ -2084,6 +2152,165 @@
         html += `<tr class="meal-sum"><td colspan="5">الإجمالي</td><td>${tsMonthSum.hours}</td><td>${tsMonthSum.ot}</td></tr></table>`;
       }
       document.getElementById("tsMonthList").innerHTML = html;
+    }
+
+    // ===== الكشف الشهري لكل العمال =====
+    let tsAll = { ym: "", days: 0, byWorker: {}, rows: [] };
+    let tsAllView = "sum";
+
+    function openTsAll() {
+      document.getElementById("tsAllMonth").value = document.getElementById("tsDate").value.slice(0, 7) || new Date().toLocaleDateString("en-CA").slice(0, 7);
+      document.getElementById("tsAllSearch").value = "";
+      document.getElementById("tsAllBox").hidden = false;
+      loadTsAll();
+    }
+
+    function closeTsAll() {
+      document.getElementById("tsAllBox").hidden = true;
+    }
+
+    function shiftTsAll(n) {
+      const input = document.getElementById("tsAllMonth");
+      const [y, m] = input.value.split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      input.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      loadTsAll();
+    }
+
+    function setTsAllView(v) {
+      tsAllView = v;
+      showTsAll();
+    }
+
+    async function loadTsAll() {
+      const ym = document.getElementById("tsAllMonth").value;
+      if (!ym) return;
+      const [y, m] = ym.split("-").map(Number);
+      const days = new Date(y, m, 0).getDate();
+      const first = ym + "-01";
+      const last = ym + "-" + String(days).padStart(2, "0");
+      document.getElementById("tsAllName").textContent = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+      document.getElementById("tsAllList").innerHTML = "<p>⏳ جاري التحميل...</p>";
+
+      const { data, error } = await fetchAll(() => db.from("timesheet").select("worker_id,work_date,time_in,hours,overtime")
+        .gte("work_date", first).lte("work_date", last).order("worker_id").order("work_date"));
+      if (error) { document.getElementById("tsAllList").innerHTML = "<p>❌ مشكلة في تحميل الكشف: " + error.message + "</p>"; return; }
+
+      const byWorker = {};
+      data.forEach(function (r) {
+        if (!r.time_in) return;
+        (byWorker[r.worker_id] = byWorker[r.worker_id] || {})[Number(r.work_date.slice(8))] = r;
+      });
+
+      const today = new Date().toLocaleDateString("en-CA");
+      // الأيام اللي عدّت من الشهر (النهارده مش محسوب غياب)
+      const passed = [];
+      for (let d = 1; d <= days; d++) {
+        const date = ym + "-" + String(d).padStart(2, "0");
+        if (date < today) passed.push(date);
+      }
+
+      const rows = workers.map(function (w) {
+        const recs = byWorker[w.id] || {};
+        const present = Object.keys(recs).length;
+        // الغياب: الأيام اللي عدّت من يوم قدومه (لو متسجّل) ومفيش فيها حضور
+        const absent = passed.filter(date => (!w.arrival || date >= w.arrival) && !recs[Number(date.slice(8))]).length;
+        const hours = Math.round(Object.values(recs).reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
+        const ot = Math.round(Object.values(recs).reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
+        const rate = present + absent ? Math.round(present / (present + absent) * 100) : 0;
+        return { w, recs, present, absent, hours, ot, rate };
+      });
+
+      tsAll = { ym, y, m, days, today, rows };
+      showTsAll();
+    }
+
+    function showTsAll() {
+      const { ym, y, m, days, today, rows } = tsAll;
+      if (!ym) return;
+      const q = document.getElementById("tsAllSearch").value.trim().toLowerCase();
+      const list = rows.filter(r => !q || (r.w.name + " " + (r.w.idNo || "") + " " + (r.w.room || "")).toLowerCase().includes(q));
+
+      const sum = k => Math.round(rows.reduce((s, r) => s + r[k], 0) * 100) / 100;
+      const tp = sum("present"), ta = sum("absent");
+      const rate = tp + ta ? Math.round(tp / (tp + ta) * 100) : 0;
+      document.getElementById("tsAllSub").textContent = rows.length + " عامل · " + document.getElementById("tsAllName").textContent;
+      document.getElementById("tsAllTotals").innerHTML = `
+        <div class="stat green"><b>${tp.toLocaleString("en-US")}</b>✅ أيام حضور</div>
+        <div class="stat red"><b>${ta.toLocaleString("en-US")}</b>❌ أيام غياب</div>
+        <div class="stat"><b>${sum("hours").toLocaleString("en-US")}</b>🕒 إجمالي الساعات</div>
+        <div class="stat orange"><b>${sum("ot").toLocaleString("en-US")}</b>⚡ إجمالي الأوفر تايم</div>
+        <div class="stat"><b>${rate}%</b>📈 نسبة الحضور</div>`;
+
+      const tab = (v, label) => `<button class="chip ${tsAllView === v ? "on" : ""}" onclick="setTsAllView('${v}')">${label}</button>`;
+      document.getElementById("tsAllTabs").innerHTML = tab("sum", "📋 ملخص") + tab("grid", "🗓️ بالأيام");
+
+      if (!list.length) { document.getElementById("tsAllList").innerHTML = "<p>لا يوجد نتائج</p>"; return; }
+      let html;
+      if (tsAllView === "sum") {
+        html = `<table class="tsa-sum"><tr><th>#</th><th>العامل</th><th>الحضور</th><th>الغياب</th><th>الساعات</th><th>أوفر تايم</th><th>نسبة الحضور</th></tr>`;
+        list.forEach(function (r, i) {
+          html += `<tr class="tsa-row" onclick="openTsMonth(${r.w.id}, '${ym}')" title="افتح الكشف الشخصي">
+            <td>${i + 1}</td>
+            <td class="tsa-who"><b>${r.w.name}</b><small>🚪 ${r.w.room || "-"}${r.w.idNo ? " · " + r.w.idNo : ""}</small></td>
+            <td><span class="badge ok">${r.present}</span></td>
+            <td>${r.absent ? `<span class="badge bad">${r.absent}</span>` : "-"}</td>
+            <td><b>${r.hours || "-"}</b></td>
+            <td>${r.ot ? `<span class="badge warn">${r.ot}</span>` : "-"}</td>
+            <td><div class="tsa-rate ${r.rate < 80 ? "low" : ""}"><div class="bar"><span style="width:${r.rate}%"></span></div><b>${r.rate}%</b></div></td>
+          </tr>`;
+        });
+        html += `<tr class="meal-sum"><td></td><td>الإجمالي</td><td>${tp}</td><td>${ta}</td><td>${sum("hours")}</td><td>${sum("ot")}</td><td>${rate}%</td></tr></table>`;
+      } else {
+        let head = `<tr><th class="sticky">العامل</th>`;
+        for (let d = 1; d <= days; d++) {
+          const fri = new Date(y, m - 1, d).getDay() === 5;
+          head += `<th class="${fri ? "fri" : ""}" title="${fri ? "جمعة" : ""}">${d}</th>`;
+        }
+        head += `<th>حضور</th><th>ساعات</th><th>أوفر</th></tr>`;
+        html = `<table class="tsa-grid">${head}`;
+        list.forEach(function (r) {
+          html += `<tr class="tsa-row" onclick="openTsMonth(${r.w.id}, '${ym}')"><td class="sticky tsa-who"><b>${r.w.name}</b><small>🚪 ${r.w.room || "-"}</small></td>`;
+          for (let d = 1; d <= days; d++) {
+            const date = ym + "-" + String(d).padStart(2, "0");
+            const rec = r.recs[d];
+            let cell;
+            if (rec) cell = Number(rec.overtime) > 0 ? `<span class="gd o" title="أوفر تايم ${rec.overtime}">${rec.hours}</span>` : `<span class="gd p">${rec.hours}</span>`;
+            else if (date < today && (!r.w.arrival || date >= r.w.arrival)) cell = `<span class="gd a">غ</span>`;
+            else cell = `<span class="gd f">·</span>`;
+            html += `<td>${cell}</td>`;
+          }
+          html += `<td><b>${r.present}</b></td><td><b>${r.hours}</b></td><td>${r.ot || "-"}</td></tr>`;
+        });
+        html += "</table>";
+      }
+      html += `<div class="tsm-legend"><span><i style="background:#dcfce7"></i>حضور (الرقم = الساعات)</span><span><i style="background:#fed7aa"></i>فيه أوفر تايم</span><span><i style="background:#fee2e2"></i>غ = غياب</span><span>💡 دوس على أي عامل تفتح كشفه</span></div>`;
+      document.getElementById("tsAllList").innerHTML = html;
+    }
+
+    function exportTsAll() {
+      const { ym, days, today, rows } = tsAll;
+      if (!rows || !rows.length) { alert("مفيش بيانات للتصدير"); return; }
+      const summary = rows.map((r, i) => ({
+        "#": i + 1, "الاسم": r.w.name, "الإقامة": r.w.idNo || "", "الغرفة": r.w.room || "", "المهنة": r.w.job || "",
+        "أيام الحضور": r.present, "أيام الغياب": r.absent, "الساعات": r.hours, "أوفر تايم": r.ot, "نسبة الحضور": r.rate + "%"
+      }));
+      const grid = rows.map(function (r) {
+        const row = { "الاسم": r.w.name, "الغرفة": r.w.room || "" };
+        for (let d = 1; d <= days; d++) {
+          const date = ym + "-" + String(d).padStart(2, "0");
+          const rec = r.recs[d];
+          row[d] = rec ? Number(rec.hours) : (date < today && (!r.w.arrival || date >= r.w.arrival) ? "غ" : "");
+        }
+        row["الحضور"] = r.present; row["الساعات"] = r.hours; row["أوفر تايم"] = r.ot;
+        return row;
+      });
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(summary), "الملخص");
+      const gridHeader = ["الاسم", "الغرفة"].concat(Array.from({ length: days }, (_, i) => String(i + 1)), ["الحضور", "الساعات", "أوفر تايم"]);
+      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(grid, { header: gridHeader }), "بالأيام");
+      XLSX.writeFile(book, "كشف-شهري-كل-العمال-" + ym + ".xlsx");
     }
 
     function exportTsMonth() {
