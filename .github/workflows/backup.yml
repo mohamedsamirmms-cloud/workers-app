@@ -1,0 +1,65 @@
+name: نسخة احتياطية
+
+on:
+  schedule:
+    - cron: "17 0 * * *"   # كل يوم الساعة 3:17 الفجر بتوقيت السعودية
+  workflow_dispatch:        # زرار "Run workflow" عشان تعمل نسخة دلوقتي
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: التأكد من الـ secrets
+        run: |
+          missing=""
+          for v in SUPABASE_DB_URL SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY BACKUP_PASSWORD; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::ناقص secrets:$missing — ضيفهم من Settings ← Secrets and variables ← Actions"
+            exit 1
+          fi
+
+      - name: تسطيب أدوات PostgreSQL 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: عمل النسخة وتشفيرها
+        env:
+          PG_BIN: /usr/lib/postgresql/17/bin/
+        run: |
+          NAME=backup-$(date -u +%Y-%m-%d-%H%M)
+          bash backup/backup.sh "$NAME"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: حفظ النسخة (90 يوم)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}.tar.gz.gpg
+          retention-days: 90
+          compression-level: 0
+          if-no-files-found: error

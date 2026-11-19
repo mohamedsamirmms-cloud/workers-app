@@ -141,7 +141,9 @@ create policy rls_del   on public.app_users for delete to authenticated using (a
 create or replace function public.app_users_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if not app_is_admin() then
+  -- الشرط على اللي داخلين من البرنامج بس (عندهم إيميل).
+  -- التعديل من SQL Editor في Supabase مسموح، عشان لو المدير اتقفل عليه يقدر يصلّح.
+  if app_email() <> '' and not app_is_admin() then
     if new.role is distinct from old.role or new.pages is distinct from old.pages
        or new.active is distinct from old.active or lower(new.email) is distinct from lower(old.email) then
       raise exception 'مش مسموح: الصلاحيات بيغيّرها المدير بس';

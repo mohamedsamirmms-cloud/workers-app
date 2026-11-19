@@ -1,0 +1,59 @@
+name: استرجاع نسخة احتياطية
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "رقم تشغيل النسخة (الرقم اللي في آخر رابط التشغيل في صفحة Actions)"
+        required: true
+      confirm:
+        description: "اكتب RESTORE بالحروف الكبيرة — البيانات الحالية هتتمسح وتتبدّل بالنسخة"
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+    steps:
+      - name: التأكيد
+        if: inputs.confirm != 'RESTORE'
+        run: |
+          echo "::error::لازم تكتب RESTORE في خانة التأكيد"
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: تسطيب أدوات PostgreSQL 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: تنزيل النسخة
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          pattern: backup-*
+          merge-multiple: true
+          path: dl
+
+      - name: الاسترجاع
+        env:
+          PG_BIN: /usr/lib/postgresql/17/bin/
+        run: bash backup/restore.sh "$(ls dl/*.tar.gz.gpg | head -1)"
