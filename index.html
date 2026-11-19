@@ -432,6 +432,23 @@
     .pf-list a { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; color: #1e3a5f; text-decoration: none; cursor: pointer; }
     .pf-list a:hover { background: #fff7ed; }
     .pf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* الإعدادات */
+    #page-settings input, #page-settings button, #page-settings textarea { box-sizing: border-box; }
+    .set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+    .set-card { box-sizing: border-box; background: white; border-radius: 14px; padding: 16px; display: grid; gap: 10px; align-content: start; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    .set-card h3 { margin: 0; color: #1e3a5f; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+    .set-card h3 .ic { width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: #eef1f5; }
+    .set-card label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    .set-card .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .set-card textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 14px; min-height: 120px; resize: vertical; }
+    .set-card small.hint { color: #64748b; font-size: 12px; line-height: 1.6; }
+    .set-card .warn-note { background: #fff7ed; color: #9a3412; border-radius: 8px; padding: 8px 10px; font-size: 12px; }
+    .set-save { position: sticky; bottom: 10px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: #1e3a5f; color: white; border-radius: 14px; padding: 12px 16px; margin-top: 12px; box-shadow: 0 6px 20px rgba(30,58,95,0.3); }
+    .set-save button { background: #16a34a; }
+    .set-save button:hover { background: #e08a1e; }
+    #setMsg { font-size: 14px; }
+    .set-grid > *, .set-card input, .set-card textarea { min-width: 0; width: 100%; }
+    @media (max-width: 700px) { .set-grid { grid-template-columns: 1fr; } .set-card .row2 { grid-template-columns: 1fr; } .set-save button { flex: 1; } }
     /* المستخدمين */
     #page-users input, #page-users button, #page-users select { box-sizing: border-box; }
     #usrStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
@@ -785,7 +802,7 @@
       <nav id="sidebar">
     <div class="brand">
       <span class="brand-logo">🏢</span>
-      <span><b>سجل السكن</b><small>إدارة السكن والمشروع</small></span>
+      <span><b id="brandName">سجل السكن</b><small id="brandSub">إدارة السكن والمشروع</small></span>
     </div>
     <button class="nav" data-page="dashboard" onclick="showPage('dashboard')"><span class="ni">📊</span>لوحة التحكم</button>
     <div class="nav-group">السكن</div>
@@ -1080,8 +1097,8 @@
   <section id="page-meals" class="page" hidden>
     <h2>🍽️ الوجبات</h2>
     <div class="meal-prices">
-      <span>🍳 الفطار: <b>3.5 ريال</b> للفرد</span>
-      <span>🍛 الغداء: <b>9 ريال</b> للفرد</span>
+      <span>🍳 الفطار: <b id="priceB">3.5 ريال</b> للفرد</span>
+      <span>🍛 الغداء: <b id="priceL">9 ريال</b> للفرد</span>
     </div>
     <div id="mealBar">
       <div class="ts-day">
@@ -1149,7 +1166,68 @@
       <div id="usrList"></div>
     </div>
   </section>
-  <section id="page-settings" class="page" hidden><h2>⚙️ الإعدادات</h2><p>قريبًا</p></section>
+  <section id="page-settings" class="page" hidden>
+    <div class="res-head"><h2>⚙️ الإعدادات</h2></div>
+    <div id="setNotice"></div>
+    <div class="set-grid">
+      <div class="set-card">
+        <h3><span class="ic">🏢</span>البرنامج</h3>
+        <label>اسم البرنامج <input id="s_name" placeholder="سجل السكن"></label>
+        <label>الوصف تحت الاسم <input id="s_sub" placeholder="إدارة السكن والمشروع"></label>
+      </div>
+      <div class="set-card">
+        <h3><span class="ic">🍽️</span>أسعار الوجبات</h3>
+        <div class="row2">
+          <label>🍳 سعر الفطار (ريال) <input id="s_bprice" type="number" min="0" step="0.25"></label>
+          <label>🍛 سعر الغداء (ريال) <input id="s_lprice" type="number" min="0" step="0.25"></label>
+        </div>
+        <div class="warn-note">⚠️ تغيير السعر بيغيّر حساب كل الشهور، حتى القديمة. لو عايز تحافظ على حساب شهر قديم، صدّره Excel الأول.</div>
+      </div>
+      <div class="set-card">
+        <h3><span class="ic">⏱️</span>التايم شيت</h3>
+        <div class="row2">
+          <label>ساعات اليوم العادي <input id="s_hours" type="number" min="1" max="24" step="0.5"></label>
+          <label>ميعاد الحضور الافتراضي <input id="s_in" type="time"></label>
+        </div>
+        <small class="hint">زرار "تسجيل حضور" و "حضّر الكل" بيستخدموا الأرقام دي. أي ساعات زيادة عن اليوم العادي بتتحسب أوفر تايم.</small>
+      </div>
+      <div class="set-card">
+        <h3><span class="ic">🔔</span>تنبيهات المستندات</h3>
+        <label>نبّهني قبل انتهاء المستند بـ (يوم) <input id="s_warn" type="number" min="1" max="365"></label>
+        <small class="hint">استمارات وتأمينات وفحوصات السيارات والمعدات هتتلوّن برتقالي وتظهر في التنبيهات قبل انتهائها بالمدة دي.</small>
+      </div>
+      <div class="set-card">
+        <h3><span class="ic">🌍</span>الجنسيات</h3>
+        <textarea id="s_countries" placeholder="جنسية في كل سطر"></textarea>
+        <small class="hint">جنسية في كل سطر. بتظهر في قائمة الجنسية لما تضيف أو تعدّل ساكن.</small>
+      </div>
+      <div class="set-card">
+        <h3><span class="ic">🤝</span>الكفلاء</h3>
+        <textarea id="s_sponsors" placeholder="كفيل في كل سطر"></textarea>
+        <small class="hint">كفيل في كل سطر. بيظهروا كاقتراحات في خانة الكفيل.</small>
+      </div>
+      <div class="set-card">
+        <h3><span class="ic">👤</span>حسابي</h3>
+        <label>اسمي <input id="s_myname"></label>
+        <div class="row2">
+          <label>باسورد جديد <input id="s_pass1" type="password" minlength="6" dir="ltr" autocomplete="new-password"></label>
+          <label>تأكيد الباسورد <input id="s_pass2" type="password" minlength="6" dir="ltr" autocomplete="new-password"></label>
+        </div>
+        <button type="button" onclick="saveMyAccount()" style="background:#1e3a5f">💾 حفظ حسابي</button>
+        <span id="accMsg" style="font-size:13px"></span>
+      </div>
+      <div class="set-card">
+        <h3><span class="ic">💾</span>نسخة احتياطية</h3>
+        <small class="hint">ملف Excel فيه كل البيانات: الساكنين (والأرشيف)، التايم شيت، الوجبات، السيارات، المعدات، والغرف. خليك واخد نسخة كل شهر.</small>
+        <button type="button" onclick="fullBackup()" style="background:#16a34a">📥 تحميل نسخة احتياطية كاملة</button>
+        <span id="backupMsg" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div class="set-save">
+      <span id="setMsg">غيّر اللي محتاجه ودوس حفظ</span>
+      <button type="button" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+    </div>
+  </section>
   </main>
    
    <div id="cameraBox" hidden>
@@ -1271,6 +1349,7 @@
                         loadCars();
       loadEquipment();
       loadMe();
+      loadSettings();
                          document.getElementById("tsDate").value = new Date().toLocaleDateString("en-CA");
       loadTimesheet();
       document.getElementById("mealDate").value = document.getElementById("tsDate").value;
@@ -1524,6 +1603,136 @@
     
        // 6. الملف الشخصي (بيانات السكن)
            // 6. الملف الشخصي (نافذة)
+    // ===== الإعدادات =====
+    let WARN_DAYS = 30;
+    const DEFAULT_SETTINGS = {
+      name: "سجل السكن", sub: "إدارة السكن والمشروع",
+      breakfast: 3.5, lunch: 9, hours: 10, timeIn: "07:00", warnDays: 30,
+      countries: ["هندي", "بنجلاديشي", "نيبالي", "باكستاني", "مصري", "يمني", "فلبيني"],
+      sponsors: ["TDC", "Local Rental", "Contract Rental", "Talent House", "Saudi Reliance", "Alfauj"]
+    };
+    let settings = { ...DEFAULT_SETTINGS };
+    let settingsReady = false;
+
+    async function loadSettings() {
+      const { data, error } = await db.from("app_settings").select("value").eq("key", "main");
+      settingsReady = !error;
+      if (!error && data && data[0]) settings = { ...DEFAULT_SETTINGS, ...data[0].value };
+      applySettings();
+    }
+
+    function applySettings() {
+      BREAKFAST_PRICE = Number(settings.breakfast);
+      LUNCH_PRICE = Number(settings.lunch);
+      BASE_HOURS = Number(settings.hours);
+      DEFAULT_IN = settings.timeIn;
+      WARN_DAYS = Number(settings.warnDays);
+      document.getElementById("brandName").textContent = settings.name;
+      document.getElementById("brandSub").textContent = settings.sub;
+      document.title = settings.name;
+      document.getElementById("priceB").textContent = money(BREAKFAST_PRICE);
+      document.getElementById("priceL").textContent = money(LUNCH_PRICE);
+
+      // قائمة الجنسيات (من غير ما نضيّع جنسية ساكن قديم)
+      const used = workers.concat(archivedWorkers).map(w => w.country).filter(Boolean);
+      const countries = [...new Set(settings.countries.concat(used))];
+      const sel = document.getElementById("country");
+      const keep = sel.value;
+      sel.innerHTML = '<option value="">اختار البلد</option>' + countries.map(c => `<option>${c}</option>`).join("");
+      sel.value = keep;
+      document.getElementById("sponsorList").innerHTML = settings.sponsors.map(x => `<option value="${x}">`).join("");
+
+      // نعيد رسم الصفحات اللي فيها أسعار وساعات وتواريخ
+      showMeals();
+      showMealMonth();
+      showTimesheet();
+      showCars();
+      showEquipment();
+      if (!document.getElementById("page-dashboard").hidden) refreshDashboard();
+    }
+
+    function fillSettingsForm() {
+      const v = (id, x) => document.getElementById(id).value = x;
+      v("s_name", settings.name); v("s_sub", settings.sub);
+      v("s_bprice", settings.breakfast); v("s_lprice", settings.lunch);
+      v("s_hours", settings.hours); v("s_in", settings.timeIn); v("s_warn", settings.warnDays);
+      v("s_countries", settings.countries.join("\n")); v("s_sponsors", settings.sponsors.join("\n"));
+      v("s_myname", me ? me.name : ""); v("s_pass1", ""); v("s_pass2", "");
+      document.getElementById("s_myname").disabled = !me;
+      document.getElementById("setNotice").innerHTML = settingsReady ? "" :
+        '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>الإعدادات محتاجة جدول <code>app_settings</code> في Supabase عشان تتحفظ. لحد ما تشغّل الكود، التغييرات هتشتغل لحد ما تقفل الصفحة بس.</div>';
+    }
+
+    async function saveSettings() {
+      const msg = document.getElementById("setMsg");
+      const g = id => document.getElementById(id).value.trim();
+      const lines = id => [...new Set(g(id).split("\n").map(x => x.trim()).filter(Boolean))];
+      const next = {
+        name: g("s_name") || DEFAULT_SETTINGS.name, sub: g("s_sub"),
+        breakfast: Number(g("s_bprice")), lunch: Number(g("s_lprice")),
+        hours: Number(g("s_hours")), timeIn: g("s_in") || "07:00", warnDays: Number(g("s_warn")),
+        countries: lines("s_countries"), sponsors: lines("s_sponsors")
+      };
+      if (!(next.breakfast >= 0) || !(next.lunch >= 0)) { msg.textContent = "⚠️ أسعار الوجبات لازم تكون أرقام"; return; }
+      if (!(next.hours > 0 && next.hours <= 24)) { msg.textContent = "⚠️ ساعات اليوم لازم تكون بين 1 و 24"; return; }
+      if (!(next.warnDays >= 1)) { msg.textContent = "⚠️ أيام التنبيه لازم تكون 1 أو أكتر"; return; }
+      if (!next.countries.length) { msg.textContent = "⚠️ لازم جنسية واحدة على الأقل"; return; }
+
+      const priceChanged = next.breakfast !== Number(settings.breakfast) || next.lunch !== Number(settings.lunch);
+      if (priceChanged && !confirm("أسعار الوجبات اتغيرت. ده هيغيّر حساب كل الشهور حتى القديمة. تكمل؟")) return;
+
+      msg.textContent = "⏳ جاري الحفظ...";
+      settings = next;
+      applySettings();
+      if (!settingsReady) { msg.textContent = "⚠️ اتطبّقت لحد ما تقفل الصفحة بس — شغّل كود الإعدادات في Supabase عشان تتحفظ"; return; }
+      const { error } = await db.from("app_settings").upsert({ key: "main", value: next });
+      msg.textContent = error ? "❌ محصلش حفظ: " + error.message : "✅ الإعدادات اتحفظت";
+    }
+
+    async function saveMyAccount() {
+      const msg = document.getElementById("accMsg");
+      const name = document.getElementById("s_myname").value.trim();
+      const p1 = document.getElementById("s_pass1").value, p2 = document.getElementById("s_pass2").value;
+      const done = [];
+      if (p1 || p2) {
+        if (p1.length < 6) { msg.textContent = "⚠️ الباسورد لازم 6 حروف على الأقل"; return; }
+        if (p1 !== p2) { msg.textContent = "⚠️ الباسورد والتأكيد مش زي بعض"; return; }
+      }
+      if (me && name && name !== me.name) {
+        const { error } = await db.from("app_users").update({ name }).eq("id", me.id);
+        if (error) { msg.textContent = "❌ " + error.message; return; }
+        me.name = name; done.push("الاسم");
+        applyPermissions();
+      }
+      if (p1) {
+        const { error } = await db.auth.updateUser({ password: p1 });
+        if (error) { msg.textContent = "❌ الباسورد ماتغيرش: " + error.message; return; }
+        document.getElementById("s_pass1").value = ""; document.getElementById("s_pass2").value = "";
+        done.push("الباسورد");
+      }
+      msg.textContent = done.length ? "✅ اتغير: " + done.join(" و ") : "مفيش حاجة اتغيرت";
+    }
+
+    // نسخة احتياطية كاملة Excel
+    async function fullBackup() {
+      const msg = document.getElementById("backupMsg");
+      msg.textContent = "⏳ جاري تجميع البيانات...";
+      // ترتيب ثابت عشان الصفحات (كل 1000 صف) متكررش ولا تفوّت صفوف
+      const tables = [["workers", "الساكنين", ["id"]], ["timesheet", "التايم شيت", ["worker_id", "work_date"]], ["meals", "الوجبات", ["worker_id", "meal_date"]],
+        ["cars", "السيارات", ["id"]], ["equipment", "المعدات", ["id"]], ["rooms", "الغرف", ["building", "room"]]];
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      const skipped = [];
+      for (const [t, label, order] of tables) {
+        const { data, error } = await fetchAll(() => order.reduce((q, c) => q.order(c), db.from(t).select("*")));
+        if (error) { skipped.push(label); continue; }
+        const rows = data.map(r => { const o = {}; Object.keys(r).forEach(k => o[k] = Array.isArray(r[k]) || (r[k] && typeof r[k] === "object") ? JSON.stringify(r[k]) : r[k]); return o; });
+        XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows.length ? rows : [{ "": "فاضي" }]), label);
+      }
+      XLSX.writeFile(book, "نسخة-احتياطية-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+      msg.textContent = "✅ اتحمّلت" + (skipped.length ? " (ماقدرتش أجيب: " + skipped.join("، ") + ")" : "");
+    }
+
     // ===== المستخدمين والصلاحيات =====
     const PAGES = [
       { key: "dashboard", label: "📊 لوحة التحكم" },
@@ -1602,8 +1811,12 @@
       side.innerHTML = myEmail ? `👤 ${me ? me.name + ` <span class="role ${(ROLES[me.role] || {}).cls || "r-view"}" style="font-size:10px;padding:0 6px">${me.role}</span>` : myEmail}` : "";
       const current = [...document.querySelectorAll(".page")].find(x => !x.hidden);
       const name = current ? current.id.replace("page-", "") : "";
+      const locked = document.getElementById("lockedMsg");
+      if (locked) locked.remove();
       if (!pages.length) {
-        document.getElementById("content").innerHTML = '<div class="no-access"><b>🔒</b>حسابك متوقف. كلّم المدير.</div>';
+        // حساب متوقف: نخفي كل الصفحات من غير ما نمسحها
+        document.querySelectorAll(".page").forEach(x => x.hidden = true);
+        document.getElementById("content").insertAdjacentHTML("afterbegin", '<div id="lockedMsg" class="no-access"><b>🔒</b>حسابك متوقف. كلّم المدير.</div>');
       } else if (!pages.includes(name)) showPage(pages[0]);
       const old = document.getElementById("notRegistered");
       if (old) old.remove();
@@ -1872,7 +2085,7 @@
           const tb = ml.reduce((s, r) => s + r.b, 0), tl = ml.reduce((s, r) => s + r.l, 0);
           const arrivals = workers.concat(archivedWorkers).filter(w => w.arrival && w.arrival.slice(0, 7) === info.ym).length;
           const departures = archivedWorkers.filter(w => (w.archived_at || "").slice(0, 7) === info.ym).length;
-          const docs = repDocs(30);
+          const docs = repDocs(WARN_DAYS);
           const today = new Date().toLocaleDateString("en-CA");
           const topOt = att.filter(r => r.ot > 0).sort((a, b) => b.ot - a.ot).slice(0, 5);
           const topAbs = att.filter(r => r.absent > 0).sort((a, b) => b.absent - a.absent).slice(0, 5);
@@ -1898,7 +2111,7 @@
             </div></div>
             <div class="rep-sec"><h4>🔔 المستندات (النهارده)</h4><div class="rep-cards">
               ${stat(docs.filter(d => d.date < today).length, "⛔ منتهية", "#c0392b")}
-              ${stat(docs.filter(d => d.date >= today).length, "⏳ هتخلص خلال 30 يوم", "#b45309")}
+              ${stat(docs.filter(d => d.date >= today).length, "⏳ هتخلص خلال " + WARN_DAYS + " يوم", "#b45309")}
               ${stat(cars.length, "🚗 سيارات")}
               ${stat(equipment.length, "🏗️ معدات")}
             </div></div>
@@ -2616,10 +2829,12 @@
     }
        // 15. التنقل بين الصفحات
     function showPage(name) {
-      if (!canOpen(name)) name = myPages()[0] || "dashboard";
+      if (!myPages().length) return;
+      if (!canOpen(name)) name = myPages()[0];
       document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + name);
       document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
       if (name === "dashboard") refreshDashboard();
+      if (name === "settings") fillSettingsForm();
       if (name === "reports" && !document.getElementById("repMonth").value) {
         document.getElementById("repMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
         repMonthChanged();
@@ -2665,7 +2880,7 @@
       if (!date) return '<span class="badge miss">-</span>';
       const days = Math.ceil((new Date(date) - new Date()) / 86400000);
       if (days < 0) return `<span class="badge bad">منتهي ${date}</span>`;
-      if (days <= 30) return `<span class="badge warn">باقي ${days} يوم</span>`;
+      if (days <= WARN_DAYS) return `<span class="badge warn">باقي ${days} يوم</span>`;
       return `<span class="badge ok">${date}</span>`;
     }
 
@@ -2675,7 +2890,7 @@
     function expiryState(date) {
       if (!date) return "";
       const days = Math.ceil((new Date(date) - new Date()) / 86400000);
-      return days < 0 ? "bad" : days <= 30 ? "warn" : "ok";
+      return days < 0 ? "bad" : days <= WARN_DAYS ? "warn" : "ok";
     }
 
     function setCarFilter(f) {
@@ -2798,7 +3013,7 @@
       loadCars();
     }
        // 18. التايم شيت
-    const BASE_HOURS = 10;
+    let BASE_HOURS = 10;
     let tsRecords = {};
 
     async function loadTimesheet() {
@@ -2821,7 +3036,7 @@
     }
 
         let tsResult = [];
-    const DEFAULT_IN = "07:00";
+    let DEFAULT_IN = "07:00";
 
     let tsFilter = "all";
 
@@ -2959,7 +3174,7 @@
     async function markAll() {
       const todo = tsResult.filter(w => !(tsRecords[w.id] && tsRecords[w.id].time_in));
       if (todo.length === 0) { alert("كل العمال الظاهرين متسجّلين بالفعل"); return; }
-      if (!confirm("هيتسجّل " + todo.length + " عامل حاضر 10 ساعات. متأكد؟")) return;
+      if (!confirm("هيتسجّل " + todo.length + " عامل حاضر " + BASE_HOURS + " ساعات. متأكد؟")) return;
 
       const rows = todo.map(w => makeTsRow(w.id, DEFAULT_IN, 0));
       const { error } = await db.from("timesheet").upsert(rows, { onConflict: "worker_id,work_date" });
@@ -3804,8 +4019,8 @@
     }
 
        // 21. الوجبات
-    const BREAKFAST_PRICE = 3.5;
-    const LUNCH_PRICE = 9;
+    let BREAKFAST_PRICE = 3.5;
+    let LUNCH_PRICE = 9;
     let mealRecords = {};
     let mealResult = [];
     let mPage = 0;
