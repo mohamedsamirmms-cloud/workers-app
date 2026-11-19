@@ -62,6 +62,10 @@
     @media (max-width: 600px) { .eq-doc { grid-template-columns: 1fr; } .eq-doc small { grid-column: auto; } }
     #eqList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
     .file-link { cursor: pointer; text-decoration: none; margin-right: 4px; }
+    .eq-scan { background: #f5f3ff; border: 1px dashed #7c3aed; border-radius: 10px; padding: 10px; }
+    #eqScanStatus { font-size: 14px; margin-top: 6px; line-height: 1.7; }
+    #eqScanStatus:empty { display: none; }
+    .filled { background: #fef9c3 !important; }
     .file-chip { display: inline-flex; gap: 6px; align-items: center; background: #eef1f5; border-radius: 20px; padding: 3px 10px; margin: 3px; font-size: 13px; }
     .warn { background: #ffedd5; color: #9a3412; }
           /* الرسوم البيانية */
@@ -382,6 +386,11 @@
     <div id="eqBox" hidden onclick="if (event.target === this) closeEq()">
       <form id="eqForm">
         <h3>🏗️ بيانات المعدة</h3>
+        <div class="eq-scan">
+          <button type="button" onclick="document.getElementById('eqScanFile').click()" style="background:#7c3aed">📄 اقرا البيانات من ملف PDF أو صورة</button>
+          <input type="file" id="eqScanFile" accept="application/pdf,image/*" onchange="readEqFile(this)" hidden>
+          <div id="eqScanStatus"></div>
+        </div>
         <label>المعدة <input id="eq_name" required placeholder="مثلًا: لودر كاتربلر 950"></label>
         <label>السائق <input id="eq_driver" list="eqDriverList" placeholder="اسم السائق"></label>
         <datalist id="eqDriverList"></datalist>
@@ -1588,6 +1597,8 @@
       const e = equipment.find(x => x.id === id) || {};
       editingEqId = id || null;
       eqOtherFiles = (e.other_files || []).slice();
+      eqPendingFiles = [];
+      document.getElementById("eqScanStatus").innerHTML = "";
       eqRemoved = [];
       document.getElementById("eq_name").value = e.name || "";
       document.getElementById("eq_driver").value = e.driver || "";
@@ -1600,6 +1611,7 @@
           ${e[d.key + "_file"] ? `<small>فيه مرفق محفوظ ${fileLink(e[d.key + "_file"])} — لو اخترت ملف جديد هيتبدّل</small>` : ""}
         </div>`).join("");
       document.getElementById("eq_other").value = "";
+      document.querySelectorAll("#eqForm .filled").forEach(el => el.classList.remove("filled"));
       document.getElementById("eqMsg").textContent = "";
       showEqOther();
       document.getElementById("eqBox").hidden = false;
@@ -1608,7 +1620,10 @@
     function showEqOther() {
       document.getElementById("eqOtherList").innerHTML = eqOtherFiles.map((f, i) =>
         `<span class="file-chip"><a class="file-link" onclick="openFile('${f.path}')">📎 ${f.name}</a>
-          <a class="file-link" title="حذف" onclick="removeEqOther(${i})">✖</a></span>`).join("");
+          <a class="file-link" title="حذف" onclick="removeEqOther(${i})">✖</a></span>`).join("") +
+        eqPendingFiles.map((f, i) =>
+        `<span class="file-chip">📎 ${f.name} <small>(هيترفع مع الحفظ)</small>
+          <a class="file-link" title="حذف" onclick="eqPendingFiles.splice(${i}, 1); showEqOther()">✖</a></span>`).join("");
     }
 
     function removeEqOther(i) {
@@ -1620,6 +1635,179 @@
     function closeEq() {
       document.getElementById("eqBox").hidden = true;
     }
+
+    // قراءة ملف المعدة (PDF أو صورة) وملء الخانات تلقائيًا
+    let eqPendingFiles = [];
+
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        const el = document.createElement("script");
+        el.src = src;
+        el.onload = resolve;
+        el.onerror = () => reject(new Error("مقدرتش أحمّل " + src));
+        document.head.appendChild(el);
+      });
+    }
+
+    async function loadPdfJs() {
+      if (window.pdfjsLib) return;
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    // يحوّل 17/01/2027 أو 05-02-2026 لـ 2027-01-17
+    function toIsoDate(d) {
+      const m = String(d).match(/(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{4})/);
+      if (!m) return "";
+      const day = Number(m[1]), month = Number(m[2]);
+      if (day < 1 || day > 31 || month < 1 || month > 12) return "";
+      return m[3] + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+    }
+
+    const DATE_RE = "(\\d{1,2}\\s*[\\/\\-.]\\s*\\d{1,2}\\s*[\\/\\-.]\\s*\\d{4})";
+
+    // بنطلّع البيانات من نص الصفحات
+    function parseEqText(pages, fileName) {
+      const found = {};
+      pages.forEach(function (raw) {
+        const t = raw.replace(/[ \t]+/g, " ");
+        const T = t.toUpperCase();
+        let m;
+
+        // كارت المشغل
+        if (T.includes("OPERATOR") && /CARD\s*NO/.test(T) && !found.operator_expiry) {
+          m = T.match(new RegExp("EXPIRY\\s*DATE\\s*:?\\s*" + DATE_RE));
+          if (m) found.operator_expiry = toIsoDate(m[1]);
+          m = t.match(/Name\s*:\s*([A-Za-z][A-Za-z .'-]{2,40})/);
+          if (m && !found.driver) found.driver = m[1].trim();
+        }
+
+        // شهادة الفحص
+        if (!found.inspection_expiry) {
+          m = T.match(new RegExp("NEXT\\s*INSPECTION\\s*DATE[^0-9]{0,40}" + DATE_RE));
+          if (m) found.inspection_expiry = toIsoDate(m[1]);
+        }
+        if (T.includes("THOROUGH EXAMINATION") && !found.name) {
+          const make = (t.match(/Manufacturer\s*Name\s*:?\s*([A-Za-z][A-Za-z\-]+)/i) || [])[1];
+          const model = (t.match(/Model\s*&\s*Serial\s*No\.?\s*:?\s*([A-Za-z0-9\-]+)\s*&\s*([A-Za-z0-9\-]+)/i) || []);
+          const kind = (T.match(/THOROUGH EXAMINATION OF ([A-Z ]{3,40})/) || [])[1];
+          const fromFile = (fileName || "").replace(/\.[^.]+$/, "").replace(/\s*-\s*Copy\s*$/i, "").trim();
+          if (make && !model[1] && /\d/.test(fromFile)) {
+            found.name = fromFile + (kind ? " - " + kind.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : "");
+          } else if (make) {
+            found.name = make.charAt(0) + make.slice(1).toLowerCase() +
+              (model[1] ? " " + model[1] : "") +
+              (kind ? " - " + kind.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : "") +
+              (model[2] ? " (" + model[2] + ")" : "");
+          }
+        }
+
+        // التأمين: آخر يوم في مدة التغطية
+        if (!found.ins_expiry) {
+          m = T.match(new RegExp("PERIOD\\s*OF\\s*COVERAGE[^0-9]{0,30}" + DATE_RE + "[^0-9]{0,15}" + DATE_RE));
+          if (m) found.ins_expiry = toIsoDate(m[2]);
+        }
+        // لو السكانر بوّظ العنوان: تاريخين جنب بعض في صفحة وثيقة تأمين
+        if (!found.ins_expiry && /POLICY|INSURANCE|COVERAGE/.test(T)) {
+          m = T.match(new RegExp(DATE_RE + "\\s{1,5}" + DATE_RE));
+          if (m) found.ins_expiry = toIsoDate(m[2]);
+        }
+
+        // الاستمارة والرخصة لو موجودين بالإنجليزي
+        if (!found.reg_expiry && /REGISTRATION|ISTIMARA/.test(T)) {
+          m = T.match(new RegExp("REGISTRATION\\s*EXPIRY\\s*DATE\\s*:?\\s*" + DATE_RE));
+          if (m) found.reg_expiry = toIsoDate(m[1]);
+        }
+        if (!found.license_expiry && /DRIVING\s*LICEN[CS]E/.test(T)) {
+          m = T.match(new RegExp("EXPIRY\\s*DATE\\s*:?\\s*" + DATE_RE));
+          if (m) found.license_expiry = toIsoDate(m[1]);
+        }
+      });
+
+      // لو ملقيناش اسم المعدة، ناخده من اسم الملف
+      if (!found.name && fileName) {
+        found.name = fileName.replace(/\.[^.]+$/, "").replace(/\s*-\s*Copy\s*$/i, "").replace(/\s*\(\d+\)\s*$/, "").trim();
+      }
+      Object.keys(found).forEach(k => { if (!found[k]) delete found[k]; });
+      return found;
+    }
+
+    async function readEqFile(input) {
+      const file = input.files[0];
+      input.value = "";
+      if (!file) return;
+      const status = document.getElementById("eqScanStatus");
+      const say = html => status.innerHTML = html;
+
+      let ocr = null;
+      try {
+        const pages = [];
+        if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+          say("⏳ بفتح الملف...");
+          await loadPdfJs();
+          const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            let text = content.items.map(it => it.str + (it.hasEOL ? "\n" : " ")).join("");
+            // صفحة ممسوحة بالسكانر: نحوّلها صورة ونقراها
+            if (text.replace(/\s/g, "").length < 40) {
+              say(`⏳ بقرا صفحة ${i} من ${pdf.numPages} (صفحة سكانر، ممكن تاخد شوية)...`);
+              const base = page.getViewport({ scale: 1 });
+              const viewport = page.getViewport({ scale: Math.min(4, 2000 / base.width) });
+              const canvas = document.createElement("canvas");
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+              if (!ocr) ocr = await Tesseract.createWorker("eng");
+              text = (await ocr.recognize(canvas)).data.text;
+            } else {
+              say(`⏳ بقرا صفحة ${i} من ${pdf.numPages}...`);
+            }
+            pages.push(text);
+          }
+        } else {
+          say("⏳ بقرا الصورة...");
+          ocr = await Tesseract.createWorker("eng");
+          pages.push((await ocr.recognize(file)).data.text);
+        }
+        console.log(pages);
+
+        const found = parseEqText(pages, file.name);
+        const filled = [];
+        const set = function (id, value, label) {
+          const el = document.getElementById(id);
+          el.value = value;
+          el.classList.add("filled");
+          const shown = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split("-").reverse().join("/") : value;
+          filled.push(label + ": <b dir=\"ltr\">" + shown + "</b>");
+        };
+        if (found.name) set("eq_name", found.name, "المعدة");
+        if (found.driver) set("eq_driver", found.driver, "السائق");
+        EQ_DOCS.forEach(function (d) {
+          if (found[d.key + "_expiry"]) set("eq_" + d.key + "_expiry", found[d.key + "_expiry"], d.label);
+        });
+
+        // نحفظ الملف نفسه في المرفقات
+        if (!eqPendingFiles.some(f => f.name === file.name && f.size === file.size)) eqPendingFiles.push(file);
+        showEqOther();
+
+        const missing = EQ_DOCS.filter(d => !found[d.key + "_expiry"]).map(d => d.label);
+        say((filled.length
+            ? "✅ لقيت:<br>" + filled.join("<br>") + "<br>⚠️ راجع البيانات المتعلّمة بالأصفر قبل الحفظ."
+            : "⚠️ مقدرتش ألاقي بيانات واضحة في الملف، دخّلها بإيدك.") +
+          (missing.length ? "<br>ملقيتش: " + missing.join("، ") : "") +
+          "<br>📎 الملف نفسه هيتحفظ في المرفقات الأخرى.");
+      } catch (e) {
+        console.error(e);
+        say("❌ معرفتش أقرا الملف: " + e.message + " — اتأكد إنك متصل بالإنترنت");
+      } finally {
+        if (ocr) await ocr.terminate();
+      }
+    }
+
+    // نشيل اللون الأصفر لما المستخدم يعدّل الخانة بنفسه
+    document.getElementById("eqForm").addEventListener("input", e => e.target.classList.remove("filled"));
 
     async function uploadEqFile(file, key) {
       const ext = (file.name.split(".").pop() || "bin").toLowerCase();
@@ -1653,6 +1841,9 @@
           }
         }
         const others = eqOtherFiles.slice();
+        for (const file of eqPendingFiles) {
+          others.push({ name: file.name, path: await uploadEqFile(file, "other") });
+        }
         for (const file of document.getElementById("eq_other").files) {
           others.push({ name: file.name, path: await uploadEqFile(file, "other") });
         }
