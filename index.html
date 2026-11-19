@@ -50,6 +50,19 @@
     #carBox[hidden] { display: none; }
     #carForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: grid; gap: 10px; }
     #carForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+          /* معدات المشروع */
+    #eqBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #eqBox[hidden] { display: none; }
+    #eqForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 10px; }
+    #eqList .badge { white-space: nowrap; }
+    #eqForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    .eq-doc { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 8px; align-items: center; background: #eef1f5; padding: 8px 10px; border-radius: 8px; }
+    .eq-doc input[type="file"] { font-size: 13px; padding: 6px; }
+    .eq-doc small { grid-column: 2 / 4; color: #475569; }
+    @media (max-width: 600px) { .eq-doc { grid-template-columns: 1fr; } .eq-doc small { grid-column: auto; } }
+    #eqList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
+    .file-link { cursor: pointer; text-decoration: none; margin-right: 4px; }
+    .file-chip { display: inline-flex; gap: 6px; align-items: center; background: #eef1f5; border-radius: 20px; padding: 3px 10px; margin: 3px; font-size: 13px; }
     .warn { background: #ffedd5; color: #9a3412; }
           /* الرسوم البيانية */
     #charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
@@ -357,7 +370,33 @@
       <div id="dashMeals" class="dash-meals"></div>
     </div>
   </section>
- <section id="page-moves" class="page" hidden><h2>🏗️ معدات المشروع</h2><p>قريبًا</p></section>
+  <section id="page-moves" class="page" hidden>
+    <h2>🏗️ معدات المشروع</h2>
+    <div id="eqBar" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px">
+      <button onclick="openEq()" style="background:#16a34a">➕ إضافة معدة</button>
+      <input id="eqSearch" placeholder="ابحث بالمعدة أو السائق" oninput="showEquipment()" style="flex:1; min-width:200px">
+      <button onclick="exportEquipment()" style="background:#16a34a">📊 تصدير Excel</button>
+    </div>
+    <div id="eqList"></div>
+
+    <div id="eqBox" hidden onclick="if (event.target === this) closeEq()">
+      <form id="eqForm">
+        <h3>🏗️ بيانات المعدة</h3>
+        <label>المعدة <input id="eq_name" required placeholder="مثلًا: لودر كاتربلر 950"></label>
+        <label>السائق <input id="eq_driver" list="eqDriverList" placeholder="اسم السائق"></label>
+        <datalist id="eqDriverList"></datalist>
+        <p style="margin:5px 0 0; color:#475569">📄 المستندات: تاريخ الانتهاء + صورة أو PDF</p>
+        <div id="eqDocs"></div>
+        <label>مرفقات أخرى <input id="eq_other" type="file" multiple accept="image/*,application/pdf"></label>
+        <div id="eqOtherList"></div>
+        <div>
+          <button type="submit" id="eqSave">💾 حفظ</button>
+          <button type="button" onclick="closeEq()" style="background:#c0392b">إلغاء</button>
+        </div>
+        <p id="eqMsg"></p>
+      </form>
+    </div>
+  </section>
    <section id="page-cars" class="page" hidden>
     <h2>🚗 سيارات المشروع</h2>
     <button onclick="openCar()" style="background:#16a34a">➕ إضافة سيارة</button>
@@ -498,6 +537,7 @@
             loadWorkers();
                   loadRooms();
                         loadCars();
+      loadEquipment();
                          document.getElementById("tsDate").value = new Date().toLocaleDateString("en-CA");
       loadTimesheet();
       document.getElementById("mealDate").value = document.getElementById("tsDate").value;
@@ -1489,6 +1529,176 @@
       showWorkers();
       document.getElementById("workersList").scrollIntoView({ behavior: "smooth" });
     }
+       // 22. معدات المشروع
+    const EQ_DOCS = [
+      { key: "iqama", label: "الإقامة" },
+      { key: "license", label: "الرخصة" },
+      { key: "reg", label: "الاستمارة" },
+      { key: "ins", label: "التأمين" },
+      { key: "inspection", label: "الفحص" },
+      { key: "operator", label: "كارت المشغل" }
+    ];
+    let equipment = [];
+    let editingEqId = null;
+    let eqOtherFiles = [];
+    let eqRemoved = [];
+
+    async function loadEquipment() {
+      const { data, error } = await db.from("equipment").select("*").order("name");
+      if (error) { document.getElementById("eqList").innerHTML = "<div>❌ مشكلة في تحميل المعدات: " + error.message + "</div>"; return; }
+      equipment = data;
+      showEquipment();
+    }
+
+    // نفتح الملف من التخزين برابط مؤقت
+    async function openFile(path) {
+      const win = window.open("", "_blank");
+      const { data, error } = await db.storage.from("equipment").createSignedUrl(path, 3600);
+      if (error) { if (win) win.close(); alert("❌ الملف مفتحش: " + error.message); return; }
+      if (win) win.location = data.signedUrl; else location.href = data.signedUrl;
+    }
+
+    function fileLink(path) {
+      return path ? `<a class="file-link" title="عرض المرفق" onclick="openFile('${path}')">📎</a>` : "";
+    }
+
+    function showEquipment() {
+      const list = document.getElementById("eqList");
+      const q = document.getElementById("eqSearch").value.trim().toLowerCase();
+      const result = equipment.filter(e => !q || ((e.name || "") + " " + (e.driver || "")).toLowerCase().includes(q));
+      if (result.length === 0) { list.innerHTML = "<div><p>لا يوجد معدات" + (q ? " مطابقة للبحث" : " بعد") + "</p></div>"; return; }
+
+      let html = `<div><table><tr><th>#</th><th>المعدة</th><th>السائق</th>`;
+      EQ_DOCS.forEach(d => html += `<th>${d.label}</th>`);
+      html += `<th>مرفقات أخرى</th><th></th></tr>`;
+      result.forEach(function (e, i) {
+        html += `<tr><td>${i + 1}</td><td><b>${e.name}</b></td><td>${e.driver || "-"}</td>`;
+        EQ_DOCS.forEach(d => html += `<td>${expiryBadge(e[d.key + "_expiry"])} ${fileLink(e[d.key + "_file"])}</td>`);
+        const others = e.other_files || [];
+        html += `<td>${others.length ? others.map(f => `<a class="file-link" title="${f.name}" onclick="openFile('${f.path}')">📎</a>`).join("") : "-"}</td>
+          <td style="white-space:nowrap">
+            <button onclick="openEq(${e.id})" style="background:#e08a1e">تعديل</button>
+            <button onclick="deleteEq(${e.id})" style="background:#c0392b">حذف</button>
+          </td></tr>`;
+      });
+      list.innerHTML = html + "</table></div>";
+    }
+
+    function openEq(id) {
+      const e = equipment.find(x => x.id === id) || {};
+      editingEqId = id || null;
+      eqOtherFiles = (e.other_files || []).slice();
+      eqRemoved = [];
+      document.getElementById("eq_name").value = e.name || "";
+      document.getElementById("eq_driver").value = e.driver || "";
+      document.getElementById("eqDriverList").innerHTML = workers.map(w => `<option value="${w.name}">`).join("");
+      document.getElementById("eqDocs").innerHTML = EQ_DOCS.map(d => `
+        <div class="eq-doc">
+          <b>${d.label}</b>
+          <input type="date" id="eq_${d.key}_expiry" value="${e[d.key + "_expiry"] || ""}">
+          <input type="file" id="eq_${d.key}_file" accept="image/*,application/pdf">
+          ${e[d.key + "_file"] ? `<small>فيه مرفق محفوظ ${fileLink(e[d.key + "_file"])} — لو اخترت ملف جديد هيتبدّل</small>` : ""}
+        </div>`).join("");
+      document.getElementById("eq_other").value = "";
+      document.getElementById("eqMsg").textContent = "";
+      showEqOther();
+      document.getElementById("eqBox").hidden = false;
+    }
+
+    function showEqOther() {
+      document.getElementById("eqOtherList").innerHTML = eqOtherFiles.map((f, i) =>
+        `<span class="file-chip"><a class="file-link" onclick="openFile('${f.path}')">📎 ${f.name}</a>
+          <a class="file-link" title="حذف" onclick="removeEqOther(${i})">✖</a></span>`).join("");
+    }
+
+    function removeEqOther(i) {
+      eqRemoved.push(eqOtherFiles[i].path);
+      eqOtherFiles.splice(i, 1);
+      showEqOther();
+    }
+
+    function closeEq() {
+      document.getElementById("eqBox").hidden = true;
+    }
+
+    async function uploadEqFile(file, key) {
+      const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+      const path = Date.now() + "_" + Math.random().toString(36).slice(2, 8) + "_" + key + "." + ext;
+      const { error } = await db.storage.from("equipment").upload(path, file, { contentType: file.type || undefined });
+      if (error) throw new Error(error.message);
+      return path;
+    }
+
+    document.getElementById("eqForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const msg = document.getElementById("eqMsg");
+      const btn = document.getElementById("eqSave");
+      msg.textContent = "⏳ جاري الحفظ ورفع الملفات...";
+      btn.disabled = true;
+
+      const old = equipment.find(x => x.id === editingEqId) || {};
+      const row = {
+        name: document.getElementById("eq_name").value.trim(),
+        driver: document.getElementById("eq_driver").value.trim()
+      };
+      const toRemove = eqRemoved.slice();
+
+      try {
+        for (const d of EQ_DOCS) {
+          row[d.key + "_expiry"] = document.getElementById("eq_" + d.key + "_expiry").value || null;
+          const file = document.getElementById("eq_" + d.key + "_file").files[0];
+          if (file) {
+            row[d.key + "_file"] = await uploadEqFile(file, d.key);
+            if (old[d.key + "_file"]) toRemove.push(old[d.key + "_file"]);
+          }
+        }
+        const others = eqOtherFiles.slice();
+        for (const file of document.getElementById("eq_other").files) {
+          others.push({ name: file.name, path: await uploadEqFile(file, "other") });
+        }
+        row.other_files = others;
+      } catch (e) {
+        msg.textContent = "❌ الملف مترفعش: " + e.message;
+        btn.disabled = false;
+        return;
+      }
+
+      const { error } = editingEqId
+        ? await db.from("equipment").update(row).eq("id", editingEqId)
+        : await db.from("equipment").insert(row);
+      btn.disabled = false;
+      if (error) { msg.textContent = "❌ محصلش حفظ: " + error.message; return; }
+
+      if (toRemove.length) await db.storage.from("equipment").remove(toRemove);
+      closeEq();
+      loadEquipment();
+    });
+
+    async function deleteEq(id) {
+      const e = equipment.find(x => x.id === id);
+      if (!confirm("متأكد إنك عايز تحذف " + e.name + " وكل مرفقاتها؟")) return;
+      const { error } = await db.from("equipment").delete().eq("id", id);
+      if (error) { alert("❌ محصلش حذف: " + error.message); return; }
+      const files = EQ_DOCS.map(d => e[d.key + "_file"]).filter(Boolean).concat((e.other_files || []).map(f => f.path));
+      if (files.length) await db.storage.from("equipment").remove(files);
+      loadEquipment();
+    }
+
+    function exportEquipment() {
+      if (equipment.length === 0) { alert("مفيش بيانات للتصدير"); return; }
+      const rows = equipment.map(function (e, i) {
+        const r = { "#": i + 1, "المعدة": e.name, "السائق": e.driver || "" };
+        EQ_DOCS.forEach(d => r[d.label] = e[d.key + "_expiry"] || "");
+        r["مرفقات أخرى"] = (e.other_files || []).length;
+        return r;
+      });
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, sheet, "المعدات");
+      XLSX.writeFile(book, "معدات-المشروع-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+    }
+
        // 21. الوجبات
     const BREAKFAST_PRICE = 3.5;
     const LUNCH_PRICE = 9;
