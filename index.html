@@ -101,13 +101,59 @@
           /* الكشف الشهري */
     #tsMonthBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #tsMonthBox[hidden] { display: none; }
-    #tsMonthInner { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto; }
-    #tsMonthInner h3 { margin-top: 0; color: #1e3a5f; }
-    .ts-month-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
-    #tsMonthTotals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
-    #tsMonthTotals .stat { background: #eef1f5; }
-    #tsMonthList { overflow-x: auto; }
+    #tsMonthInner { background: #eef1f5; border-radius: 16px; width: 100%; max-width: 900px; max-height: 92vh; overflow-y: auto; box-sizing: border-box; }
+    #tsMonthInner input, #tsMonthInner button { box-sizing: border-box; }
+    .tsm-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; padding: 16px 18px; border-radius: 16px 16px 0 0; }
+    .tsm-avatar { width: 50px; height: 50px; flex: none; border-radius: 50%; background: #e08a1e; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; }
+    .tsm-head h3 { margin: 0; color: white; font-size: 18px; }
+    .tsm-head small { color: #cbd5e1; font-size: 13px; }
+    .tsm-head .tsm-close { margin-right: auto; background: rgba(255,255,255,0.15); padding: 8px 12px; }
+    .tsm-head .tsm-close:hover { background: #c0392b; }
+    .tsm-body { padding: 15px 18px 18px; }
+    .ts-month-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: white; padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; }
+    .ts-month-bar .nav-btn { background: #eef1f5; color: #1e3a5f; padding: 8px 12px; }
+    .ts-month-bar .nav-btn:hover { background: #e08a1e; color: white; }
+    #tsMonthName { font-weight: bold; color: #1e3a5f; flex: 1; min-width: 100px; }
+    #tsMonthTotals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #tsMonthTotals .stat { border-top: 4px solid #1e3a5f; }
+    #tsMonthTotals .stat.green { border-color: #16a34a; } #tsMonthTotals .stat.green b { color: #16a34a; }
+    #tsMonthTotals .stat.red { border-color: #c0392b; } #tsMonthTotals .stat.red b { color: #c0392b; }
+    #tsMonthTotals .stat.orange { border-color: #e08a1e; } #tsMonthTotals .stat.orange b { color: #e08a1e; }
+    .tsm-rate { background: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
+    .tsm-rate .row { display: flex; justify-content: space-between; font-size: 14px; color: #475569; margin-bottom: 6px; }
+    .tsm-rate .bar { height: 10px; background: #fee2e2; border-radius: 10px; overflow: hidden; }
+    .tsm-rate .bar span { display: block; height: 100%; background: #16a34a; border-radius: 10px; }
+    #tsOtDays { margin: 8px 0 0; font-size: 13px; color: #9a3412; }
+    #tsOtDays:empty { display: none; }
+    .tsm-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+    #tsMonthList { background: white; border-radius: 12px; padding: 12px; overflow-x: auto; }
+    .tsm-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .tsm-cal .dow { text-align: center; font-size: 12px; color: #64748b; font-weight: bold; padding: 4px 0; }
+    .tsm-day { border-radius: 10px; padding: 6px 4px; min-height: 58px; text-align: center; cursor: pointer; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: transform 0.1s; }
+    .tsm-day:hover { border-color: #1e3a5f; transform: scale(1.04); }
+    .tsm-day b { font-size: 16px; }
+    .tsm-day small { font-size: 11px; }
+    .tsm-day.present { background: #dcfce7; color: #166534; }
+    .tsm-day.absent { background: #fee2e2; color: #991b1b; }
+    .tsm-day.future { background: #f1f5f9; color: #94a3b8; }
+    .tsm-day.today { border-color: #e08a1e; }
+    .tsm-day .ot { background: #e08a1e; color: white; border-radius: 10px; padding: 0 6px; font-size: 10px; }
+    .tsm-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: #475569; margin-top: 10px; }
+    .tsm-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
+    #tsMonthList table td, #tsMonthList table th { white-space: nowrap; }
     tr.absent td { background: #fef2f2; }
+    tr.friday td { color: #64748b; }
+    @media (max-width: 700px) {
+      #tsMonthBox { padding: 0; align-items: stretch; }
+      #tsMonthInner { max-height: 100vh; border-radius: 0; }
+      .tsm-head { border-radius: 0; }
+      .tsm-body { padding: 10px; }
+      .tsm-cal { gap: 4px; }
+      .tsm-day { min-height: 46px; padding: 4px 2px; }
+      .tsm-day b { font-size: 14px; }
+      .tsm-day small.h { display: none; }
+      .ts-month-bar > button:not(.nav-btn) { flex: 1; }
+    }
     .ts-name { cursor: pointer; color: #1e3a5f; text-decoration: underline; }
           /* التايم شيت */
     #page-timesheet input, #page-timesheet button { box-sizing: border-box; }
@@ -777,15 +823,24 @@
     <div id="tsList"></div>
         <div id="tsMonthBox" hidden onclick="if (event.target === this) closeTsMonth()">
       <div id="tsMonthInner">
-        <h3 id="tsMonthTitle"></h3>
-        <div class="ts-month-bar">
-          <input type="month" id="tsMonth" onchange="showTsMonth()">
-          <button onclick="exportTsMonth()" style="background:#16a34a">📊 تصدير Excel</button>
-          <button onclick="closeTsMonth()" style="background:#64748b">إغلاق</button>
+        <div class="tsm-head">
+          <span class="tsm-avatar" id="tsMonthAvatar"></span>
+          <div><h3 id="tsMonthTitle"></h3><small id="tsMonthSub"></small></div>
+          <button class="tsm-close" onclick="closeTsMonth()" title="إغلاق">✖</button>
         </div>
-        <div id="tsMonthTotals"></div>
-        <p id="tsOtDays"></p>
-        <div id="tsMonthList"></div>
+        <div class="tsm-body">
+          <div class="ts-month-bar">
+            <button class="nav-btn" onclick="shiftTsMonth(-1)" title="الشهر اللي قبله">→</button>
+            <input type="month" id="tsMonth" onchange="showTsMonth()">
+            <button class="nav-btn" onclick="shiftTsMonth(1)" title="الشهر اللي بعده">←</button>
+            <span id="tsMonthName"></span>
+            <button onclick="exportTsMonth()" style="background:#16a34a">📊 تصدير Excel</button>
+          </div>
+          <div id="tsMonthTotals"></div>
+          <div class="tsm-rate" id="tsMonthRate"></div>
+          <div class="tsm-tabs" id="tsMonthTabs"></div>
+          <div id="tsMonthList"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -1893,7 +1948,9 @@
       const days = new Date(y, m, 0).getDate();
       const first = ym + "-01";
       const last = ym + "-" + String(days).padStart(2, "0");
-      document.getElementById("tsMonthTitle").textContent = "📅 كشف " + w.name + " (" + (w.room || "-") + ")";
+      document.getElementById("tsMonthTitle").textContent = "📅 الكشف الشهري — " + w.name;
+      document.getElementById("tsMonthSub").textContent = ["🚪 غرفة " + (w.room || "-"), w.idNo ? "🪪 " + w.idNo : "", w.job || ""].filter(Boolean).join(" · ");
+      document.getElementById("tsMonthAvatar").textContent = w.name.split(" ").filter(Boolean).slice(0, 2).map(x => x[0]).join("");
 
       const { data, error } = await db.from("timesheet").select("*")
         .eq("worker_id", w.id).gte("work_date", first).lte("work_date", last);
@@ -1939,31 +1996,93 @@
       ot = Math.round(ot * 100) / 100;
       tsMonthSum = { present, absent, hours, ot };
 
+      const workDays = present + absent;
+      const rate = workDays ? Math.round(present / workDays * 100) : 0;
+      document.getElementById("tsMonthName").textContent = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
       document.getElementById("tsMonthTotals").innerHTML = `
-        <div class="stat"><b>${present}</b>أيام الحضور</div>
-        <div class="stat"><b style="color:#c0392b">${absent}</b>أيام الغياب</div>
-        <div class="stat"><b>${hours}</b>إجمالي الساعات</div>
-        <div class="stat"><b style="color:#e08a1e">${ot}</b>إجمالي الأوفر تايم</div>
-      `;
-      document.getElementById("tsOtDays").textContent = otDays.length
-        ? "أيام الأوفر تايم: " + otDays.join("، ")
-        : "مفيش أوفر تايم الشهر ده";
+        <div class="stat green"><b>${present}</b>✅ أيام الحضور</div>
+        <div class="stat red"><b>${absent}</b>❌ أيام الغياب</div>
+        <div class="stat"><b>${hours}</b>🕒 إجمالي الساعات</div>
+        <div class="stat orange"><b>${ot}</b>⚡ إجمالي الأوفر تايم</div>`;
+      document.getElementById("tsMonthRate").innerHTML = `
+        <div class="row"><span>نسبة الحضور (من الأيام اللي عدّت)</span><b>${rate}%</b></div>
+        <div class="bar"><span style="width:${rate}%"></span></div>
+        <p id="tsOtDays">${otDays.length ? "⚡ أيام الأوفر تايم: " + otDays.join("، ") : ""}</p>`;
 
-      let html = `<table>
-        <tr><th>التاريخ</th><th>اليوم</th><th>الحالة</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>أوفر تايم</th></tr>`;
-      tsMonthRows.forEach(function (r) {
-        const badge = r.status === "حضور" ? "ok" : r.status === "غياب" ? "bad" : "miss";
-        html += `<tr class="${r.status === "غياب" ? "absent" : ""}">
-          <td>${r.date}</td>
-          <td>${r.dayName}</td>
-          <td><span class="badge ${badge}">${r.status}</span></td>
-          <td>${r.tin || "-"}</td>
-          <td>${r.tout || "-"}</td>
-          <td>${r.hours || "-"}</td>
-          <td>${r.ot > 0 ? `<span class="badge warn">${r.ot}</span>` : "-"}</td>
-        </tr>`;
-      });
-      html += `<tr><td colspan="5"><b>الإجمالي</b></td><td><b>${hours}</b></td><td><b>${ot}</b></td></tr></table>`;
+      showTsMonthView();
+    }
+
+    let tsMonthView = "cal";
+
+    function setTsMonthView(v) {
+      tsMonthView = v;
+      showTsMonthView();
+    }
+
+    function shiftTsMonth(n) {
+      const input = document.getElementById("tsMonth");
+      const [y, m] = input.value.split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      input.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      showTsMonth();
+    }
+
+    // دوسة على يوم في التقويم: تفتح التايم شيت على اليوم ده
+    function openTsDay(date) {
+      closeTsMonth();
+      document.getElementById("tsDate").value = date;
+      document.getElementById("tsSearch").value = tsMonthWorker.name;
+      tsFilter = "all";
+      loadTimesheet();
+    }
+
+    function showTsMonthView() {
+      const tab = (v, label) => `<button class="chip ${tsMonthView === v ? "on" : ""}" onclick="setTsMonthView('${v}')">${label}</button>`;
+      document.getElementById("tsMonthTabs").innerHTML = tab("cal", "📅 تقويم") + tab("table", "📋 جدول");
+      const today = new Date().toLocaleDateString("en-CA");
+      let html;
+
+      if (tsMonthView === "cal") {
+        // الأسبوع بيبدأ السبت
+        const names = ["سبت", "أحد", "اتنين", "تلات", "أربع", "خميس", "جمعة"];
+        html = '<div class="tsm-cal">' + names.map(n => `<div class="dow">${n}</div>`).join("");
+        const first = tsMonthRows.length ? new Date(tsMonthRows[0].date + "T12:00:00").getDay() : 0;
+        const offset = (first + 1) % 7;
+        for (let i = 0; i < offset; i++) html += "<div></div>";
+        tsMonthRows.forEach(function (r) {
+          const cls = r.status === "حضور" ? "present" : r.status === "غياب" ? "absent" : "future";
+          html += `<div class="tsm-day ${cls} ${r.date === today ? "today" : ""}" onclick="openTsDay('${r.date}')" title="${r.dayName} ${r.date}${r.tin ? " — " + r.tin + " إلى " + r.tout : ""}">
+            <b>${Number(r.date.slice(8))}</b>
+            ${r.status === "حضور" ? `<small class="h">${r.hours} س</small>` : r.status === "غياب" ? "<small>غياب</small>" : ""}
+            ${r.ot > 0 ? `<span class="ot">+${r.ot}</span>` : ""}
+          </div>`;
+        });
+        html += `</div>
+          <div class="tsm-legend">
+            <span><i style="background:#dcfce7"></i>حضور</span>
+            <span><i style="background:#fee2e2"></i>غياب</span>
+            <span><i style="background:#f1f5f9"></i>لسه</span>
+            <span><i style="background:#e08a1e"></i>أوفر تايم</span>
+            <span>💡 دوس على أي يوم تفتحه في التايم شيت</span>
+          </div>`;
+      } else {
+        html = `<table>
+          <tr><th>التاريخ</th><th>اليوم</th><th>الحالة</th><th>الحضور</th><th>الانصراف</th><th>الساعات</th><th>أوفر تايم</th></tr>`;
+        tsMonthRows.forEach(function (r) {
+          const badge = r.status === "حضور" ? "ok" : r.status === "غياب" ? "bad" : "miss";
+          const friday = new Date(r.date + "T12:00:00").getDay() === 5;
+          html += `<tr class="${r.status === "غياب" ? "absent" : ""} ${friday ? "friday" : ""}">
+            <td>${r.date}</td>
+            <td>${r.dayName}</td>
+            <td><span class="badge ${badge}">${r.status}</span></td>
+            <td>${r.tin || "-"}</td>
+            <td>${r.tout || "-"}</td>
+            <td>${r.hours || "-"}</td>
+            <td>${r.ot > 0 ? `<span class="badge warn">${r.ot}</span>` : "-"}</td>
+          </tr>`;
+        });
+        html += `<tr class="meal-sum"><td colspan="5">الإجمالي</td><td>${tsMonthSum.hours}</td><td>${tsMonthSum.ot}</td></tr></table>`;
+      }
       document.getElementById("tsMonthList").innerHTML = html;
     }
 
