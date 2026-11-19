@@ -21,7 +21,7 @@
     .dash-tile .arrow { position: absolute; top: 12px; left: 15px; transition: transform 0.2s; }
     .dash-tile.open .arrow { transform: rotate(180deg); }
     .dash-box { background: white; border-radius: 12px; padding: 5px 20px 15px; margin-bottom: 15px; }
-    .dash-box .stat { background: #eef1f5; }
+    .dash-box .stat, .dash-box .chart-box { background: #eef1f5; }
     .stat.click { cursor: pointer; border: 2px solid transparent; }
     .stat.click:hover { border-color: #e08a1e; background: #fff7ed; }
     .dash-meals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
@@ -347,14 +347,14 @@
     <div id="box-stats" class="dash-box" hidden>
       <h3 style="color:#1e3a5f">👷 الساكنين</h3>
       <div id="stats"></div>
+      <div id="charts">
+        <div class="chart-box"><h3>الساكنين حسب الجنسية</h3><div id="chartCountry"></div></div>
+        <div class="chart-box"><h3>البطاطين</h3><div id="chartBlanket"></div></div>
+      </div>
     </div>
     <div id="box-meals" class="dash-box" hidden>
       <h3 id="dashMealsTitle" style="color:#1e3a5f">🍽️ الوجبات هذا الشهر</h3>
       <div id="dashMeals" class="dash-meals"></div>
-    </div>
-    <div id="charts">
-      <div class="chart-box"><h3>الساكنين حسب الجنسية</h3><div id="chartCountry"></div></div>
-      <div class="chart-box"><h3>البطاطين</h3><div id="chartBlanket"></div></div>
     </div>
   </section>
  <section id="page-moves" class="page" hidden><h2>🧳 الحركة</h2><p>قريبًا</p></section>
