@@ -1463,7 +1463,7 @@
     let mealMonthRows = [];
 
     function money(n) {
-      return (Math.round(n * 100) / 100) + " ريال";
+      return (Math.round(n * 100) / 100).toLocaleString("en-US") + " ريال";
     }
 
     // Supabase بيرجّع 1000 صف بس في المرة، فنجيب على دفعات
@@ -1588,9 +1588,9 @@
       }).sort((a, b) => (a.room || "").localeCompare(b.room || "", "en", { numeric: true }));
 
       document.getElementById("mealMonthTotals").innerHTML = `
-        <div class="stat"><b>${tb}</b>فطار (${money(tb * BREAKFAST_PRICE)})</div>
-        <div class="stat"><b>${tl}</b>غداء (${money(tl * LUNCH_PRICE)})</div>
-        <div class="stat"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>إجمالي الشهر</div>
+        <div class="stat"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار الشهري<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء الشهري<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>💰 إجمالي الشهر (فطار + غداء)</div>
       `;
 
       if (mealMonthRows.length === 0) {
