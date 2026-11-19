@@ -431,6 +431,47 @@
     .pf-list a { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; color: #1e3a5f; text-decoration: none; cursor: pointer; }
     .pf-list a:hover { background: #fff7ed; }
     .pf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* التقارير */
+    #page-reports input, #page-reports button, #page-reports select { box-sizing: border-box; }
+    #repBar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    #repMonthName { font-weight: bold; color: #1e3a5f; flex: 1; }
+    .rep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-bottom: 15px; }
+    .rep-tile { background: white; border-radius: 14px; padding: 16px; cursor: pointer; border: 2px solid transparent; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; transition: all 0.15s; }
+    .rep-tile:hover { border-color: #e08a1e; transform: translateY(-2px); }
+    .rep-tile.on { border-color: #e08a1e; background: #fff7ed; }
+    .rep-tile .icon { grid-row: 1 / 3; width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: #eef1f5; }
+    .rep-tile b { color: #1e3a5f; font-size: 15px; }
+    .rep-tile small { color: #64748b; font-size: 12px; line-height: 1.5; }
+    #reportOut { background: white; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px; }
+    #reportOut:empty { display: none; }
+    .rep-head { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .rep-head h3 { margin: 0; font-size: 19px; }
+    .rep-head small { color: #cbd5e1; }
+    .rep-head .acts { display: flex; gap: 6px; }
+    .rep-head .acts button { background: rgba(255,255,255,0.15); font-size: 14px; padding: 8px 12px; }
+    .rep-head .acts button:hover { background: #e08a1e; }
+    .rep-body { padding: 15px 20px 20px; display: grid; gap: 14px; }
+    .rep-sec h4 { margin: 0 0 8px; color: #1e3a5f; border-right: 4px solid #e08a1e; padding-right: 8px; }
+    .rep-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+    .rep-cards .stat { background: #f8fafc; padding: 10px; }
+    .rep-cards .stat b { font-size: 22px; }
+    .rep-cards .stat small { display: block; color: #64748b; font-size: 12px; }
+    .rep-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .rep-table { overflow-x: auto; }
+    .rep-table table td, .rep-table table th { white-space: nowrap; }
+    .rep-table .names { white-space: normal; color: #475569; font-size: 12px; }
+    .rep-empty { color: #64748b; margin: 0; }
+    .print-only { display: none; }
+    @media print { .print-only { display: inline; } }
+    @media (max-width: 700px) {
+      .rep-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .rep-tile { grid-template-columns: 1fr; text-align: center; justify-items: center; padding: 12px 8px; }
+      .rep-tile .icon { grid-row: auto; width: 42px; height: 42px; font-size: 20px; }
+      .rep-tile small { display: none; }
+      .rep-two { grid-template-columns: 1fr; }
+      .rep-body { padding: 10px; }
+      #repBar > button:not(.nav-btn) { flex: 1; }
+    }
     /* الأرشيف */
     #page-archive input, #page-archive button, #page-archive select { box-sizing: border-box; }
     #archStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
@@ -477,12 +518,17 @@
     @media print {
       body { background: white !important; padding: 0 !important; max-width: none !important; }
       body * { visibility: hidden; }
-      #profileBox, #profileBox * { visibility: visible; }
-      #profileBox { position: absolute; inset: 0; background: none; padding: 0; display: block; }
-      #profileBox #profile { max-width: none; max-height: none; overflow: visible; background: white; box-shadow: none; }
       #app { display: block !important; }
       .no-print { display: none !important; }
+      body.print-profile #profileBox, body.print-profile #profileBox * { visibility: visible; }
+      body.print-profile #profileBox { position: absolute; inset: 0; background: none; padding: 0; display: block; }
+      body.print-profile #profileBox #profile { max-width: none; max-height: none; overflow: visible; background: white; box-shadow: none; }
       .pf-card { border: 1px solid #e2e8f0; break-inside: avoid; }
+      body.print-report #reportOut, body.print-report #reportOut * { visibility: visible; }
+      body.print-report #reportOut { position: absolute; top: 0; right: 0; left: 0; margin: 0; box-shadow: none; }
+      body.print-report #sidebar { display: none !important; }
+      .rep-sec { break-inside: avoid; }
+      #reportOut table { font-size: 11px; }
     }
           /* نافذة التعديل */
     #editBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
@@ -1033,7 +1079,24 @@
     </div>
     <div id="archList"></div>
   </section>
-  <section id="page-reports" class="page" hidden><h2>📄 التقارير</h2><p>قريبًا</p></section>
+  <section id="page-reports" class="page" hidden>
+    <div class="res-head"><h2>📄 التقارير</h2></div>
+    <div id="repBar" class="res-panel ts-month-bar">
+      <button class="nav-btn" onclick="shiftRepMonth(-1)" title="الشهر اللي قبله">→</button>
+      <input type="month" id="repMonth" onchange="repMonthChanged()">
+      <button class="nav-btn" onclick="shiftRepMonth(1)" title="الشهر اللي بعده">←</button>
+      <span id="repMonthName"></span>
+    </div>
+    <div class="rep-grid">
+      <div class="rep-tile" data-rep="summary" onclick="openReport('summary')"><span class="icon" style="background:#dbeafe">📊</span><b>الملخص الشهري</b><small>السكن والحضور والوجبات والمستندات في صفحة واحدة</small></div>
+      <div class="rep-tile" data-rep="housing" onclick="openReport('housing')"><span class="icon" style="background:#dcfce7">🏢</span><b>تقرير السكن</b><small>الغرف وساكنيها، الجنسيات، البطاطين، الإقامات الناقصة</small></div>
+      <div class="rep-tile" data-rep="attendance" onclick="openReport('attendance')"><span class="icon" style="background:#e0e7ff">⏱️</span><b>تقرير الحضور</b><small>حضور وغياب وساعات وأوفر تايم كل عامل في الشهر</small></div>
+      <div class="rep-tile" data-rep="meals" onclick="openReport('meals')"><span class="icon" style="background:#fef3c7">🍽️</span><b>تقرير الوجبات</b><small>فطار وغداء وتكلفة كل عامل في الشهر</small></div>
+      <div class="rep-tile" data-rep="docs" onclick="openReport('docs')"><span class="icon" style="background:#fee2e2">🔔</span><b>تقرير المستندات</b><small>استمارات وتأمينات وفحوصات منتهية أو قربت</small></div>
+      <div class="rep-tile" data-rep="moves" onclick="openReport('moves')"><span class="icon" style="background:#ede9fe">🧳</span><b>حركة الساكنين</b><small>اللي وصلوا واللي خرجوا في الشهر</small></div>
+    </div>
+    <div id="reportOut"></div>
+  </section>
   <section id="page-users" class="page" hidden><h2>👥 المستخدمين</h2><p>قريبًا</p></section>
   <section id="page-settings" class="page" hidden><h2>⚙️ الإعدادات</h2><p>قريبًا</p></section>
   </main>
@@ -1379,6 +1442,271 @@
     
        // 6. الملف الشخصي (بيانات السكن)
            // 6. الملف الشخصي (نافذة)
+    // ===== الطباعة =====
+    function printWith(cls) {
+      document.body.classList.add(cls);
+      window.print();
+      setTimeout(() => document.body.classList.remove(cls), 500);
+    }
+
+    // ===== التقارير =====
+    let repCurrent = "";
+    let repSheets = [];
+    let repCache = {};
+
+    function repMonthInfo() {
+      const ym = document.getElementById("repMonth").value;
+      const [y, m] = ym.split("-").map(Number);
+      const days = new Date(y, m, 0).getDate();
+      return { ym, y, m, days, first: ym + "-01", last: ym + "-" + String(days).padStart(2, "0"),
+        name: new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" }) };
+    }
+
+    function repMonthChanged() {
+      document.getElementById("repMonthName").textContent = repMonthInfo().name;
+      if (repCurrent) openReport(repCurrent);
+    }
+
+    function shiftRepMonth(n) {
+      const input = document.getElementById("repMonth");
+      const [y, m] = input.value.split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      input.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      repMonthChanged();
+    }
+
+    // حضور ووجبات الشهر (مرة واحدة لكل شهر)
+    async function repMonthData(force) {
+      const { ym, first, last } = repMonthInfo();
+      // بنجيب البيانات كل مرة عشان التقرير يبقى محدّث
+      const [ts, ml] = await Promise.all([
+        fetchAll(() => db.from("timesheet").select("worker_id,work_date,time_in,hours,overtime").gte("work_date", first).lte("work_date", last).order("worker_id").order("work_date")),
+        fetchAll(() => db.from("meals").select("worker_id,meal_date,breakfast,lunch").gte("meal_date", first).lte("meal_date", last).order("worker_id").order("meal_date"))
+      ]);
+      if (ts.error) throw new Error(ts.error.message);
+      if (ml.error) throw new Error(ml.error.message);
+      return (repCache[ym] = { ts: ts.data.filter(r => r.time_in), meals: ml.data });
+    }
+
+    // حضور كل عامل في الشهر
+    function repAttendance(info, ts) {
+      const today = new Date().toLocaleDateString("en-CA");
+      const by = {};
+      ts.forEach(r => (by[r.worker_id] = by[r.worker_id] || []).push(r));
+      const all = workers.concat(archivedWorkers);
+      const people = all.filter(w => by[w.id] || (!w.archived || (w.archived_at || "") >= info.first) && (!w.arrival || w.arrival <= info.last));
+      return people.map(function (w) {
+        const recs = by[w.id] || [];
+        const dates = new Set(recs.map(r => r.work_date));
+        let absent = 0;
+        for (let d = 1; d <= info.days; d++) {
+          const date = info.ym + "-" + String(d).padStart(2, "0");
+          if (date < today && onDuty(w, date) && !dates.has(date)) absent++;
+        }
+        const hours = Math.round(recs.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
+        const ot = Math.round(recs.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
+        const rate = recs.length + absent ? Math.round(recs.length / (recs.length + absent) * 100) : 0;
+        return { w, present: recs.length, absent, hours, ot, rate };
+      });
+    }
+
+    function repMeals(meals) {
+      const by = {};
+      meals.forEach(function (r) {
+        const s2 = by[r.worker_id] = by[r.worker_id] || { b: 0, l: 0 };
+        if (r.breakfast) s2.b++;
+        if (r.lunch) s2.l++;
+      });
+      return Object.keys(by).map(id => ({ w: findWorker(id) || { name: "عامل محذوف", room: "" }, ...by[id], cost: by[id].b * BREAKFAST_PRICE + by[id].l * LUNCH_PRICE }))
+        .sort((a, b) => b.cost - a.cost);
+    }
+
+    function repDocs(withinDays) {
+      const items = [];
+      const limit = new Date(); limit.setDate(limit.getDate() + withinDays);
+      const lim = limit.toLocaleDateString("en-CA");
+      const push = (kind, name, doc, date, holder) => { if (date && date <= lim) items.push({ kind, name, doc, date, holder }); };
+      cars.forEach(c => { push("🚗 سيارة", (c.car_type || "سيارة") + " — " + c.plate, "الاستمارة", c.reg_expiry, c.driver); push("🚗 سيارة", (c.car_type || "سيارة") + " — " + c.plate, "التأمين", c.ins_expiry, c.driver); });
+      equipment.forEach(e => EQ_DOCS.filter(d => !d.num).forEach(d => push("🏗️ معدة", e.name, d.label, e[eqField(d)], e.driver)));
+      return items.sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    const stat = (n, label, color, sub) => `<div class="stat"><b style="color:${color || "#1e3a5f"}">${n}</b>${label}${sub ? `<small>${sub}</small>` : ""}</div>`;
+    const tableHtml = (head, rows) => `<div class="rep-table"><table><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.join("")}</table></div>`;
+
+    let repDocWithin = 30;
+
+    async function openReport(kind) {
+      const sel = document.getElementById("repDocDays");
+      if (sel) repDocWithin = Number(sel.value) || 30;
+      repCurrent = kind;
+      document.querySelectorAll(".rep-tile").forEach(t => t.classList.toggle("on", t.dataset.rep === kind));
+      const out = document.getElementById("reportOut");
+      const info = repMonthInfo();
+      const titles = { summary: "📊 الملخص الشهري", housing: "🏢 تقرير السكن", attendance: "⏱️ تقرير الحضور", meals: "🍽️ تقرير الوجبات", docs: "🔔 تقرير المستندات", moves: "🧳 حركة الساكنين" };
+      out.innerHTML = `<div class="rep-body"><p>⏳ جاري تجهيز التقرير...</p></div>`;
+      out.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      let body = "";
+      repSheets = [];
+      try {
+        if (kind === "summary") {
+          const { ts, meals } = await repMonthData();
+          const att = repAttendance(info, ts);
+          const tp = att.reduce((s, r) => s + r.present, 0), ta = att.reduce((s, r) => s + r.absent, 0);
+          const th = Math.round(att.reduce((s, r) => s + r.hours, 0) * 100) / 100, to = Math.round(att.reduce((s, r) => s + r.ot, 0) * 100) / 100;
+          const ml = repMeals(meals);
+          const tb = ml.reduce((s, r) => s + r.b, 0), tl = ml.reduce((s, r) => s + r.l, 0);
+          const arrivals = workers.concat(archivedWorkers).filter(w => w.arrival && w.arrival.slice(0, 7) === info.ym).length;
+          const departures = archivedWorkers.filter(w => (w.archived_at || "").slice(0, 7) === info.ym).length;
+          const docs = repDocs(30);
+          const today = new Date().toLocaleDateString("en-CA");
+          const topOt = att.filter(r => r.ot > 0).sort((a, b) => b.ot - a.ot).slice(0, 5);
+          const topAbs = att.filter(r => r.absent > 0).sort((a, b) => b.absent - a.absent).slice(0, 5);
+          body = `
+            <div class="rep-sec"><h4>🏢 السكن</h4><div class="rep-cards">
+              ${stat(workers.length, "👷 ساكنين حاليًا")}
+              ${stat(workers.filter(w => w.building === "السكن الأول").length, "🏢 السكن الأول")}
+              ${stat(workers.filter(w => w.building === "السكن الثاني").length, "🏢 السكن الثاني")}
+              ${stat(arrivals, "🛬 وصلوا الشهر ده", "#16a34a")}
+              ${stat(departures, "🛫 خرجوا الشهر ده", "#c0392b")}
+            </div></div>
+            <div class="rep-sec"><h4>⏱️ الحضور</h4><div class="rep-cards">
+              ${stat(tp.toLocaleString("en-US"), "✅ أيام حضور", "#16a34a")}
+              ${stat(ta.toLocaleString("en-US"), "❌ أيام غياب", "#c0392b")}
+              ${stat(th.toLocaleString("en-US"), "🕒 إجمالي الساعات")}
+              ${stat(to.toLocaleString("en-US"), "⚡ أوفر تايم", "#e08a1e")}
+              ${stat((tp + ta ? Math.round(tp / (tp + ta) * 100) : 0) + "%", "📈 نسبة الحضور")}
+            </div></div>
+            <div class="rep-sec"><h4>🍽️ الوجبات</h4><div class="rep-cards">
+              ${stat(money(tb * BREAKFAST_PRICE), "🍳 الفطار", "#b45309", tb + " وجبة")}
+              ${stat(money(tl * LUNCH_PRICE), "🍛 الغداء", "#16a34a", tl + " وجبة")}
+              ${stat(money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE), "💰 الإجمالي", "#e08a1e")}
+            </div></div>
+            <div class="rep-sec"><h4>🔔 المستندات (النهارده)</h4><div class="rep-cards">
+              ${stat(docs.filter(d => d.date < today).length, "⛔ منتهية", "#c0392b")}
+              ${stat(docs.filter(d => d.date >= today).length, "⏳ هتخلص خلال 30 يوم", "#b45309")}
+              ${stat(cars.length, "🚗 سيارات")}
+              ${stat(equipment.length, "🏗️ معدات")}
+            </div></div>
+            <div class="rep-two">
+              <div class="rep-sec"><h4>⚡ أكتر أوفر تايم</h4>${topOt.length ? tableHtml(["العامل", "أوفر تايم", "الساعات"], topOt.map(r => `<tr><td><b>${r.w.name}</b></td><td><span class="badge warn">${r.ot}</span></td><td>${r.hours}</td></tr>`)) : '<p class="rep-empty">مفيش أوفر تايم</p>'}</div>
+              <div class="rep-sec"><h4>❌ أكتر غياب</h4>${topAbs.length ? tableHtml(["العامل", "الغياب", "نسبة الحضور"], topAbs.map(r => `<tr><td><b>${r.w.name}</b></td><td><span class="badge bad">${r.absent}</span></td><td>${r.rate}%</td></tr>`)) : '<p class="rep-empty">مفيش غياب</p>'}</div>
+            </div>`;
+          repSheets.push(["الملخص", [
+            { "البند": "ساكنين حاليًا", "القيمة": workers.length }, { "البند": "وصلوا الشهر", "القيمة": arrivals }, { "البند": "خرجوا الشهر", "القيمة": departures },
+            { "البند": "أيام حضور", "القيمة": tp }, { "البند": "أيام غياب", "القيمة": ta }, { "البند": "إجمالي الساعات", "القيمة": th }, { "البند": "أوفر تايم", "القيمة": to },
+            { "البند": "وجبات فطار", "القيمة": tb }, { "البند": "تكلفة الفطار", "القيمة": tb * BREAKFAST_PRICE }, { "البند": "وجبات غداء", "القيمة": tl }, { "البند": "تكلفة الغداء", "القيمة": tl * LUNCH_PRICE },
+            { "البند": "إجمالي الوجبات", "القيمة": tb * BREAKFAST_PRICE + tl * LUNCH_PRICE }, { "البند": "مستندات منتهية", "القيمة": docs.filter(d => d.date < today).length }]]);
+        }
+
+        if (kind === "housing") {
+          const rooms = {};
+          workers.forEach(w => { const k = (w.building || "-") + "|" + (w.room || "-"); (rooms[k] = rooms[k] || []).push(w); });
+          const keys = Object.keys(rooms).sort((a, b) => a.localeCompare(b, "ar", { numeric: true }));
+          const byCountry = {};
+          workers.forEach(w => byCountry[w.country || "غير محدد"] = (byCountry[w.country || "غير محدد"] || 0) + 1);
+          const noImg = workers.filter(w => !w.iqamaImg);
+          const noBlanket = workers.filter(w => w.blanket !== "نعم");
+          body = `
+            <div class="rep-sec"><h4>🏢 المساكن</h4><div class="rep-cards">
+              ${["السكن الأول", "السكن الثاني"].map(b => stat(workers.filter(w => w.building === b).length, "🏢 " + b, null, keys.filter(k => k.startsWith(b)).length + " غرفة")).join("")}
+              ${stat(workers.length, "👷 الإجمالي", null, keys.length + " غرفة")}
+              ${stat(noBlanket.length, "🛏️ لم يستلم بطانية", "#b45309")}
+              ${stat(noImg.length, "🪪 بدون صورة إقامة", "#c0392b")}
+            </div></div>
+            <div class="rep-two">
+              <div class="rep-sec"><h4>🌍 الجنسيات</h4>${barRows(byCountry)}</div>
+              <div class="rep-sec"><h4>🪪 بدون صورة إقامة</h4>${noImg.length ? tableHtml(["الاسم", "الغرفة"], noImg.map(w => `<tr><td><b>${w.name}</b></td><td>${w.room || "-"}</td></tr>`)) : '<p class="rep-empty">✅ كل الإقامات موجودة</p>'}</div>
+            </div>
+            <div class="rep-sec"><h4>🚪 الغرف وساكنيها</h4>${tableHtml(["السكن", "الغرفة", "العدد", "الساكنين"], keys.map(k => {
+              const [b, r] = k.split("|");
+              return `<tr><td>${b}</td><td><b>${r}</b></td><td>${rooms[k].length}</td><td class="names">${rooms[k].map(w => w.name).join("، ")}</td></tr>`;
+            }))}</div>`;
+          repSheets.push(["الغرف", keys.map(k => { const [b, r] = k.split("|"); return { "السكن": b, "الغرفة": r, "العدد": rooms[k].length, "الساكنين": rooms[k].map(w => w.name).join("، ") }; })]);
+          repSheets.push(["الجنسيات", Object.entries(byCountry).map(([c, n]) => ({ "الجنسية": c, "العدد": n }))]);
+          repSheets.push(["بدون إقامة", noImg.map(w => ({ "الاسم": w.name, "رقم الإقامة": w.idNo || "", "السكن": w.building || "", "الغرفة": w.room || "" }))]);
+        }
+
+        if (kind === "attendance") {
+          const { ts } = await repMonthData();
+          const att = repAttendance(info, ts).sort((a, b) => (a.w.room || "").localeCompare(b.w.room || "", "en", { numeric: true }));
+          body = `<div class="rep-sec"><h4>⏱️ حضور ${att.length} عامل <button class="no-print" onclick="document.getElementById('tsAllMonth').value='${info.ym}'; showPage('timesheet'); document.getElementById('tsAllBox').hidden=false; loadTsAll()" style="font-size:13px;padding:5px 10px">🗓️ افتح الكشف بالأيام</button></h4>
+            ${tableHtml(["#", "العامل", "الغرفة", "الحضور", "الغياب", "الساعات", "أوفر تايم", "النسبة"], att.map((r, i) => `<tr>
+              <td>${i + 1}</td><td><b>${r.w.name}</b>${r.w.archived ? ' <span class="arch-reason">مؤرشف</span>' : ""}</td><td>${r.w.room || "-"}</td>
+              <td>${r.present}</td><td>${r.absent ? `<span class="badge bad">${r.absent}</span>` : "-"}</td><td>${r.hours}</td>
+              <td>${r.ot ? `<span class="badge warn">${r.ot}</span>` : "-"}</td><td>${r.rate}%</td></tr>`))}</div>`;
+          repSheets.push(["الحضور", att.map((r, i) => ({ "#": i + 1, "الاسم": r.w.name, "الإقامة": r.w.idNo || "", "الغرفة": r.w.room || "", "الحضور": r.present, "الغياب": r.absent, "الساعات": r.hours, "أوفر تايم": r.ot, "نسبة الحضور": r.rate + "%" }))]);
+        }
+
+        if (kind === "meals") {
+          const { meals } = await repMonthData();
+          const ml = repMeals(meals);
+          const tb = ml.reduce((s, r) => s + r.b, 0), tl = ml.reduce((s, r) => s + r.l, 0);
+          body = `<div class="rep-sec"><div class="rep-cards">
+              ${stat(money(tb * BREAKFAST_PRICE), "🍳 الفطار", "#b45309", tb + " وجبة × " + BREAKFAST_PRICE)}
+              ${stat(money(tl * LUNCH_PRICE), "🍛 الغداء", "#16a34a", tl + " وجبة × " + LUNCH_PRICE)}
+              ${stat(money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE), "💰 الإجمالي", "#e08a1e", ml.length + " عامل")}
+            </div></div>
+            <div class="rep-sec"><h4>🍽️ وجبات كل عامل</h4>${ml.length ? tableHtml(["#", "العامل", "الغرفة", "فطار", "غداء", "التكلفة"], ml.map((r, i) => `<tr><td>${i + 1}</td><td><b>${r.w.name}</b></td><td>${r.w.room || "-"}</td><td>${r.b}</td><td>${r.l}</td><td><b>${money(r.cost)}</b></td></tr>`)) : '<p class="rep-empty">مفيش وجبات متسجّلة الشهر ده</p>'}</div>`;
+          repSheets.push(["الوجبات", ml.map((r, i) => ({ "#": i + 1, "الاسم": r.w.name, "الغرفة": r.w.room || "", "فطار": r.b, "تكلفة الفطار": r.b * BREAKFAST_PRICE, "غداء": r.l, "تكلفة الغداء": r.l * LUNCH_PRICE, "الإجمالي": r.cost }))]);
+        }
+
+        if (kind === "docs") {
+          const within = repDocWithin;
+          const docs = repDocs(within);
+          const today = new Date().toLocaleDateString("en-CA");
+          body = `<div class="rep-sec"><h4>🔔 مستندات منتهية أو هتخلص خلال
+              <select id="repDocDays" class="no-print" onchange="openReport('docs')" style="padding:4px 8px">
+                ${[30, 60, 90, 180].map(d => `<option value="${d}" ${d === within ? "selected" : ""}>${d} يوم</option>`).join("")}
+              </select><span class="print-only">${within} يوم</span></h4>
+            <div class="rep-cards" style="margin-bottom:10px">
+              ${stat(docs.filter(d => d.date < today).length, "⛔ منتهية", "#c0392b")}
+              ${stat(docs.filter(d => d.date >= today).length, "⏳ هتخلص قريب", "#b45309")}
+            </div>
+            ${docs.length ? tableHtml(["النوع", "الاسم", "المستند", "التاريخ", "الحالة", "السائق"], docs.map(d => `<tr><td>${d.kind}</td><td><b>${d.name}</b></td><td>${d.doc}</td><td>${d.date}</td><td>${expiryBadge(d.date)}</td><td>${d.holder || "-"}</td></tr>`)) : '<p class="rep-empty">✅ مفيش مستندات منتهية أو قربت تخلص</p>'}</div>`;
+          repSheets.push(["المستندات", docs.map(d => ({ "النوع": d.kind, "الاسم": d.name, "المستند": d.doc, "تاريخ الانتهاء": d.date, "الحالة": d.date < today ? "منتهي" : "قرب", "السائق": d.holder || "" }))]);
+        }
+
+        if (kind === "moves") {
+          const arrivals = workers.concat(archivedWorkers).filter(w => w.arrival && w.arrival.slice(0, 7) === info.ym).sort((a, b) => a.arrival.localeCompare(b.arrival));
+          const departures = archivedWorkers.filter(w => (w.archived_at || "").slice(0, 7) === info.ym).sort((a, b) => a.archived_at.localeCompare(b.archived_at));
+          body = `<div class="rep-sec"><div class="rep-cards">
+              ${stat(arrivals.length, "🛬 وصلوا", "#16a34a")}
+              ${stat(departures.length, "🛫 خرجوا", "#c0392b")}
+              ${stat((arrivals.length - departures.length >= 0 ? "+" : "") + (arrivals.length - departures.length), "📈 صافي التغيير")}
+            </div></div>
+            <div class="rep-sec"><h4>🛬 اللي وصلوا</h4>${arrivals.length ? tableHtml(["التاريخ", "الاسم", "الجنسية", "المهنة", "السكن", "الغرفة"], arrivals.map(w => `<tr><td>${w.arrival}</td><td><b>${w.name}</b></td><td>${w.country || "-"}</td><td>${w.job || "-"}</td><td>${w.building || "-"}</td><td>${w.room || "-"}</td></tr>`)) : '<p class="rep-empty">مفيش حد وصل الشهر ده (أو تاريخ القدوم مش متسجّل)</p>'}</div>
+            <div class="rep-sec"><h4>🛫 اللي خرجوا</h4>${departures.length ? tableHtml(["التاريخ", "الاسم", "السبب", "ملاحظات", "آخر غرفة"], departures.map(w => `<tr><td>${w.archived_at}</td><td><b>${w.name}</b></td><td><span class="arch-reason">${w.archive_reason || "-"}</span></td><td class="names">${w.archive_note || "-"}</td><td>${w.room || "-"}</td></tr>`)) : '<p class="rep-empty">مفيش حد خرج الشهر ده</p>'}</div>`;
+          repSheets.push(["وصلوا", arrivals.map(w => ({ "التاريخ": w.arrival, "الاسم": w.name, "الإقامة": w.idNo || "", "الجنسية": w.country || "", "المهنة": w.job || "", "السكن": w.building || "", "الغرفة": w.room || "" }))]);
+          repSheets.push(["خرجوا", departures.map(w => ({ "التاريخ": w.archived_at, "الاسم": w.name, "الإقامة": w.idNo || "", "السبب": w.archive_reason || "", "ملاحظات": w.archive_note || "", "آخر غرفة": w.room || "" }))]);
+        }
+      } catch (e) {
+        body = `<p>❌ مشكلة في تجهيز التقرير: ${e.message}</p>`;
+      }
+
+      if (repCurrent !== kind) return;
+      const monthBased = !["housing", "docs"].includes(kind);
+      out.innerHTML = `
+        <div class="rep-head">
+          <div><h3>${titles[kind]}</h3><small>${monthBased ? info.name : "حتى النهارده"} · اتعمل ${new Date().toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" })}</small></div>
+          <div class="acts no-print">
+            <button onclick="exportReport()">📊 Excel</button>
+            <button onclick="printWith('print-report')">🖨️ طباعة</button>
+            <button onclick="repCurrent=''; document.querySelectorAll('.rep-tile').forEach(t => t.classList.remove('on')); document.getElementById('reportOut').innerHTML=''">✖</button>
+          </div>
+        </div>
+        <div class="rep-body">${body}</div>`;
+    }
+
+    function exportReport() {
+      if (!repSheets.length) { alert("مفيش بيانات للتصدير"); return; }
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      repSheets.forEach(([name, rows]) => XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows.length ? rows : [{ "": "مفيش بيانات" }]), name));
+      XLSX.writeFile(book, "تقرير-" + repCurrent + "-" + repMonthInfo().ym + ".xlsx");
+    }
+
     // ===== الأرشيف =====
     let archivingId = null;
     let archFilter = "all";
@@ -1550,7 +1878,7 @@
           </div>
           <div class="pf-actions no-print">
             <button onclick="closeProfile(); openEdit(${w.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>
-            <button onclick="window.print()" style="background:#1e3a5f">🖨️ طباعة الملف</button>
+            <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة الملف</button>
             <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
           </div>
         </div>
@@ -1978,6 +2306,10 @@
       document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + name);
       document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
       if (name === "dashboard") refreshDashboard();
+      if (name === "reports" && !document.getElementById("repMonth").value) {
+        document.getElementById("repMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
+        repMonthChanged();
+      }
     }
        // 16. الرسوم البيانية
     function barRows(counts) {
