@@ -431,6 +431,39 @@
     .pf-list a { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; color: #1e3a5f; text-decoration: none; cursor: pointer; }
     .pf-list a:hover { background: #fff7ed; }
     .pf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* الأرشيف */
+    #page-archive input, #page-archive button, #page-archive select { box-sizing: border-box; }
+    #archStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #archStats .stat { border-top: 4px solid #64748b; }
+    #archStats .stat.on { background: #fff7ed; box-shadow: 0 0 0 2px #e08a1e inset; }
+    #archBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    #archSearch { flex: 1; min-width: 180px; }
+    #archList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
+    #archList th { position: sticky; top: 0; background: white; z-index: 1; }
+    #archList td { white-space: nowrap; }
+    #archList tr.arch-row:hover td { background: #fff7ed; }
+    #archList tr.arch-row td:first-child { box-shadow: inset -4px 0 0 #94a3b8; }
+    .arch-reason { display: inline-block; background: #eef1f5; color: #334155; border-radius: 20px; padding: 3px 10px; font-size: 13px; }
+    .arch-note { color: #64748b; font-size: 12px; white-space: normal; max-width: 220px; display: block; }
+    .icon-btns button.restore:hover { background: #16a34a; color: white; }
+    .icon-btns button.archive:hover { background: #64748b; color: white; }
+    #archBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #archBox[hidden] { display: none; }
+    #archForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 460px; display: grid; grid-template-columns: 1fr; gap: 10px; box-sizing: border-box; }
+    #archForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    #archForm h3 { margin: 0; color: #1e3a5f; }
+    .pf-archived { background: #f1f5f9; border: 2px dashed #94a3b8; border-radius: 12px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; color: #334155; }
+    @media (max-width: 700px) {
+      #archList > div { padding: 8px; }
+      #archList table, #archList tbody { display: block; width: 100%; }
+      #archList tr.arch-head { display: none; }
+      #archList tr.arch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; padding: 10px; }
+      #archList tr.arch-row td { display: block; border: none; padding: 0; background: transparent !important; box-shadow: none !important; white-space: normal; }
+      #archList tr.arch-row td.arch-who, #archList tr.arch-row td.arch-actions, #archList tr.arch-row td.arch-notecell { grid-column: 1 / -1; }
+      #archList tr.arch-row td[data-label]::before { content: attr(data-label); display: block; color: #64748b; font-size: 12px; }
+      #archList .icon-btns button { flex: 1; padding: 9px; }
+      #archBar > button { flex: 1; }
+    }
     #iqamaView { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 70; display: flex; align-items: center; justify-content: center; padding: 15px; cursor: zoom-out; }
     #iqamaView[hidden] { display: none; }
     #iqamaView img { max-width: 100%; max-height: 92vh; border-radius: 10px; }
@@ -987,7 +1020,19 @@
     <div id="mealMonthTotals"></div>
     <div id="mealMonthList"></div>
   </section>
-  <section id="page-archive" class="page" hidden><h2>🗂️ الأرشيف</h2><p>قريبًا</p></section>
+  <section id="page-archive" class="page" hidden>
+    <div class="res-head">
+      <h2>🗂️ الأرشيف</h2>
+    </div>
+    <p style="color:#64748b; margin-top:0">الساكنين اللي سابوا السكن (سفر، نقل، إنهاء خدمة...) بملفاتهم الكاملة. تقدر ترجّع أي حد للسكن تاني.</p>
+    <div id="archStats"></div>
+    <div id="archBar" class="res-panel">
+      <input id="archSearch" placeholder="🔍 ابحث بالاسم أو الإقامة" oninput="showArchive()">
+      <b id="archCount"></b>
+      <button onclick="exportArchive()" style="background:#16a34a">📊 تصدير Excel</button>
+    </div>
+    <div id="archList"></div>
+  </section>
   <section id="page-reports" class="page" hidden><h2>📄 التقارير</h2><p>قريبًا</p></section>
   <section id="page-users" class="page" hidden><h2>👥 المستخدمين</h2><p>قريبًا</p></section>
   <section id="page-settings" class="page" hidden><h2>⚙️ الإعدادات</h2><p>قريبًا</p></section>
@@ -1006,6 +1051,29 @@
     <div id="profile"></div>
   </div>
   <div id="iqamaView" hidden onclick="this.hidden = true"><img id="iqamaBig"></div>
+  <div id="archBox" hidden onclick="if (event.target === this) this.hidden = true">
+    <form id="archForm">
+      <h3>🗂️ نقل للأرشيف</h3>
+      <p id="archWho" style="margin:0; color:#475569"></p>
+      <label>السبب
+        <select id="arch_reason">
+          <option>سفر نهائي</option>
+          <option>خروج وعودة</option>
+          <option>نقل لمشروع تاني</option>
+          <option>إنهاء خدمة</option>
+          <option>هروب</option>
+          <option>أخرى</option>
+        </select>
+      </label>
+      <label>تاريخ الخروج <input type="date" id="arch_date" required></label>
+      <label>ملاحظات <input id="arch_note" placeholder="اختياري"></label>
+      <p style="margin:0; font-size:13px; color:#64748b">💡 الساكن هيختفي من السكن والتايم شيت والوجبات، وكل بياناته وكشوفه القديمة هتفضل محفوظة في الأرشيف.</p>
+      <div>
+        <button type="submit" style="background:#64748b">🗂️ أرشفة</button>
+        <button type="button" onclick="document.getElementById('archBox').hidden = true" style="background:#c0392b">إلغاء</button>
+      </div>
+    </form>
+  </div>
   <input type="file" id="pfIqamaCam" accept="image/*" capture="environment" onchange="uploadProfileIqama(this)" hidden>
   <input type="file" id="pfIqamaFile" accept="image/*" onchange="uploadProfileIqama(this)" hidden>
      <datalist id="sponsorList">
@@ -1108,6 +1176,12 @@
     // 1. نجيب العمال المحفوظين، ولو مفيش نبدأ بقائمة فاضية
     let workers = [];
 
+    let archivedWorkers = [];
+    // العامل كان في السكن اليوم ده؟ (بعد ما جه وقبل ما يتأرشف)
+    const onDuty = (w, date) => (!w.arrival || date >= w.arrival) && (!w.archived || !w.archived_at || date <= w.archived_at);
+    // عامل نشط أو مؤرشف
+    const findWorker = id => workers.find(x => x.id == id) || archivedWorkers.find(x => x.id == id);
+
     // نجيب العمال من Supabase
     async function loadWorkers() {
       const { data, error } = await db.from("workers").select("*").order("building").order("room").order("bed_no");
@@ -1115,7 +1189,10 @@
         alert("❌ مشكلة في تحميل العمال: " + error.message);
         return;
       }
-      workers = data.map(w => ({ ...w, idNo: w.id_no, iqamaImg: w.iqama_img }));
+      const all = data.map(w => ({ ...w, idNo: w.id_no, iqamaImg: w.iqama_img }));
+      workers = all.filter(w => !w.archived);
+      archivedWorkers = all.filter(w => w.archived);
+      showArchive();
       showWorkers();
       showStats();
       showCharts();
@@ -1246,7 +1323,8 @@
           <td class="res-actions"><div class="icon-btns">
             <button class="view" onclick="showProfile(${worker.id})" title="الملف">👁️ الملف</button>
             <button class="edit" onclick="openEdit(${worker.id})" title="تعديل">✏️ تعديل</button>
-            <button class="del" onclick="deleteWorker(${worker.id})" title="حذف">🗑️</button>
+            <button class="archive" onclick="openArchive(${worker.id})" title="نقل للأرشيف">🗂️ أرشفة</button>
+            <button class="del" onclick="deleteWorker(${worker.id})" title="حذف نهائي">🗑️</button>
           </div></td>
         </tr>`;
       });
@@ -1301,11 +1379,106 @@
     
        // 6. الملف الشخصي (بيانات السكن)
            // 6. الملف الشخصي (نافذة)
+    // ===== الأرشيف =====
+    let archivingId = null;
+    let archFilter = "all";
+
+    function openArchive(id) {
+      const w = findWorker(id);
+      archivingId = id;
+      document.getElementById("archWho").innerHTML = `<b>${w.name}</b> — 🚪 ${w.room || "-"} · ${w.building || ""}`;
+      document.getElementById("arch_reason").value = "سفر نهائي";
+      document.getElementById("arch_date").value = new Date().toLocaleDateString("en-CA");
+      document.getElementById("arch_note").value = "";
+      document.getElementById("archBox").hidden = false;
+    }
+
+    document.getElementById("archForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const changes = {
+        archived: true,
+        archived_at: document.getElementById("arch_date").value,
+        archive_reason: document.getElementById("arch_reason").value,
+        archive_note: document.getElementById("arch_note").value.trim() || null
+      };
+      const { error } = await db.from("workers").update(changes).eq("id", archivingId);
+      if (error) { alert("❌ محصلش أرشفة: " + error.message + "\n\nلو الخطأ إن العمود مش موجود، شغّل كود الأرشيف في Supabase."); return; }
+      document.getElementById("archBox").hidden = true;
+      closeProfile();
+      loadWorkers();
+    });
+
+    async function restoreWorker(id) {
+      const w = findWorker(id);
+      if (!confirm("ترجّع " + w.name + " للسكن تاني؟ (" + (w.building || "") + " — غرفة " + (w.room || "-") + ")")) return;
+      const { error } = await db.from("workers").update({ archived: false, archived_at: null, archive_reason: null, archive_note: null }).eq("id", id);
+      if (error) { alert("❌ محصلش: " + error.message); return; }
+      closeProfile();
+      loadWorkers();
+    }
+
+    function setArchFilter(f) {
+      archFilter = archFilter === f ? "all" : f;
+      showArchive();
+    }
+
+    function showArchive() {
+      const list = document.getElementById("archList");
+      if (!list) return;
+      const reasons = {};
+      archivedWorkers.forEach(w => reasons[w.archive_reason || "أخرى"] = (reasons[w.archive_reason || "أخرى"] || 0) + 1);
+      const card = (f, n, label) => `<div class="stat click ${archFilter === f ? "on" : ""}" onclick="setArchFilter('${f}')"><b>${n}</b>${label}</div>`;
+      document.getElementById("archStats").innerHTML = card("all", archivedWorkers.length, "🗂️ إجمالي المؤرشفين") +
+        Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([r, n]) => card(r, n, r)).join("");
+
+      const q = document.getElementById("archSearch").value.trim().toLowerCase();
+      const result = archivedWorkers
+        .filter(w => archFilter === "all" || (w.archive_reason || "أخرى") === archFilter)
+        .filter(w => !q || (w.name + " " + (w.idNo || "")).toLowerCase().includes(q))
+        .sort((a, b) => (b.archived_at || "").localeCompare(a.archived_at || ""));
+      document.getElementById("archCount").textContent = "العدد: " + result.length;
+
+      if (!archivedWorkers.length) { list.innerHTML = "<div><p>الأرشيف فاضي — لما ساكن يسيب السكن دوس 🗂️ أرشفة جنب اسمه في صفحة الساكنين.</p></div>"; return; }
+      if (!result.length) { list.innerHTML = "<div><p>لا يوجد نتائج</p></div>"; return; }
+
+      let html = `<div><table><tr class="arch-head"><th>الساكن</th><th>الإقامة</th><th>آخر سكن</th><th>تاريخ الخروج</th><th>السبب</th><th>ملاحظات</th><th></th></tr>`;
+      result.forEach(function (w) {
+        html += `<tr class="arch-row">
+          <td class="arch-who res-who"><b onclick="showProfile(${w.id})">${w.name}</b><small>${[w.country, w.job].filter(Boolean).join(" · ") || "-"}</small></td>
+          <td data-label="الإقامة">${w.idNo || "-"} ${w.iqamaImg ? "🪪" : ""}</td>
+          <td data-label="آخر سكن">${w.building ? w.building.replace("السكن ", "") + " · " : ""}🚪 ${w.room || "-"}</td>
+          <td data-label="تاريخ الخروج">${w.archived_at || "-"}</td>
+          <td data-label="السبب"><span class="arch-reason">${w.archive_reason || "-"}</span></td>
+          <td class="arch-notecell" data-label="ملاحظات"><span class="arch-note">${w.archive_note || "-"}</span></td>
+          <td class="arch-actions"><div class="icon-btns">
+            <button class="view" onclick="showProfile(${w.id})">👁️ الملف</button>
+            <button class="restore" onclick="restoreWorker(${w.id})">↩️ رجّع</button>
+            <button class="del" onclick="deleteWorker(${w.id})" title="حذف نهائي">🗑️</button>
+          </div></td>
+        </tr>`;
+      });
+      list.innerHTML = html + "</table></div>";
+    }
+
+    function exportArchive() {
+      if (!archivedWorkers.length) { alert("مفيش بيانات للتصدير"); return; }
+      const rows = archivedWorkers.map((w, i) => ({
+        "#": i + 1, "الاسم": w.name, "رقم الإقامة": w.idNo || "", "الجنسية": w.country || "", "المهنة": w.job || "",
+        "الكفيل": w.sponsor || "", "السكن": w.building || "", "الغرفة": w.room || "", "تاريخ القدوم": w.arrival || "",
+        "تاريخ الخروج": w.archived_at || "", "السبب": w.archive_reason || "", "ملاحظات": w.archive_note || ""
+      }));
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, sheet, "الأرشيف");
+      XLSX.writeFile(book, "أرشيف-الساكنين-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+    }
+
     // ===== الملف الشامل للعامل =====
     let profileId = null;
 
     async function showProfile(workerId) {
-      const w = workers.find(x => x.id === workerId);
+      const w = findWorker(workerId);
       if (!w) return;
       profileId = workerId;
 
@@ -1315,7 +1488,7 @@
         if (data) imgUrl = data.signedUrl;
       }
 
-      const ym = new Date().toLocaleDateString("en-CA").slice(0, 7);
+      const ym = w.archived && w.archived_at ? w.archived_at.slice(0, 7) : new Date().toLocaleDateString("en-CA").slice(0, 7);
       const [y, m] = ym.split("-").map(Number);
       const monthName = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
       const initials = w.name.split(" ").filter(Boolean).slice(0, 2).map(x => x[0]).join("");
@@ -1334,6 +1507,8 @@
           <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
         </div>
         <div class="pf-body">
+          ${w.archived ? `<div class="pf-archived"><span>🗂️ <b>مؤرشف</b> — ${w.archive_reason || "-"} · خرج يوم ${w.archived_at || "-"}${w.archive_note ? " · " + w.archive_note : ""}</span>
+            <button class="no-print" onclick="restoreWorker(${w.id})" style="background:#16a34a">↩️ رجّعه للسكن</button></div>` : ""}
           <div class="pf-top">
             <div class="pf-card pf-iqama">
               <h4>🪪 صورة الإقامة</h4>
@@ -1406,7 +1581,7 @@
         let absent = 0;
         for (let d = 1; d <= days; d++) {
           const date = ym + "-" + String(d).padStart(2, "0");
-          if (date < today && (!w.arrival || date >= w.arrival) && !dates.has(date)) absent++;
+          if (date < today && onDuty(w, date) && !dates.has(date)) absent++;
         }
         const hours = Math.round(recs.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
         const ot = Math.round(recs.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
@@ -1436,7 +1611,7 @@
       const file = input.files[0];
       input.value = "";
       if (!file || !profileId) return;
-      const w = workers.find(x => x.id === profileId);
+      const w = findWorker(profileId);
       const msg = document.getElementById("pfIqamaMsg");
       msg.textContent = "⏳ جاري رفع الصورة...";
 
@@ -1633,8 +1808,8 @@
     
         // 9. حذف عامل
     async function deleteWorker(workerId) {
-      const worker = workers.find(w => w.id === workerId);
-      if (!confirm("متأكد إنك عايز تحذف " + worker.name + "؟")) return;
+      const worker = findWorker(workerId);
+      if (!confirm("متأكد إنك عايز تحذف " + worker.name + " نهائيًا؟ ده هيمسح بياناته وصورة إقامته ومش هينفع ترجعها.")) return;
 
       const { error } = await db.from("workers").delete().eq("id", workerId);
       if (error) {
@@ -2170,7 +2345,7 @@
     let tsMonthSum = {};
 
     function openTsMonth(workerId, ym) {
-      tsMonthWorker = workers.find(w => w.id === workerId);
+      tsMonthWorker = findWorker(workerId);
       document.getElementById("tsMonth").value = ym || document.getElementById("tsDate").value.slice(0, 7);
       document.getElementById("tsMonthBox").hidden = false;
       showTsMonth();
@@ -2217,7 +2392,9 @@
           hours += Number(r.hours || 0);
           ot += Number(r.overtime || 0);
           if (Number(r.overtime) > 0) otDays.push(d);
-         } else if (date >= today) {
+         } else if (!onDuty(w, date)) {
+          status = "خارج السكن";
+        } else if (date >= today) {
           status = "لسه";
         } else {
           status = "غياب";
@@ -2383,11 +2560,12 @@
         if (date < today) passed.push(date);
       }
 
-      const rows = workers.map(function (w) {
+      const people = workers.concat(archivedWorkers.filter(w => byWorker[w.id]));
+      const rows = people.map(function (w) {
         const recs = byWorker[w.id] || {};
         const present = Object.keys(recs).length;
         // الغياب: الأيام اللي عدّت من يوم قدومه (لو متسجّل) ومفيش فيها حضور
-        const absent = passed.filter(date => (!w.arrival || date >= w.arrival) && !recs[Number(date.slice(8))]).length;
+        const absent = passed.filter(date => onDuty(w, date) && !recs[Number(date.slice(8))]).length;
         const hours = Math.round(Object.values(recs).reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
         const ot = Math.round(Object.values(recs).reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
         const rate = present + absent ? Math.round(present / (present + absent) * 100) : 0;
@@ -2449,7 +2627,7 @@
             const rec = r.recs[d];
             let cell;
             if (rec) cell = Number(rec.overtime) > 0 ? `<span class="gd o" title="أوفر تايم ${rec.overtime}">${rec.hours}</span>` : `<span class="gd p">${rec.hours}</span>`;
-            else if (date < today && (!r.w.arrival || date >= r.w.arrival)) cell = `<span class="gd a">غ</span>`;
+            else if (date < today && onDuty(r.w, date)) cell = `<span class="gd a">غ</span>`;
             else cell = `<span class="gd f">·</span>`;
             html += `<td>${cell}</td>`;
           }
@@ -2473,7 +2651,7 @@
         for (let d = 1; d <= days; d++) {
           const date = ym + "-" + String(d).padStart(2, "0");
           const rec = r.recs[d];
-          row[d] = rec ? Number(rec.hours) : (date < today && (!r.w.arrival || date >= r.w.arrival) ? "غ" : "");
+          row[d] = rec ? Number(rec.hours) : (date < today && onDuty(r.w, date) ? "غ" : "");
         }
         row["الحضور"] = r.present; row["الساعات"] = r.hours; row["أوفر تايم"] = r.ot;
         return row;
@@ -3150,7 +3328,7 @@
 
       let tb = 0, tl = 0;
       mealMonthRows = Object.keys(byWorker).map(function (id) {
-        const w = workers.find(x => x.id == id) || { name: "عامل محذوف", room: "" };
+        const w = findWorker(id) || { name: "عامل محذوف", room: "" };
         const s = byWorker[id];
         tb += s.b; tl += s.l;
         return { name: w.name, room: w.room || "", b: s.b, l: s.l, cost: s.b * BREAKFAST_PRICE + s.l * LUNCH_PRICE };
