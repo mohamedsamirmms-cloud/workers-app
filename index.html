@@ -49,16 +49,47 @@
       #mealList td.meal-cost-cell::before { content: "التكلفة: "; color: #64748b; font-size: 13px; }
     }
     tr.meal-sum td { background: #fff7ed; font-weight: bold; color: #9a3412; }
-    .dash-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
-    .dash-tile { background: #1e3a5f; color: white; border-radius: 14px; padding: 25px 20px; text-align: center; cursor: pointer; position: relative; transition: background 0.2s; }
-    .dash-tile:hover { background: #2c5282; }
-    .dash-tile.open { background: #e08a1e; }
-    .dash-tile .icon { display: block; font-size: 40px; }
-    .dash-tile b { display: block; font-size: 24px; margin: 6px 0; }
-    .dash-tile small { opacity: 0.85; }
-    .dash-tile .arrow { position: absolute; top: 12px; left: 15px; transition: transform 0.2s; }
-    .dash-tile.open .arrow { transform: rotate(180deg); }
-    .dash-box { background: white; border-radius: 12px; padding: 5px 20px 15px; margin-bottom: 15px; }
+    .dash-hero { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; border-radius: 16px; padding: 20px 22px; margin: 10px 0 15px; box-shadow: 0 6px 20px rgba(30, 58, 95, 0.2); }
+    .dash-hero h2 { color: white; border: none; padding: 0; margin: 0 0 4px; }
+    .dash-hero small { color: #cbd5e1; }
+    .dash-hero button { background: rgba(255,255,255,0.15); }
+    .dash-hero button:hover { background: #e08a1e; }
+    .dash-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 15px; }
+    .dash-tile { background: white; color: #1f2937; border-radius: 14px; padding: 16px; cursor: pointer; position: relative; border: 2px solid transparent; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: all 0.15s; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: center; }
+    .dash-tile:hover { border-color: #e08a1e; transform: translateY(-2px); }
+    .dash-tile.open { border-color: #e08a1e; background: #fff7ed; }
+    .dash-tile .icon { grid-row: 1 / 4; width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: #eef1f5; }
+    .dash-tile.t-blue .icon { background: #dbeafe; } .dash-tile.t-green .icon { background: #dcfce7; } .dash-tile.t-amber .icon { background: #fef3c7; }
+    .dash-tile.t-purple .icon { background: #ede9fe; } .dash-tile.t-red .icon { background: #fee2e2; }
+    .dash-tile .num { font-size: 24px; font-weight: bold; color: #1e3a5f; line-height: 1.2; }
+    .dash-tile b { font-size: 14px; color: #475569; }
+    .dash-tile small { color: #64748b; font-size: 12px; }
+    .dash-tile small.alert { color: #c0392b; font-weight: bold; }
+    .dash-tile .arrow { position: absolute; top: 10px; left: 12px; color: #94a3b8; font-size: 12px; transition: transform 0.2s; }
+    .dash-tile.open .arrow { transform: rotate(180deg); color: #e08a1e; }
+    .dash-box { background: white; border-radius: 12px; padding: 5px 20px 15px; margin-bottom: 15px; border-top: 4px solid #e08a1e; }
+    .dash-box h3 { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .dash-box h3 button { font-size: 13px; padding: 6px 12px; }
+    .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 10px; }
+    #dashAlerts { background: white; border-radius: 12px; padding: 5px 20px 15px; margin-bottom: 15px; }
+    #dashAlerts h3 { color: #1e3a5f; }
+    .alert-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid #eef1f5; cursor: pointer; border-radius: 8px; }
+    .alert-row:hover { background: #fff7ed; }
+    .alert-row .ai { width: 34px; height: 34px; flex: none; border-radius: 10px; background: #eef1f5; display: flex; align-items: center; justify-content: center; }
+    .alert-row .at { flex: 1; min-width: 0; }
+    .alert-row .at b { display: block; color: #1e3a5f; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .alert-row .at small { color: #64748b; font-size: 12px; }
+    .alert-row .badge { white-space: nowrap; }
+    .alerts-ok { color: #16a34a; padding: 6px 4px; }
+    @media (max-width: 700px) {
+      .dash-hero { padding: 14px 16px; }
+      .dash-tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .dash-tile { grid-template-columns: 1fr; text-align: center; padding: 12px 8px; justify-items: center; }
+      .dash-tile .icon { grid-row: auto; width: 42px; height: 42px; font-size: 22px; margin-bottom: 4px; }
+      .dash-tile .num { font-size: 20px; }
+      .dash-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+      .dash-box { padding: 5px 12px 12px; }
+    }
     .dash-box .stat, .dash-box .chart-box { background: #eef1f5; }
     .stat.click { cursor: pointer; border: 2px solid transparent; }
     .stat.click:hover { border-color: #e08a1e; background: #fff7ed; }
@@ -596,27 +627,55 @@
   <div id="workersList"></div>
          </section>
   <section id="page-dashboard" class="page" hidden>
-    <h2>📊 لوحة التحكم</h2>
-    <div class="dash-tiles">
-      <div class="dash-tile" id="tile-stats" onclick="toggleDash('stats')">
-        <span class="icon">👷</span><b>الساكنين</b><small id="tileStatsSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+    <div class="dash-hero">
+      <div>
+        <h2>📊 لوحة التحكم</h2>
+        <small id="dashToday"></small>
       </div>
-      <div class="dash-tile" id="tile-meals" onclick="toggleDash('meals')">
-        <span class="icon">🍽️</span><b>الوجبات</b><small id="tileMealsSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+      <button onclick="refreshDashboard()">🔄 تحديث</button>
+    </div>
+    <div class="dash-tiles">
+      <div class="dash-tile t-blue" id="tile-stats" onclick="toggleDash('stats')">
+        <span class="icon">👷</span><span class="num" id="tileStatsNum">-</span><b>الساكنين</b><small id="tileStatsSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+      </div>
+      <div class="dash-tile t-green" id="tile-att" onclick="toggleDash('att')">
+        <span class="icon">⏱️</span><span class="num" id="tileAttNum">-</span><b>حضور النهارده</b><small id="tileAttSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+      </div>
+      <div class="dash-tile t-amber" id="tile-meals" onclick="toggleDash('meals')">
+        <span class="icon">🍽️</span><span class="num" id="tileMealsNum">-</span><b>الوجبات</b><small id="tileMealsSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+      </div>
+      <div class="dash-tile t-purple" id="tile-eq" onclick="toggleDash('eq')">
+        <span class="icon">🏗️</span><span class="num" id="tileEqNum">-</span><b>المعدات</b><small id="tileEqSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+      </div>
+      <div class="dash-tile t-red" id="tile-cars" onclick="toggleDash('cars')">
+        <span class="icon">🚗</span><span class="num" id="tileCarsNum">-</span><b>السيارات</b><small id="tileCarsSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
       </div>
     </div>
     <div id="box-stats" class="dash-box" hidden>
-      <h3 style="color:#1e3a5f">👷 الساكنين</h3>
+      <h3 style="color:#1e3a5f">👷 الساكنين <button onclick="showPage('residents')">افتح الصفحة ←</button></h3>
       <div id="stats"></div>
       <div id="charts">
         <div class="chart-box"><h3>الساكنين حسب الجنسية</h3><div id="chartCountry"></div></div>
         <div class="chart-box"><h3>البطاطين</h3><div id="chartBlanket"></div></div>
       </div>
     </div>
+    <div id="box-att" class="dash-box" hidden>
+      <h3 style="color:#1e3a5f">⏱️ حضور النهارده <button onclick="dashOpenTs()">افتح التايم شيت ←</button></h3>
+      <div id="dashAtt" class="dash-grid"></div>
+    </div>
     <div id="box-meals" class="dash-box" hidden>
-      <h3 id="dashMealsTitle" style="color:#1e3a5f">🍽️ الوجبات هذا الشهر</h3>
+      <h3 style="color:#1e3a5f"><span id="dashMealsTitle">🍽️ الوجبات هذا الشهر</span> <button onclick="dashOpenMeals()">افتح الحساب الشهري ←</button></h3>
       <div id="dashMeals" class="dash-meals"></div>
     </div>
+    <div id="box-eq" class="dash-box" hidden>
+      <h3 style="color:#1e3a5f">🏗️ معدات المشروع <button onclick="showPage('moves')">افتح الصفحة ←</button></h3>
+      <div id="dashEq" class="dash-grid"></div>
+    </div>
+    <div id="box-cars" class="dash-box" hidden>
+      <h3 style="color:#1e3a5f">🚗 سيارات المشروع <button onclick="showPage('cars')">افتح الصفحة ←</button></h3>
+      <div id="dashCars" class="dash-grid"></div>
+    </div>
+    <div id="dashAlerts"></div>
   </section>
   <section id="page-moves" class="page" hidden>
     <div class="res-head">
@@ -903,7 +962,8 @@
       const blanket = workers.filter(w => w.blanket === "نعم").length;
       const noImg = workers.filter(w => !w.iqamaImg).length;
 
-      document.getElementById("tileStatsSub").textContent = workers.length + " ساكن — اضغط لعرض البيانات";
+      document.getElementById("tileStatsNum").textContent = workers.length;
+      document.getElementById("tileStatsSub").textContent = "الأول " + b1 + " · الثاني " + b2;
       document.getElementById("stats").innerHTML = `
         <div class="stat click" onclick="dashOpen('', '')"><b>${workers.length}</b>إجمالي الساكنين</div>
         <div class="stat click" onclick="dashOpen('السكن الأول', '')"><b>${b1}</b>السكن الأول</div>
@@ -1446,6 +1506,7 @@
     function showPage(name) {
       document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + name);
       document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
+      if (name === "dashboard") refreshDashboard();
     }
        // 16. الرسوم البيانية
     function barRows(counts) {
@@ -1528,6 +1589,7 @@
       const result = cars.filter(tests[carFilter]).filter(c => !q ||
         [c.plate, c.car_type, c.model, c.driver].join(" ").toLowerCase().includes(q));
       document.getElementById("carCount").textContent = "العدد: " + result.length;
+      renderDashDocs();
 
       if (cars.length === 0) { list.innerHTML = "<div><p>لا يوجد سيارات بعد — دوس ➕ إضافة سيارة</p></div>"; return; }
       if (result.length === 0) { list.innerHTML = "<div><p>لا يوجد نتائج</p></div>"; return; }
@@ -2057,6 +2119,7 @@
         .filter(e => eqFilter === "all" || eqState(e) === eqFilter)
         .filter(e => !q || [e.name, e.driver, e.iqama_no, e.license_no, e.operator_no].join(" ").toLowerCase().includes(q));
       document.getElementById("eqCount").textContent = "العدد: " + result.length;
+      renderDashDocs();
       if (equipment.length === 0) { list.innerHTML = "<div><p>لا يوجد معدات بعد — دوس ➕ إضافة معدة</p></div>"; return; }
       if (result.length === 0) { list.innerHTML = "<div><p>لا يوجد نتائج</p></div>"; return; }
 
@@ -2627,6 +2690,93 @@
       if (!box.hidden) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
+    // ===== لوحة التحكم =====
+    function refreshDashboard() {
+      document.getElementById("dashToday").textContent = new Date().toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      showStats();
+      showCharts();
+      loadDashMeals();
+      loadDashAtt();
+      renderDashDocs();
+    }
+
+    function dashOpenTs() {
+      showPage("timesheet");
+      shiftTsDate(0);
+    }
+
+    // حضور النهارده (من التايم شيت)
+    async function loadDashAtt() {
+      const today = new Date().toLocaleDateString("en-CA");
+      const { data, error } = await fetchAll(() => db.from("timesheet").select("time_in,hours,overtime").eq("work_date", today).order("worker_id"));
+      if (error) { document.getElementById("dashAtt").innerHTML = '<div class="stat">❌ مشكلة في تحميل الحضور</div>'; return; }
+      const present = data.filter(r => r.time_in).length;
+      const hours = Math.round(data.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
+      const ot = Math.round(data.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
+      const pct = workers.length ? Math.round(present / workers.length * 100) : 0;
+      document.getElementById("tileAttNum").textContent = present + " / " + workers.length;
+      document.getElementById("tileAttSub").textContent = pct + "% من الساكنين";
+      document.getElementById("dashAtt").innerHTML = `
+        <div class="stat click" onclick="dashOpenTs()"><b style="color:#16a34a">${present}</b>✅ حاضر</div>
+        <div class="stat click" onclick="dashOpenTs()"><b style="color:#c0392b">${Math.max(0, workers.length - present)}</b>⏳ لم يسجّل</div>
+        <div class="stat click" onclick="dashOpenTs()"><b>${hours}</b>🕒 إجمالي الساعات</div>
+        <div class="stat click" onclick="dashOpenTs()"><b style="color:#e08a1e">${ot}</b>⚡ أوفر تايم</div>`;
+    }
+
+    // المعدات والسيارات + تنبيهات المستندات
+    function renderDashDocs() {
+      if (!document.getElementById("dashAlerts")) return;
+      const eqCnt = f => equipment.filter(e => eqState(e) === f).length;
+      const carSt = c => [expiryState(c.reg_expiry), expiryState(c.ins_expiry)];
+      const carCnt = f => cars.filter(c => {
+        const st = carSt(c);
+        return f === "bad" ? st.includes("bad") : f === "warn" ? !st.includes("bad") && st.includes("warn") : !st.includes("bad") && !st.includes("warn");
+      }).length;
+
+      const tileSub = (bad, warn) => bad || warn
+        ? `<small class="alert">⚠️ ${bad + warn} محتاج متابعة</small>` : `<small>✅ الورق كله سليم</small>`;
+      document.getElementById("tileEqNum").textContent = equipment.length;
+      document.getElementById("tileEqSub").outerHTML = tileSub(eqCnt("bad"), eqCnt("warn")).replace("<small", '<small id="tileEqSub"');
+      document.getElementById("tileCarsNum").textContent = cars.length;
+      document.getElementById("tileCarsSub").outerHTML = tileSub(carCnt("bad"), carCnt("warn")).replace("<small", '<small id="tileCarsSub"');
+
+      const box = (page, setter, f, cls, n, label) =>
+        `<div class="stat click" onclick="showPage('${page}'); ${setter}('${f}')"><b style="color:${cls}">${n}</b>${label}</div>`;
+      document.getElementById("dashEq").innerHTML =
+        box("moves", "eqFilterTo", "all", "#1e3a5f", equipment.length, "🏗️ إجمالي المعدات") +
+        box("moves", "eqFilterTo", "bad", "#c0392b", eqCnt("bad"), "⛔ فيها مستند منتهي") +
+        box("moves", "eqFilterTo", "warn", "#b45309", eqCnt("warn"), "⏳ مستند قرب يخلص") +
+        box("moves", "eqFilterTo", "ok", "#16a34a", eqCnt("ok"), "✅ ورقها سليم");
+      document.getElementById("dashCars").innerHTML =
+        box("cars", "carFilterTo", "all", "#1e3a5f", cars.length, "🚗 إجمالي السيارات") +
+        box("cars", "carFilterTo", "reg", "#c0392b", cars.filter(c => ["bad", "warn"].includes(expiryState(c.reg_expiry))).length, "📄 استمارة منتهية أو قربت") +
+        box("cars", "carFilterTo", "ins", "#b45309", cars.filter(c => ["bad", "warn"].includes(expiryState(c.ins_expiry))).length, "🛡️ تأمين منتهي أو قرب") +
+        box("cars", "carFilterTo", "ok", "#16a34a", carCnt("ok"), "✅ ورقها سليم");
+
+      // كل المستندات المنتهية أو اللي فاضلها 30 يوم أو أقل
+      const items = [];
+      cars.forEach(c => [["reg_expiry", "الاستمارة"], ["ins_expiry", "التأمين"]].forEach(([k, label]) => {
+        if (["bad", "warn"].includes(expiryState(c[k])))
+          items.push({ icon: "🚗", name: (c.car_type || "سيارة") + " — " + c.plate, doc: label, date: c[k], go: "showPage('cars')" });
+      }));
+      equipment.forEach(e => EQ_DOCS.filter(d => !d.num).forEach(d => {
+        if (["bad", "warn"].includes(expiryState(e[eqField(d)])))
+          items.push({ icon: "🏗️", name: e.name, doc: d.label, date: e[eqField(d)], go: `showPage('moves'); openEq(${e.id})` });
+      }));
+      items.sort((a, b) => a.date.localeCompare(b.date));
+      document.getElementById("dashAlerts").innerHTML = `<h3>🔔 تنبيهات المستندات ${items.length ? `<span class="badge bad">${items.length}</span>` : ""}</h3>` +
+        (items.length
+          ? items.map(it => `<div class="alert-row" onclick="${it.go}">
+              <span class="ai">${it.icon}</span>
+              <span class="at"><b>${it.name}</b><small>${it.doc}</small></span>
+              ${expiryBadge(it.date)}
+            </div>`).join("")
+          : '<p class="alerts-ok">✅ مفيش مستندات منتهية أو قربت تخلص في السيارات والمعدات</p>');
+    }
+
+    function eqFilterTo(f) { eqFilter = f; showEquipment(); }
+    function carFilterTo(f) { carFilter = f; showCars(); }
+
     // إجمالي الوجبات في لوحة التحكم (الشهر الحالي)
     async function loadDashMeals() {
       const ym = new Date().toLocaleDateString("en-CA").slice(0, 7);
@@ -2640,7 +2790,8 @@
       const tl = data.filter(r => r.lunch).length;
       const monthName = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
       document.getElementById("dashMealsTitle").textContent = "🍽️ الوجبات - " + monthName;
-      document.getElementById("tileMealsSub").textContent = money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE) + " هذا الشهر — اضغط لعرض البيانات";
+      document.getElementById("tileMealsNum").textContent = money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE);
+      document.getElementById("tileMealsSub").textContent = "تكلفة " + monthName;
       box.innerHTML = `
         <div class="stat click" onclick="dashOpenMeals()"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
         <div class="stat click" onclick="dashOpenMeals()"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
