@@ -1540,13 +1540,15 @@
     }
        // 22. معدات المشروع
     const EQ_DOCS = [
-      { key: "iqama", label: "الإقامة" },
-      { key: "license", label: "الرخصة" },
+      { key: "iqama", label: "الإقامة", num: true },
+      { key: "license", label: "الرخصة", num: true },
       { key: "reg", label: "الاستمارة" },
       { key: "ins", label: "التأمين" },
       { key: "inspection", label: "الفحص" },
-      { key: "operator", label: "كارت المشغل" }
+      { key: "operator", label: "كارت المشغل", num: true }
     ];
+    // الإقامة والرخصة وكارت المشغل: رقم — الباقي: تاريخ انتهاء
+    const eqField = d => d.key + (d.num ? "_no" : "_expiry");
     let equipment = [];
     let editingEqId = null;
     let eqOtherFiles = [];
@@ -1582,7 +1584,7 @@
       html += `<th>مرفقات أخرى</th><th></th></tr>`;
       result.forEach(function (e, i) {
         html += `<tr><td>${i + 1}</td><td><b>${e.name}</b></td><td>${e.driver || "-"}</td>`;
-        EQ_DOCS.forEach(d => html += `<td>${expiryBadge(e[d.key + "_expiry"])} ${fileLink(e[d.key + "_file"])}</td>`);
+        EQ_DOCS.forEach(d => html += `<td style="white-space:nowrap">${d.num ? (e[eqField(d)] || "-") : expiryBadge(e[eqField(d)])} ${fileLink(e[d.key + "_file"])}</td>`);
         const others = e.other_files || [];
         html += `<td>${others.length ? others.map(f => `<a class="file-link" title="${f.name}" onclick="openFile('${f.path}')">📎</a>`).join("") : "-"}</td>
           <td style="white-space:nowrap">
@@ -1606,7 +1608,9 @@
       document.getElementById("eqDocs").innerHTML = EQ_DOCS.map(d => `
         <div class="eq-doc">
           <b>${d.label}</b>
-          <input type="date" id="eq_${d.key}_expiry" value="${e[d.key + "_expiry"] || ""}">
+          ${d.num
+            ? `<input id="eq_${eqField(d)}" value="${e[eqField(d)] || ""}" placeholder="رقم ${d.label}">`
+            : `<input type="date" id="eq_${eqField(d)}" value="${e[eqField(d)] || ""}">`}
           <input type="file" id="eq_${d.key}_file" accept="image/*,application/pdf">
           ${e[d.key + "_file"] ? `<small>فيه مرفق محفوظ ${fileLink(e[d.key + "_file"])} — لو اخترت ملف جديد هيتبدّل</small>` : ""}
         </div>`).join("");
@@ -1675,9 +1679,11 @@
         let m;
 
         // كارت المشغل
-        if (T.includes("OPERATOR") && /CARD\s*NO/.test(T) && !found.operator_expiry) {
-          m = T.match(new RegExp("EXPIRY\\s*DATE\\s*:?\\s*" + DATE_RE));
-          if (m) found.operator_expiry = toIsoDate(m[1]);
+        if (T.includes("OPERATOR") && /CARD\s*NO/.test(T) && !found.operator_no) {
+          m = T.match(/CARD\s*NO\.?\s*:?\s*([A-Z]{1,4}\s*-\s*[A-Z]{1,4}\s*-\s*\d{2,8}|[A-Z0-9][A-Z0-9\-]{3,20})/);
+          if (m) found.operator_no = m[1].replace(/\s+/g, "");
+          m = T.match(/ID\s*NO\s*\.?\s*:?\s*([12]\d{9})/);
+          if (m && !found.iqama_no) found.iqama_no = m[1];
           m = t.match(/Name\s*:\s*([A-Za-z][A-Za-z .'-]{2,40})/);
           if (m && !found.driver) found.driver = m[1].trim();
         }
@@ -1718,9 +1724,9 @@
           m = T.match(new RegExp("REGISTRATION\\s*EXPIRY\\s*DATE\\s*:?\\s*" + DATE_RE));
           if (m) found.reg_expiry = toIsoDate(m[1]);
         }
-        if (!found.license_expiry && /DRIVING\s*LICEN[CS]E/.test(T)) {
-          m = T.match(new RegExp("EXPIRY\\s*DATE\\s*:?\\s*" + DATE_RE));
-          if (m) found.license_expiry = toIsoDate(m[1]);
+        if (!found.license_no && /DRIVING\s*LICEN[CS]E/.test(T)) {
+          m = T.match(/LICEN[CS]E\s*NO\.?\s*:?\s*([A-Z0-9\-]{5,20})/);
+          if (m) found.license_no = m[1];
         }
       });
 
@@ -1785,14 +1791,14 @@
         if (found.name) set("eq_name", found.name, "المعدة");
         if (found.driver) set("eq_driver", found.driver, "السائق");
         EQ_DOCS.forEach(function (d) {
-          if (found[d.key + "_expiry"]) set("eq_" + d.key + "_expiry", found[d.key + "_expiry"], d.label);
+          if (found[eqField(d)]) set("eq_" + eqField(d), found[eqField(d)], d.label);
         });
 
         // نحفظ الملف نفسه في المرفقات
         if (!eqPendingFiles.some(f => f.name === file.name && f.size === file.size)) eqPendingFiles.push(file);
         showEqOther();
 
-        const missing = EQ_DOCS.filter(d => !found[d.key + "_expiry"]).map(d => d.label);
+        const missing = EQ_DOCS.filter(d => !found[eqField(d)]).map(d => d.label);
         say((filled.length
             ? "✅ لقيت:<br>" + filled.join("<br>") + "<br>⚠️ راجع البيانات المتعلّمة بالأصفر قبل الحفظ."
             : "⚠️ مقدرتش ألاقي بيانات واضحة في الملف، دخّلها بإيدك.") +
@@ -1833,7 +1839,7 @@
 
       try {
         for (const d of EQ_DOCS) {
-          row[d.key + "_expiry"] = document.getElementById("eq_" + d.key + "_expiry").value || null;
+          row[eqField(d)] = document.getElementById("eq_" + eqField(d)).value.trim() || null;
           const file = document.getElementById("eq_" + d.key + "_file").files[0];
           if (file) {
             row[d.key + "_file"] = await uploadEqFile(file, d.key);
@@ -1879,7 +1885,7 @@
       if (equipment.length === 0) { alert("مفيش بيانات للتصدير"); return; }
       const rows = equipment.map(function (e, i) {
         const r = { "#": i + 1, "المعدة": e.name, "السائق": e.driver || "" };
-        EQ_DOCS.forEach(d => r[d.label] = e[d.key + "_expiry"] || "");
+        EQ_DOCS.forEach(d => r[d.label] = e[eqField(d)] || "");
         r["مرفقات أخرى"] = (e.other_files || []).length;
         return r;
       });
