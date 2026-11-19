@@ -197,10 +197,58 @@
     #editBox[hidden] { display: none; }
     #editForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: grid; gap: 10px; }
     #editForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+          /* صفحة الساكنين */
+    #page-residents input, #page-residents button, #page-residents select { box-sizing: border-box; }
+    .res-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .res-head h2 { margin: 20px 0 15px; }
+    #resStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 15px; }
+    #resStats .stat { border-top: 4px solid #1e3a5f; }
+    #resStats .stat.red { border-color: #c0392b; } #resStats .stat.red b { color: #c0392b; }
+    #resStats .stat.amber { border-color: #f59e0b; } #resStats .stat.amber b { color: #b45309; }
+    #resStats .stat.on { background: #fff7ed; border-color: #e08a1e; box-shadow: 0 0 0 2px #e08a1e inset; }
+    .res-panel { background: white; border-radius: 12px; padding: 12px 15px; margin-bottom: 12px; }
+    .res-panel h4 { margin: 4px 0 10px; color: #1e3a5f; }
+    .res-panel h4 small { color: #64748b; font-weight: normal; }
+    #filterBox { margin-bottom: 0; }
+    #resultCount { white-space: nowrap; }
+    #workersList th { position: sticky; top: 0; background: white; z-index: 1; }
+    #workersList tr.res-row:hover td { background: #fff7ed; }
+    .res-who b { display: block; font-size: 14px; color: #1e3a5f; cursor: pointer; }
+    .res-who b:hover { text-decoration: underline; }
+    .res-who small { color: #64748b; font-size: 12px; }
+    .res-place { display: inline-block; background: #eef1f5; border-radius: 8px; padding: 3px 10px; font-size: 13px; white-space: nowrap; }
+    .res-place b { color: #1e3a5f; }
+    .res-place small { color: #64748b; display: block; font-size: 11px; }
+    .icon-btns { display: flex; gap: 5px; justify-content: flex-end; }
+    .icon-btns button { padding: 6px 9px; font-size: 14px; background: #eef1f5; color: #1e3a5f; }
+    .icon-btns button.edit:hover { background: #e08a1e; color: white; }
+    .icon-btns button.view:hover { background: #1e3a5f; color: white; }
+    .icon-btns button.del { color: #c0392b; }
+    .icon-btns button.del:hover { background: #c0392b; color: white; }
+    @media (max-width: 700px) {
+      .res-head button { width: 100%; margin-bottom: 12px; }
+      #filterBox #search { flex-basis: 100%; min-width: 0; }
+      #filterBox button { flex: 1; }
+      #workersList > div { padding: 8px; }
+      #workersList table, #workersList tbody { display: block; width: 100%; }
+      #workersList tr.res-headrow { display: none; }
+      #workersList tr.res-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; padding: 10px; }
+      #workersList tr.res-row td { display: block; border: none; padding: 0; background: transparent !important; }
+      #workersList tr.res-row td.res-num { display: none; }
+      #workersList tr.res-row td.res-who { grid-column: 1; }
+      #workersList tr.res-row td.res-placecell { grid-column: 2; grid-row: 1; justify-self: end; }
+      #workersList tr.res-row td.res-badges { display: flex; align-items: center; }
+      #workersList tr.res-row td.res-iqama { grid-column: 1 / -1; font-size: 13px; color: #475569; }
+      #workersList tr.res-row td.res-iqama::before { content: "🪪 الإقامة: "; }
+      #workersList tr.res-row td.res-actions { grid-column: 1 / -1; }
+      #workersList .icon-btns { justify-content: stretch; }
+      #workersList .icon-btns button { flex: 1; padding: 9px; }
+    }
           /* مربعات الغرف */
-    #buildingTabs { display: flex; gap: 10px; margin-bottom: 10px; }
-    #roomsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-bottom: 15px; }
-    .room { background: white; border: 2px solid #cbd5e1; border-radius: 10px; padding: 10px 5px; text-align: center; cursor: pointer; }
+    #buildingTabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    #roomsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+    #roomsGrid:empty, #roomsPanel:has(#roomsGrid:empty) { display: none; }
+    .room { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px 5px; text-align: center; cursor: pointer; transition: all 0.15s; }
     .room b { display: block; font-size: 18px; color: #1e3a5f; }
     .room small { color: #64748b; }
     .room:hover, .room.active { border-color: #e08a1e; background: #fff7ed; }
@@ -371,7 +419,11 @@
 
   <main id="content">
   <section id="page-residents" class="page">
-  <button onclick="openAdd()" style="background:#16a34a">➕ إضافة ساكن</button>
+  <div class="res-head">
+    <h2>👷 الساكنين</h2>
+    <button onclick="openAdd()" style="background:#16a34a">➕ إضافة ساكن</button>
+  </div>
+  <div id="resStats"></div>
   <div id="addBox" hidden onclick="if (event.target === this) closeAdd()">
   <div id="addInner">
   
@@ -420,22 +472,21 @@
   <button type="button" onclick="closeAdd()" style="background:#c0392b">إلغاء</button>
   </div>
   </div>
-  <h2>قائمة العمال</h2>
-        <div id="buildingTabs">
-    <button onclick="openBuilding('السكن الأول')">🏢 السكن الأول</button>
-    <button onclick="openBuilding('السكن الثاني')">🏢 السكن الثاني</button>
+  <div class="ts-chips" id="buildingTabs"></div>
+  <div class="res-panel" id="roomsPanel">
+    <h4 id="roomsTitle"></h4>
+    <div id="roomsGrid"></div>
   </div>
-  <div id="roomsGrid"></div>
-    <div id="roomInfo"></div>
-  <div id="filterBox">
-       <input id="search" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="currentRoom = ''; wPage = 0; showRooms(); showWorkers()">
-    <select id="filterBuilding" onchange="showWorkers()">
+  <div id="roomInfo"></div>
+  <div id="filterBox" class="res-panel">
+    <input id="search" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="currentRoom = ''; wPage = 0; showRooms(); showWorkers()">
+    <select id="filterBuilding" onchange="openBuilding(this.value)" hidden>
       <option value="">كل المساكن</option>
       <option>السكن الأول</option>
       <option>السكن الثاني</option>
     </select>
     <b id="resultCount"></b>
-        <button onclick="exportExcel()" style="background:#16a34a">📊 تصدير Excel</button>
+    <button onclick="exportExcel()" style="background:#16a34a">📊 تصدير Excel</button>
   </div>
   <div id="workersList"></div>
          </section>
@@ -755,6 +806,7 @@
 
       // نرتّب الغرف: 101، 102، ... 101A، 102A
       const names = Object.keys(rooms).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+      document.getElementById("roomsTitle").innerHTML = "🚪 غرف " + currentBuilding + " <small>(" + names.length + " غرفة — دوس على غرفة تشوف ساكنيها)</small>";
 
       grid.innerHTML = names.map(r => `
         <div class="room ${r === activeRoom ? "active" : ""}" onclick="openRoom('${r}')">
@@ -776,11 +828,28 @@
       const q = document.getElementById("search").value.trim().toLowerCase();
       const b = document.getElementById("filterBuilding").value;
 
+      // كروت الأرقام (بتتداس عشان تفلتر)
+      const cnt = f => workers.filter(f).length;
+      const card = (cls, n, label, onclick, on) =>
+        `<div class="stat click ${cls} ${on ? "on" : ""}" onclick="${onclick}"><b>${n}</b>${label}</div>`;
+      document.getElementById("resStats").innerHTML =
+        card("", workers.length, "👷 إجمالي الساكنين", "dashOpen('', '')", !b && !specialFilter) +
+        card("", cnt(w => w.building === "السكن الأول"), "🏢 السكن الأول", "dashOpen('السكن الأول', '')", b === "السكن الأول" && !specialFilter) +
+        card("", cnt(w => w.building === "السكن الثاني"), "🏢 السكن الثاني", "dashOpen('السكن الثاني', '')", b === "السكن الثاني" && !specialFilter) +
+        card("amber", cnt(w => w.blanket !== "نعم"), "🛏️ لم يستلم بطانية", "dashOpen('', 'noblanket')", specialFilter === "noblanket") +
+        card("red", cnt(w => !w.iqamaImg), "🪪 بدون صورة إقامة", "dashOpen('', 'noimg')", specialFilter === "noimg");
+
+      // تابات المساكن
+      const tab = (val, label) => `<button class="chip ${b === val ? "on" : ""}" onclick="openBuilding('${val}')">${label} (${val ? cnt(w => w.building === val) : workers.length})</button>`;
+      document.getElementById("buildingTabs").innerHTML =
+        tab("", "🏘️ كل المساكن") + tab("السكن الأول", "🏢 السكن الأول") + tab("السكن الثاني", "🏢 السكن الثاني");
+
       // نختار العمال اللي مطابقين البحث والسكن
       const result = workers.filter(function (w) {
         if (b && w.building !== b) return false;
                 if (currentRoom && w.room !== currentRoom) return false;
         if (specialFilter === "blanket" && w.blanket !== "نعم") return false;
+        if (specialFilter === "noblanket" && w.blanket === "نعم") return false;
         if (specialFilter === "noimg" && w.iqamaImg) return false;
         if (!q) return true;
         const text = (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase();
@@ -788,32 +857,33 @@
       });
       if (wPage * PAGE_SIZE >= result.length) wPage = 0;
            lastResult = result;
+      const filterName = { blanket: "استلموا بطانية", noblanket: "لم يستلم بطانية", noimg: "بدون صورة إقامة" }[specialFilter];
       document.getElementById("resultCount").innerHTML = "العدد: " + result.length +
-        (specialFilter ? ` <span class="badge warn">${specialFilter === "blanket" ? "استلموا بطانية" : "بدون صورة إقامة"} <a href="#" onclick="specialFilter = ''; showWorkers(); return false;">✖</a></span>` : "");
+        (currentRoom ? ` <span class="badge warn">غرفة ${currentRoom} <a href="#" onclick="openBuilding(currentBuilding); return false;">✖</a></span>` : "") +
+        (filterName ? ` <span class="badge warn">${filterName} <a href="#" onclick="specialFilter = ''; showWorkers(); return false;">✖</a></span>` : "");
 
       if (result.length === 0) {
-        list.innerHTML = "<p>لا يوجد نتائج</p>";
+        list.innerHTML = "<div><p>لا يوجد نتائج</p></div>";
         return;
       }
 
-            let html = `<div><table>
-        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>السرير</th><th>الإقامة</th><th>الجنسية</th><th>المهنة</th><th>البطانية</th><th>صورة الإقامة</th><th></th></tr>`;
+      let html = `<div><table>
+        <tr class="res-headrow"><th>#</th><th>الساكن</th><th>السكن</th><th>الإقامة</th><th>البطانية</th><th>صورة الإقامة</th><th></th></tr>`;
       result.slice(wPage * PAGE_SIZE, (wPage + 1) * PAGE_SIZE).forEach(function (worker, i) {
-        html += `<tr>
-            <td>${wPage * PAGE_SIZE + i + 1}</td>
-          <td><b>${worker.name}</b></td>
-                    <td>${worker.room || "-"}</td>
-          <td>${worker.bed_no || "-"}</td>
-          <td>${worker.idNo || "-"}</td>
-          <td>${worker.country || "-"}</td>
-          <td>${worker.job || "-"}</td>
-          <td>${worker.blanket === "نعم" ? '<span class="badge ok">استلم</span>' : '<span class="badge bad">لم يستلم</span>'}</td>
-          <td>${worker.iqamaImg ? '<span class="badge ok">موجودة</span>' : '<span class="badge miss">ناقصة</span>'}</td>
-          <td>
-                       <button onclick="openEdit(${worker.id})" style="background:#e08a1e">تعديل</button>
-            <button onclick="showProfile(${worker.id})">الملف</button>
-            <button onclick="deleteWorker(${worker.id})" style="background:#c0392b">حذف</button>
-          </td>
+        const sub = [worker.country, worker.job].filter(Boolean).join(" · ") || "-";
+        const short = (worker.building || "").replace("السكن ", "");
+        html += `<tr class="res-row">
+          <td class="res-num">${wPage * PAGE_SIZE + i + 1}</td>
+          <td class="res-who"><b onclick="showProfile(${worker.id})" title="الملف">${worker.name}</b><small>${sub}</small></td>
+          <td class="res-placecell"><span class="res-place"><b>🚪 ${worker.room || "-"}</b>${worker.bed_no ? " · سرير " + worker.bed_no : ""}<small>${short ? "السكن " + short : ""}</small></span></td>
+          <td class="res-iqama">${worker.idNo || "-"}</td>
+          <td class="res-badges">${worker.blanket === "نعم" ? '<span class="badge ok">🛏️ استلم</span>' : '<span class="badge bad">🛏️ لم يستلم</span>'}</td>
+          <td class="res-badges">${worker.iqamaImg ? '<span class="badge ok">🪪 الصورة موجودة</span>' : '<span class="badge miss">🪪 الصورة ناقصة</span>'}</td>
+          <td class="res-actions"><div class="icon-btns">
+            <button class="view" onclick="showProfile(${worker.id})" title="الملف">👁️ الملف</button>
+            <button class="edit" onclick="openEdit(${worker.id})" title="تعديل">✏️ تعديل</button>
+            <button class="del" onclick="deleteWorker(${worker.id})" title="حذف">🗑️</button>
+          </div></td>
         </tr>`;
       });
 
