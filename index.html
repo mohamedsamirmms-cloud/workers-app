@@ -11,6 +11,8 @@
     #mealList > div, #mealMonthList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
     .meal-prices { background: #fff7ed; color: #9a3412; padding: 10px 15px; border-radius: 10px; }
     tr.meal-sum td { background: #fff7ed; font-weight: bold; color: #9a3412; }
+    .stat.click { cursor: pointer; border: 2px solid transparent; }
+    .stat.click:hover { border-color: #e08a1e; background: #fff7ed; }
     .dash-meals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
     td input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
           /* التنقل بين الصفحات */
@@ -538,11 +540,11 @@
       const noImg = workers.filter(w => !w.iqamaImg).length;
 
       document.getElementById("stats").innerHTML = `
-        <div class="stat"><b>${workers.length}</b>إجمالي الساكنين</div>
-        <div class="stat"><b>${b1}</b>السكن الأول</div>
-        <div class="stat"><b>${b2}</b>السكن الثاني</div>
-        <div class="stat"><b>${blanket}</b>استلموا بطانية</div>
-        <div class="stat"><b style="color:#c0392b">${noImg}</b>بدون صورة إقامة</div>
+        <div class="stat click" onclick="dashOpen('', '')"><b>${workers.length}</b>إجمالي الساكنين</div>
+        <div class="stat click" onclick="dashOpen('السكن الأول', '')"><b>${b1}</b>السكن الأول</div>
+        <div class="stat click" onclick="dashOpen('السكن الثاني', '')"><b>${b2}</b>السكن الثاني</div>
+        <div class="stat click" onclick="dashOpen('', 'blanket')"><b>${blanket}</b>استلموا بطانية</div>
+        <div class="stat click" onclick="dashOpen('', 'noimg')"><b style="color:#c0392b">${noImg}</b>بدون صورة إقامة</div>
       `;
     }
           // مربعات الغرف
@@ -551,6 +553,7 @@
         let lastResult = [];
             let roomsInfo = {};
     function openBuilding(name) {
+      specialFilter = "";
       currentBuilding = name;
             currentRoom = "";
       document.getElementById("filterBuilding").value = name;
@@ -597,13 +600,16 @@
       const result = workers.filter(function (w) {
         if (b && w.building !== b) return false;
                 if (currentRoom && w.room !== currentRoom) return false;
+        if (specialFilter === "blanket" && w.blanket !== "نعم") return false;
+        if (specialFilter === "noimg" && w.iqamaImg) return false;
         if (!q) return true;
         const text = (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase();
         return text.includes(q);
       });
       if (wPage * PAGE_SIZE >= result.length) wPage = 0;
            lastResult = result;
-      document.getElementById("resultCount").textContent = "العدد: " + result.length;
+      document.getElementById("resultCount").innerHTML = "العدد: " + result.length +
+        (specialFilter ? ` <span class="badge warn">${specialFilter === "blanket" ? "استلموا بطانية" : "بدون صورة إقامة"} <a href="#" onclick="specialFilter = ''; showWorkers(); return false;">✖</a></span>` : "");
 
       if (result.length === 0) {
         list.innerHTML = "<p>لا يوجد نتائج</p>";
@@ -1614,6 +1620,30 @@
       document.getElementById("mealMonthList").innerHTML = html;
     }
 
+    // الضغط على خانات لوحة التحكم
+    let specialFilter = "";
+
+    function dashOpen(building, filter) {
+      showPage("residents");
+      currentBuilding = building;
+      currentRoom = "";
+      specialFilter = filter;
+      wPage = 0;
+      document.getElementById("filterBuilding").value = building;
+      document.getElementById("search").value = "";
+      showRooms();
+      showRoomInfo("");
+      showWorkers();
+      document.getElementById("workersList").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function dashOpenMeals() {
+      showPage("meals");
+      document.getElementById("mealMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
+      showMealMonth();
+      document.getElementById("mealMonthBar").scrollIntoView({ behavior: "smooth" });
+    }
+
     // إجمالي الوجبات في لوحة التحكم (الشهر الحالي)
     async function loadDashMeals() {
       const ym = new Date().toLocaleDateString("en-CA").slice(0, 7);
@@ -1628,9 +1658,9 @@
       const monthName = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
       document.getElementById("dashMealsTitle").textContent = "🍽️ الوجبات - " + monthName;
       box.innerHTML = `
-        <div class="stat"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
-        <div class="stat"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
-        <div class="stat"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>💰 إجمالي الوجبات</div>
+        <div class="stat click" onclick="dashOpenMeals()"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat click" onclick="dashOpenMeals()"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat click" onclick="dashOpenMeals()"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>💰 إجمالي الوجبات</div>
       `;
     }
 
