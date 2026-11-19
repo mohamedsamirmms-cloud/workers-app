@@ -376,6 +376,7 @@
     .nav { background: transparent; color: #cbd5e1; text-align: right; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-size: 14px; position: relative; transition: background 0.15s, color 0.15s; }
     .nav .ni { width: 30px; height: 30px; flex: none; border-radius: 8px; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; font-size: 15px; }
     .nav:hover { background: rgba(255,255,255,0.08); color: white; }
+    .nav[hidden], .nav-group[hidden], .dash-tile[hidden], .dash-box[hidden], #dashAlerts[hidden] { display: none !important; }
     .nav.active { background: rgba(224, 138, 30, 0.16); color: white; font-weight: bold; }
     .nav.active .ni { background: #e08a1e; }
     .nav.active::before { content: ""; position: absolute; right: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: #e08a1e; }
@@ -431,6 +432,47 @@
     .pf-list a { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; color: #1e3a5f; text-decoration: none; cursor: pointer; }
     .pf-list a:hover { background: #fff7ed; }
     .pf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* المستخدمين */
+    #page-users input, #page-users button, #page-users select { box-sizing: border-box; }
+    #usrStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #usrStats .stat { border-top: 4px solid #1e3a5f; }
+    #usrList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
+    #usrList th { position: sticky; top: 0; background: white; z-index: 1; }
+    #usrList tr.usr-row:hover td { background: #fff7ed; }
+    #usrList tr.usr-off td { opacity: 0.55; }
+    .usr-who { display: flex; align-items: center; gap: 10px; }
+    .usr-av { width: 40px; height: 40px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    .usr-who b { display: block; color: #1e3a5f; }
+    .usr-who small { color: #64748b; font-size: 12px; direction: ltr; display: block; text-align: right; }
+    .role { display: inline-block; border-radius: 20px; padding: 3px 12px; font-size: 13px; font-weight: bold; white-space: nowrap; }
+    .role.r-admin { background: #fee2e2; color: #991b1b; }
+    .role.r-house { background: #dcfce7; color: #166534; }
+    .role.r-project { background: #dbeafe; color: #1e40af; }
+    .role.r-data { background: #fef3c7; color: #92400e; }
+    .role.r-view { background: #f1f5f9; color: #475569; }
+    .pg-chips { display: flex; gap: 4px; flex-wrap: wrap; max-width: 330px; }
+    .pg-chips span { background: #eef1f5; border-radius: 6px; padding: 1px 6px; font-size: 12px; white-space: nowrap; }
+    .me-tag { background: #e08a1e; color: white; border-radius: 6px; padding: 0 6px; font-size: 11px; margin-right: 4px; }
+    #usrBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #usrBox[hidden] { display: none; }
+    #usrForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 10px; box-sizing: border-box; }
+    #usrForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    #usrForm h3 { margin: 0; color: #1e3a5f; }
+    .pg-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; background: #f8fafc; border-radius: 10px; padding: 10px; }
+    .pg-pick label { display: flex !important; align-items: center; gap: 6px; cursor: pointer; }
+    .pg-pick input { width: 18px; height: 18px; }
+    .usr-note { background: #eff6ff; color: #1e40af; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.7; }
+    .no-access { background: white; border-radius: 14px; padding: 30px; text-align: center; color: #475569; }
+    .no-access b { display: block; font-size: 40px; margin-bottom: 8px; }
+    @media (max-width: 700px) {
+      #usrList > div { padding: 8px; }
+      #usrList table, #usrList tbody { display: block; width: 100%; }
+      #usrList tr.usr-head { display: none; }
+      #usrList tr.usr-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; padding: 10px; }
+      #usrList tr.usr-row td { display: block; border: none; padding: 0; background: transparent !important; }
+      #usrList tr.usr-row td.usr-pages, #usrList tr.usr-row td.usr-actions, #usrList tr.usr-row td.usr-last { grid-column: 1 / -1; }
+      #usrList .icon-btns button { flex: 1; padding: 9px; }
+    }
     /* التقارير */
     #page-reports input, #page-reports button, #page-reports select { box-sizing: border-box; }
     #repBar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -1097,7 +1139,16 @@
     </div>
     <div id="reportOut"></div>
   </section>
-  <section id="page-users" class="page" hidden><h2>👥 المستخدمين</h2><p>قريبًا</p></section>
+  <section id="page-users" class="page" hidden>
+    <div class="res-head">
+      <h2>👥 المستخدمين</h2>
+      <button id="usrAddBtn" onclick="openUser()" style="background:#16a34a">➕ إضافة مستخدم</button>
+    </div>
+    <div id="usrBody">
+      <div id="usrStats"></div>
+      <div id="usrList"></div>
+    </div>
+  </section>
   <section id="page-settings" class="page" hidden><h2>⚙️ الإعدادات</h2><p>قريبًا</p></section>
   </main>
    
@@ -1114,6 +1165,30 @@
     <div id="profile"></div>
   </div>
   <div id="iqamaView" hidden onclick="this.hidden = true"><img id="iqamaBig"></div>
+  <div id="usrBox" hidden onclick="if (event.target === this) this.hidden = true">
+    <form id="usrForm">
+      <h3 id="usrTitle">👤 مستخدم جديد</h3>
+      <label>الاسم <input id="u_name" required placeholder="مثلًا: أحمد محمد"></label>
+      <label>الإيميل <input id="u_email" type="email" required placeholder="name@example.com" dir="ltr"></label>
+      <label id="u_passWrap">باسورد الدخول (اختياري)
+        <input id="u_pass" type="password" minlength="6" placeholder="لو كتبته هنعمله حساب دخول على طول" dir="ltr">
+      </label>
+      <label>الصلاحية
+        <select id="u_role" onchange="applyRolePages()"></select>
+      </label>
+      <div>
+        <span style="font-size:14px; color:#475569">الصفحات اللي يقدر يفتحها</span>
+        <div class="pg-pick" id="u_pages"></div>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer"><input type="checkbox" id="u_active" checked style="width:18px;height:18px"> الحساب شغال</label>
+      <div class="usr-note" id="usrNote"></div>
+      <div>
+        <button type="submit" id="usrSave">💾 حفظ</button>
+        <button type="button" onclick="document.getElementById('usrBox').hidden = true" style="background:#c0392b">إلغاء</button>
+      </div>
+      <p id="usrMsg" style="margin:0"></p>
+    </form>
+  </div>
   <div id="archBox" hidden onclick="if (event.target === this) this.hidden = true">
     <form id="archForm">
       <h3>🗂️ نقل للأرشيف</h3>
@@ -1195,9 +1270,7 @@
                   loadRooms();
                         loadCars();
       loadEquipment();
-      db.auth.getUser().then(function ({ data }) {
-        if (data && data.user) document.getElementById("sideUser").textContent = "👤 " + data.user.email;
-      });
+      loadMe();
                          document.getElementById("tsDate").value = new Date().toLocaleDateString("en-CA");
       loadTimesheet();
       document.getElementById("mealDate").value = document.getElementById("tsDate").value;
@@ -1231,6 +1304,15 @@
       await db.auth.signOut();
       location.reload();
     }
+
+    // لما حد يفتح رابط تغيير الباسورد اللي وصله على الإيميل
+    db.auth.onAuthStateChange(async function (event) {
+      if (event !== "PASSWORD_RECOVERY") return;
+      const pass = prompt("🔑 اكتب الباسورد الجديد (6 حروف على الأقل):");
+      if (!pass) return;
+      const { error } = await db.auth.updateUser({ password: pass });
+      alert(error ? "❌ الباسورد ماتغيرش: " + error.message : "✅ الباسورد اتغير");
+    });
 
     // لو مسجّل دخول من قبل، افتح البرنامج على طول
     db.auth.getSession().then(function ({ data }) {
@@ -1442,6 +1524,237 @@
     
        // 6. الملف الشخصي (بيانات السكن)
            // 6. الملف الشخصي (نافذة)
+    // ===== المستخدمين والصلاحيات =====
+    const PAGES = [
+      { key: "dashboard", label: "📊 لوحة التحكم" },
+      { key: "residents", label: "👷 الساكنين" },
+      { key: "meals", label: "🍽️ الوجبات" },
+      { key: "timesheet", label: "⏱️ التايم شيت" },
+      { key: "moves", label: "🏗️ معدات المشروع" },
+      { key: "cars", label: "🚗 سيارات المشروع" },
+      { key: "archive", label: "🗂️ الأرشيف" },
+      { key: "reports", label: "📄 التقارير" },
+      { key: "users", label: "👥 المستخدمين" },
+      { key: "settings", label: "⚙️ الإعدادات" }
+    ];
+    const ROLES = {
+      "مدير": { cls: "r-admin", color: "#c0392b", pages: PAGES.map(x => x.key) },
+      "مشرف سكن": { cls: "r-house", color: "#16a34a", pages: ["dashboard", "residents", "meals", "archive", "reports"] },
+      "مشرف مشروع": { cls: "r-project", color: "#2563eb", pages: ["dashboard", "timesheet", "moves", "cars", "reports"] },
+      "مدخل بيانات": { cls: "r-data", color: "#d97706", pages: ["residents", "meals", "timesheet"] },
+      "مشاهد": { cls: "r-view", color: "#64748b", pages: ["dashboard", "reports"] }
+    };
+    let appUsers = [];
+    let me = null;            // صف المستخدم الحالي في جدول app_users
+    let myEmail = "";
+    let usersReady = false;   // الجدول موجود؟
+    let editingUserId = null;
+
+    const isAdmin = () => !usersReady || !me || me.role === "مدير";
+    function myPages() {
+      if (!usersReady || me === null && !appUsers.length) return PAGES.map(x => x.key);
+      if (!me) return ["dashboard"];
+      if (!me.active) return [];
+      return me.role === "مدير" ? PAGES.map(x => x.key) : (me.pages || []);
+    }
+    const canOpen = name => myPages().includes(name);
+
+    async function loadMe() {
+      const { data } = await db.auth.getUser();
+      myEmail = (data && data.user && data.user.email || "").toLowerCase();
+      const res = await db.from("app_users").select("*").order("created_at");
+      if (res.error) {
+        usersReady = false;
+        appUsers = [];
+      } else {
+        usersReady = true;
+        appUsers = res.data;
+        me = appUsers.find(u => (u.email || "").toLowerCase() === myEmail) || null;
+        // أول حد يدخل بعد ما الجدول يتعمل بيبقى المدير
+        if (!me && !appUsers.length && myEmail) {
+          const ins = await db.from("app_users").insert({ email: myEmail, name: myEmail.split("@")[0], role: "مدير", pages: ROLES["مدير"].pages, active: true }).select();
+          if (!ins.error && ins.data) { appUsers = ins.data; me = ins.data[0]; }
+        }
+        if (me) db.from("app_users").update({ last_login: new Date().toISOString() }).eq("id", me.id).then(() => {});
+      }
+      applyPermissions();
+      showUsers();
+    }
+
+    function applyPermissions() {
+      const pages = myPages();
+      document.querySelectorAll(".nav[data-page]").forEach(b => b.hidden = !pages.includes(b.dataset.page));
+      // نخفي عنوان المجموعة لو كل صفحاتها مستخبية
+      document.querySelectorAll(".nav-group").forEach(function (g) {
+        let el = g.nextElementSibling, any = false;
+        while (el && el.classList.contains("nav")) { if (!el.hidden) any = true; el = el.nextElementSibling; }
+        g.hidden = !any;
+      });
+      // مربعات لوحة التحكم حسب الصفحات المسموحة
+      const tiles = { stats: "residents", att: "timesheet", meals: "meals", eq: "moves", cars: "cars" };
+      Object.entries(tiles).forEach(function ([t, page]) {
+        const ok = pages.includes(page);
+        document.getElementById("tile-" + t).hidden = !ok;
+        if (!ok) document.getElementById("box-" + t).hidden = true;
+      });
+      document.getElementById("dashAlerts").hidden = !pages.includes("moves") && !pages.includes("cars");
+      const side = document.getElementById("sideUser");
+      side.innerHTML = myEmail ? `👤 ${me ? me.name + ` <span class="role ${(ROLES[me.role] || {}).cls || "r-view"}" style="font-size:10px;padding:0 6px">${me.role}</span>` : myEmail}` : "";
+      const current = [...document.querySelectorAll(".page")].find(x => !x.hidden);
+      const name = current ? current.id.replace("page-", "") : "";
+      if (!pages.length) {
+        document.getElementById("content").innerHTML = '<div class="no-access"><b>🔒</b>حسابك متوقف. كلّم المدير.</div>';
+      } else if (!pages.includes(name)) showPage(pages[0]);
+      const old = document.getElementById("notRegistered");
+      if (old) old.remove();
+      if (me === null && usersReady && appUsers.length && myEmail) {
+        document.getElementById("page-dashboard").insertAdjacentHTML("afterbegin",
+          '<div id="notRegistered" class="no-access" style="margin-bottom:12px"><b>🔒</b>حسابك (' + myEmail + ') مش متسجّل في المستخدمين. كلّم المدير يضيفك ويديك الصلاحيات.</div>');
+      }
+    }
+
+    function roleBadge(role) {
+      return `<span class="role ${(ROLES[role] || {}).cls || "r-view"}">${role || "-"}</span>`;
+    }
+
+    function showUsers() {
+      const body = document.getElementById("usrBody");
+      if (!body) return;
+      document.getElementById("usrAddBtn").hidden = !usersReady || !isAdmin();
+      if (!usersReady) {
+        body.innerHTML = `<div class="no-access"><b>🛠️</b>صفحة المستخدمين محتاجة جدول <code>app_users</code> في Supabase.<br>شغّل كود المستخدمين في SQL Editor وبعدين اعمل refresh.</div>`;
+        return;
+      }
+      if (!isAdmin()) {
+        body.innerHTML = '<div class="no-access"><b>🔒</b>الصفحة دي للمدير بس.</div>';
+        return;
+      }
+      if (!document.getElementById("usrStats")) body.innerHTML = '<div id="usrStats"></div><div id="usrList"></div>';
+      const cnt = f => appUsers.filter(f).length;
+      document.getElementById("usrStats").innerHTML = `
+        <div class="stat"><b>${appUsers.length}</b>👥 إجمالي المستخدمين</div>
+        <div class="stat"><b style="color:#16a34a">${cnt(u => u.active)}</b>✅ شغالين</div>
+        <div class="stat"><b style="color:#c0392b">${cnt(u => u.role === "مدير")}</b>🛡️ مديرين</div>
+        <div class="stat"><b style="color:#64748b">${cnt(u => !u.active)}</b>⛔ متوقفين</div>`;
+
+      let html = `<div><table><tr class="usr-head"><th>المستخدم</th><th>الصلاحية</th><th>الصفحات</th><th>الحالة</th><th>آخر دخول</th><th></th></tr>`;
+      appUsers.forEach(function (u) {
+        const mine = me && u.id === me.id;
+        const initials = (u.name || u.email).split(" ").filter(Boolean).slice(0, 2).map(x => x[0]).join("").toUpperCase();
+        const pages = u.role === "مدير" ? ["كل الصفحات"] : (u.pages || []).map(k => (PAGES.find(x => x.key === k) || { label: k }).label);
+        html += `<tr class="usr-row ${u.active ? "" : "usr-off"}">
+          <td><div class="usr-who"><span class="usr-av" style="background:${(ROLES[u.role] || {}).color || "#64748b"}">${initials}</span>
+            <span><b>${u.name || "-"}${mine ? '<span class="me-tag">إنت</span>' : ""}</b><small>${u.email}</small></span></div></td>
+          <td>${roleBadge(u.role)}</td>
+          <td class="usr-pages"><div class="pg-chips">${pages.map(x => `<span>${x}</span>`).join("")}</div></td>
+          <td>${u.active ? '<span class="badge ok">شغال</span>' : '<span class="badge miss">متوقف</span>'}</td>
+          <td class="usr-last" style="font-size:13px;color:#64748b">${u.last_login ? "🕒 " + new Date(u.last_login).toLocaleString("ar-EG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "لسه ماخلش"}</td>
+          <td class="usr-actions"><div class="icon-btns">
+            <button class="edit" onclick="openUser(${u.id})">✏️ تعديل</button>
+            ${mine ? "" : `<button class="view" onclick="toggleUser(${u.id})">${u.active ? "⛔ وقّف" : "✅ شغّل"}</button>`}
+            <button class="view" onclick="resetUserPass('${u.email}')" title="ابعت رابط تغيير الباسورد">🔑</button>
+            ${mine ? "" : `<button class="del" onclick="deleteUser(${u.id})" title="حذف">🗑️</button>`}
+          </div></td>
+        </tr>`;
+      });
+      document.getElementById("usrList").innerHTML = html + "</table></div>";
+    }
+
+    function applyRolePages() {
+      const role = document.getElementById("u_role").value;
+      const pages = ROLES[role].pages;
+      document.querySelectorAll("#u_pages input").forEach(cb => { cb.checked = pages.includes(cb.value); cb.disabled = role === "مدير"; });
+    }
+
+    function openUser(id) {
+      const u = appUsers.find(x => x.id === id) || {};
+      editingUserId = id || null;
+      document.getElementById("usrTitle").textContent = id ? "✏️ تعديل مستخدم" : "👤 مستخدم جديد";
+      document.getElementById("u_name").value = u.name || "";
+      document.getElementById("u_email").value = u.email || "";
+      document.getElementById("u_email").readOnly = !!id;
+      document.getElementById("u_pass").value = "";
+      document.getElementById("u_passWrap").hidden = !!id;
+      document.getElementById("u_role").innerHTML = Object.keys(ROLES).map(r => `<option ${r === (u.role || "مشاهد") ? "selected" : ""}>${r}</option>`).join("");
+      document.getElementById("u_pages").innerHTML = PAGES.map(pg => `<label><input type="checkbox" value="${pg.key}">${pg.label}</label>`).join("");
+      applyRolePages();
+      if (id && u.role !== "مدير") document.querySelectorAll("#u_pages input").forEach(cb => cb.checked = (u.pages || []).includes(cb.value));
+      document.getElementById("u_active").checked = id ? !!u.active : true;
+      const mine = me && id === me.id;
+      document.getElementById("u_role").disabled = mine;
+      document.getElementById("u_active").disabled = mine;
+      document.getElementById("usrNote").innerHTML = id
+        ? (mine ? "💡 مينفعش تغيّر صلاحيتك أو توقف حسابك بنفسك." : "💡 لتغيير الباسورد دوس 🔑 في الجدول، هيوصله رابط على الإيميل.")
+        : "💡 لو كتبت باسورد هنعمله حساب دخول على طول. لو سيبته فاضي، اعمله الحساب من Supabase (Authentication ← Users ← Add user) بنفس الإيميل.";
+      document.getElementById("usrMsg").textContent = "";
+      document.getElementById("usrBox").hidden = false;
+    }
+
+    document.getElementById("usrForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const msg = document.getElementById("usrMsg");
+      const btn = document.getElementById("usrSave");
+      const role = document.getElementById("u_role").value;
+      const row = {
+        name: document.getElementById("u_name").value.trim(),
+        role,
+        pages: role === "مدير" ? ROLES["مدير"].pages : [...document.querySelectorAll("#u_pages input:checked")].map(cb => cb.value),
+        active: document.getElementById("u_active").checked
+      };
+      if (!row.pages.length) { msg.textContent = "⚠️ اختار صفحة واحدة على الأقل"; return; }
+      btn.disabled = true;
+      msg.textContent = "⏳ جاري الحفظ...";
+
+      if (editingUserId) {
+        const { error } = await db.from("app_users").update(row).eq("id", editingUserId);
+        btn.disabled = false;
+        if (error) { msg.textContent = "❌ محصلش حفظ: " + error.message; return; }
+      } else {
+        row.email = document.getElementById("u_email").value.trim().toLowerCase();
+        if (appUsers.some(u => u.email === row.email)) { btn.disabled = false; msg.textContent = "⚠️ الإيميل ده متسجّل قبل كده"; return; }
+        const { error } = await db.from("app_users").insert(row);
+        if (error) { btn.disabled = false; msg.textContent = "❌ محصلش حفظ: " + error.message; return; }
+        // حساب دخول: عميل منفصل عشان منخرجش من حسابنا
+        const pass = document.getElementById("u_pass").value;
+        if (pass) {
+          const temp = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false, storageKey: "signup-temp" } });
+          const res = await temp.auth.signUp({ email: row.email, password: pass });
+          btn.disabled = false;
+          if (res.error) {
+            msg.innerHTML = "⚠️ المستخدم اتضاف، بس حساب الدخول ماتعملش: " + res.error.message + "<br>اعمله من Supabase ← Authentication ← Users ← Add user.";
+            loadMe();
+            return;
+          }
+          alert("✅ اتعمل حساب " + row.email + (res.data && res.data.session ? "، ويقدر يدخل على طول." : "\nلو تأكيد الإيميل شغال في Supabase، لازم يفتح الرابط اللي وصله الأول."));
+        }
+        btn.disabled = false;
+      }
+      document.getElementById("usrBox").hidden = true;
+      loadMe();
+    });
+
+    async function toggleUser(id) {
+      const u = appUsers.find(x => x.id === id);
+      if (!confirm((u.active ? "توقف حساب " : "تشغّل حساب ") + u.name + "؟")) return;
+      const { error } = await db.from("app_users").update({ active: !u.active }).eq("id", id);
+      if (error) { alert("❌ " + error.message); return; }
+      loadMe();
+    }
+
+    async function deleteUser(id) {
+      const u = appUsers.find(x => x.id === id);
+      if (!confirm("تحذف " + u.name + " من المستخدمين؟\n(حساب الدخول نفسه بيتمسح من Supabase ← Authentication)")) return;
+      const { error } = await db.from("app_users").delete().eq("id", id);
+      if (error) { alert("❌ " + error.message); return; }
+      loadMe();
+    }
+
+    async function resetUserPass(email) {
+      if (!confirm("نبعت رابط تغيير الباسورد على " + email + "؟")) return;
+      const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      alert(error ? "❌ " + error.message : "✅ الرابط اتبعت على " + email);
+    }
+
     // ===== الطباعة =====
     function printWith(cls) {
       document.body.classList.add(cls);
@@ -2303,6 +2616,7 @@
     }
        // 15. التنقل بين الصفحات
     function showPage(name) {
+      if (!canOpen(name)) name = myPages()[0] || "dashboard";
       document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + name);
       document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
       if (name === "dashboard") refreshDashboard();
