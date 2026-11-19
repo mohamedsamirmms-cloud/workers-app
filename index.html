@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* الوجبات */
+    #mealBar, #mealMonthBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    #mealSearch { flex: 1; min-width: 200px; }
+    #mealTotals, #mealMonthTotals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #mealList > div, #mealMonthList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
+    .meal-prices { background: #fff7ed; color: #9a3412; padding: 10px 15px; border-radius: 10px; }
+    td input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
           /* التنقل بين الصفحات */
     .pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
     button:disabled { opacity: 0.4; cursor: default; }
@@ -368,7 +375,26 @@
       </div>
     </div>
   </section>
-  <section id="page-meals" class="page" hidden><h2>🍽️ الوجبات</h2><p>قريبًا</p></section>
+  <section id="page-meals" class="page" hidden>
+    <h2>🍽️ الوجبات</h2>
+    <p class="meal-prices">🍳 الفطار: <b>3.5 ريال</b> للفرد &nbsp;|&nbsp; 🍛 الغداء: <b>9 ريال</b> للفرد</p>
+    <div id="mealBar">
+      <input type="date" id="mealDate" onchange="loadMeals()">
+      <input id="mealSearch" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="mPage = 0; showMeals()">
+      <button onclick="mealAll('breakfast')" style="background:#16a34a">🍳 فطار للكل</button>
+      <button onclick="mealAll('lunch')" style="background:#16a34a">🍛 غداء للكل</button>
+    </div>
+    <div id="mealTotals"></div>
+    <div id="mealList"></div>
+
+    <h2>📅 حساب الوجبات الشهري</h2>
+    <div id="mealMonthBar">
+      <input type="month" id="mealMonth" onchange="showMealMonth()">
+      <button onclick="exportMealMonth()" style="background:#16a34a">📊 تصدير Excel</button>
+    </div>
+    <div id="mealMonthTotals"></div>
+    <div id="mealMonthList"></div>
+  </section>
   <section id="page-archive" class="page" hidden><h2>🗂️ الأرشيف</h2><p>قريبًا</p></section>
   <section id="page-reports" class="page" hidden><h2>📄 التقارير</h2><p>قريبًا</p></section>
   <section id="page-users" class="page" hidden><h2>👥 المستخدمين</h2><p>قريبًا</p></section>
@@ -444,6 +470,10 @@
                         loadCars();
                          document.getElementById("tsDate").value = new Date().toLocaleDateString("en-CA");
       loadTimesheet();
+      document.getElementById("mealDate").value = document.getElementById("tsDate").value;
+      document.getElementById("mealMonth").value = document.getElementById("tsDate").value.slice(0, 7);
+      loadMeals();
+      showMealMonth();
     }
 
     // تسجيل الدخول
@@ -491,6 +521,7 @@
       showCharts();
       showRooms(currentRoom);
             showTimesheet();
+      if (typeof showMeals === "function") showMeals();
     }
 
     // 2. دالة بتعرض العمال في الصفحة
@@ -1421,6 +1452,182 @@
       wPage = p;
       showWorkers();
       document.getElementById("workersList").scrollIntoView({ behavior: "smooth" });
+    }
+       // 21. الوجبات
+    const BREAKFAST_PRICE = 3.5;
+    const LUNCH_PRICE = 9;
+    let mealRecords = {};
+    let mealResult = [];
+    let mPage = 0;
+    let mealMonthRows = [];
+
+    function money(n) {
+      return (Math.round(n * 100) / 100) + " ريال";
+    }
+
+    // Supabase بيرجّع 1000 صف بس في المرة، فنجيب على دفعات
+    async function fetchAll(query) {
+      let all = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await query().range(from, from + 999);
+        if (error) return { data: null, error };
+        all = all.concat(data);
+        if (data.length < 1000) return { data: all, error: null };
+      }
+    }
+
+    async function loadMeals() {
+      const date = document.getElementById("mealDate").value;
+      if (!date) return;
+      const { data, error } = await fetchAll(() => db.from("meals").select("*").eq("meal_date", date));
+      if (error) { alert("❌ مشكلة في تحميل الوجبات: " + error.message); return; }
+      mealRecords = {};
+      data.forEach(r => mealRecords[r.worker_id] = r);
+      showMeals();
+    }
+
+    function showMeals() {
+      const q = document.getElementById("mealSearch").value.trim().toLowerCase();
+      mealResult = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
+      if (mPage * PAGE_SIZE >= mealResult.length) mPage = 0;
+
+      const recs = Object.values(mealRecords);
+      const b = recs.filter(r => r.breakfast).length;
+      const l = recs.filter(r => r.lunch).length;
+      document.getElementById("mealTotals").innerHTML = `
+        <div class="stat"><b>${b}</b>فطار (${money(b * BREAKFAST_PRICE)})</div>
+        <div class="stat"><b>${l}</b>غداء (${money(l * LUNCH_PRICE)})</div>
+        <div class="stat"><b style="color:#e08a1e">${money(b * BREAKFAST_PRICE + l * LUNCH_PRICE)}</b>إجمالي اليوم</div>
+      `;
+
+      let html = `<div><table>
+        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>🍳 فطار</th><th>🍛 غداء</th><th>التكلفة</th></tr>`;
+      mealResult.slice(mPage * PAGE_SIZE, (mPage + 1) * PAGE_SIZE).forEach(function (w, i) {
+        const r = mealRecords[w.id] || {};
+        const cost = (r.breakfast ? BREAKFAST_PRICE : 0) + (r.lunch ? LUNCH_PRICE : 0);
+        html += `<tr>
+          <td>${mPage * PAGE_SIZE + i + 1}</td>
+          <td><b>${w.name}</b></td>
+          <td>${w.room || "-"}</td>
+          <td><input type="checkbox" id="mb_${w.id}" ${r.breakfast ? "checked" : ""} onchange="toggleMeal(${w.id})"></td>
+          <td><input type="checkbox" id="ml_${w.id}" ${r.lunch ? "checked" : ""} onchange="toggleMeal(${w.id})"></td>
+          <td>${cost ? money(cost) : "-"}</td>
+        </tr>`;
+      });
+      html += "</table></div>";
+      html += pager(mealResult.length, mPage, "goMPage");
+      document.getElementById("mealList").innerHTML = html;
+    }
+
+    function goMPage(p) {
+      mPage = p;
+      showMeals();
+      document.getElementById("mealList").scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function toggleMeal(workerId) {
+      const date = document.getElementById("mealDate").value;
+      const breakfast = document.getElementById("mb_" + workerId).checked;
+      const lunch = document.getElementById("ml_" + workerId).checked;
+
+      const { error } = (breakfast || lunch)
+        ? await db.from("meals").upsert({ worker_id: workerId, meal_date: date, breakfast, lunch }, { onConflict: "worker_id,meal_date" })
+        : await db.from("meals").delete().eq("worker_id", workerId).eq("meal_date", date);
+      if (error) { alert("❌ محصلش حفظ: " + error.message); loadMeals(); return; }
+
+      if (breakfast || lunch) mealRecords[workerId] = { worker_id: workerId, meal_date: date, breakfast, lunch };
+      else delete mealRecords[workerId];
+      showMeals();
+      showMealMonth();
+    }
+
+    async function mealAll(kind) {
+      const date = document.getElementById("mealDate").value;
+      const todo = mealResult.filter(w => !(mealRecords[w.id] || {})[kind]);
+      const label = kind === "breakfast" ? "فطار" : "غداء";
+      if (todo.length === 0) { alert("كل العمال الظاهرين متسجّل لهم " + label + " بالفعل"); return; }
+      if (!confirm("هيتسجّل " + label + " لـ " + todo.length + " عامل. متأكد؟")) return;
+
+      const rows = todo.map(function (w) {
+        const r = mealRecords[w.id] || {};
+        return { worker_id: w.id, meal_date: date, breakfast: !!r.breakfast, lunch: !!r.lunch, [kind]: true };
+      });
+      const { error } = await db.from("meals").upsert(rows, { onConflict: "worker_id,meal_date" });
+      if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
+      rows.forEach(r => mealRecords[r.worker_id] = r);
+      showMeals();
+      showMealMonth();
+    }
+
+    // حساب الشهر لكل عامل
+    async function showMealMonth() {
+      const ym = document.getElementById("mealMonth").value;
+      if (!ym) return;
+      const [y, m] = ym.split("-").map(Number);
+      const days = new Date(y, m, 0).getDate();
+      const first = ym + "-01";
+      const last = ym + "-" + String(days).padStart(2, "0");
+
+      const { data, error } = await fetchAll(() => db.from("meals").select("*").gte("meal_date", first).lte("meal_date", last).order("id"));
+      if (error) { alert("❌ مشكلة في تحميل حساب الشهر: " + error.message); return; }
+
+      const byWorker = {};
+      data.forEach(function (r) {
+        const s = byWorker[r.worker_id] || (byWorker[r.worker_id] = { b: 0, l: 0 });
+        if (r.breakfast) s.b++;
+        if (r.lunch) s.l++;
+      });
+
+      let tb = 0, tl = 0;
+      mealMonthRows = Object.keys(byWorker).map(function (id) {
+        const w = workers.find(x => x.id == id) || { name: "عامل محذوف", room: "" };
+        const s = byWorker[id];
+        tb += s.b; tl += s.l;
+        return { name: w.name, room: w.room || "", b: s.b, l: s.l, cost: s.b * BREAKFAST_PRICE + s.l * LUNCH_PRICE };
+      }).sort((a, b) => (a.room || "").localeCompare(b.room || "", "en", { numeric: true }));
+
+      document.getElementById("mealMonthTotals").innerHTML = `
+        <div class="stat"><b>${tb}</b>فطار (${money(tb * BREAKFAST_PRICE)})</div>
+        <div class="stat"><b>${tl}</b>غداء (${money(tl * LUNCH_PRICE)})</div>
+        <div class="stat"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>إجمالي الشهر</div>
+      `;
+
+      if (mealMonthRows.length === 0) {
+        document.getElementById("mealMonthList").innerHTML = "<div><p>مفيش وجبات متسجّلة الشهر ده</p></div>";
+        return;
+      }
+      let html = `<div><table>
+        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>عدد الفطار</th><th>عدد الغداء</th><th>الإجمالي</th></tr>`;
+      mealMonthRows.forEach(function (r, i) {
+        html += `<tr><td>${i + 1}</td><td><b>${r.name}</b></td><td>${r.room || "-"}</td><td>${r.b}</td><td>${r.l}</td><td>${money(r.cost)}</td></tr>`;
+      });
+      html += `<tr><td colspan="3"><b>الإجمالي</b></td><td><b>${tb}</b></td><td><b>${tl}</b></td><td><b>${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b></td></tr></table></div>`;
+      document.getElementById("mealMonthList").innerHTML = html;
+    }
+
+    function exportMealMonth() {
+      if (mealMonthRows.length === 0) { alert("مفيش بيانات للتصدير"); return; }
+      const ym = document.getElementById("mealMonth").value;
+      const rows = mealMonthRows.map((r, i) => ({
+        "#": i + 1,
+        "الاسم": r.name,
+        "الغرفة": r.room,
+        "عدد الفطار": r.b,
+        "تكلفة الفطار": r.b * BREAKFAST_PRICE,
+        "عدد الغداء": r.l,
+        "تكلفة الغداء": r.l * LUNCH_PRICE,
+        "الإجمالي (ريال)": r.cost
+      }));
+      const tb = mealMonthRows.reduce((s, r) => s + r.b, 0);
+      const tl = mealMonthRows.reduce((s, r) => s + r.l, 0);
+      rows.push({});
+      rows.push({ "الاسم": "الإجمالي", "عدد الفطار": tb, "تكلفة الفطار": tb * BREAKFAST_PRICE, "عدد الغداء": tl, "تكلفة الغداء": tl * LUNCH_PRICE, "الإجمالي (ريال)": tb * BREAKFAST_PRICE + tl * LUNCH_PRICE });
+
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, sheet, "الوجبات");
+      XLSX.writeFile(book, "وجبات-" + ym + ".xlsx");
     }
     // 4. أول ما الصفحة تفتح، اعرض العمال
     showWorkers();
