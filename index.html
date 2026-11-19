@@ -11,6 +11,17 @@
     #mealList > div, #mealMonthList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
     .meal-prices { background: #fff7ed; color: #9a3412; padding: 10px 15px; border-radius: 10px; }
     tr.meal-sum td { background: #fff7ed; font-weight: bold; color: #9a3412; }
+    .dash-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
+    .dash-tile { background: #1e3a5f; color: white; border-radius: 14px; padding: 25px 20px; text-align: center; cursor: pointer; position: relative; transition: background 0.2s; }
+    .dash-tile:hover { background: #2c5282; }
+    .dash-tile.open { background: #e08a1e; }
+    .dash-tile .icon { display: block; font-size: 40px; }
+    .dash-tile b { display: block; font-size: 24px; margin: 6px 0; }
+    .dash-tile small { opacity: 0.85; }
+    .dash-tile .arrow { position: absolute; top: 12px; left: 15px; transition: transform 0.2s; }
+    .dash-tile.open .arrow { transform: rotate(180deg); }
+    .dash-box { background: white; border-radius: 12px; padding: 5px 20px 15px; margin-bottom: 15px; }
+    .dash-box .stat { background: #eef1f5; }
     .stat.click { cursor: pointer; border: 2px solid transparent; }
     .stat.click:hover { border-color: #e08a1e; background: #fff7ed; }
     .dash-meals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
@@ -325,9 +336,22 @@
          </section>
   <section id="page-dashboard" class="page" hidden>
     <h2>📊 لوحة التحكم</h2>
-    <div id="stats"></div>
-    <h3 id="dashMealsTitle" style="color:#1e3a5f">🍽️ الوجبات هذا الشهر</h3>
-    <div id="dashMeals" class="dash-meals"></div>
+    <div class="dash-tiles">
+      <div class="dash-tile" id="tile-stats" onclick="toggleDash('stats')">
+        <span class="icon">👷</span><b>الساكنين</b><small id="tileStatsSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+      </div>
+      <div class="dash-tile" id="tile-meals" onclick="toggleDash('meals')">
+        <span class="icon">🍽️</span><b>الوجبات</b><small id="tileMealsSub">اضغط لعرض البيانات</small><span class="arrow">▼</span>
+      </div>
+    </div>
+    <div id="box-stats" class="dash-box" hidden>
+      <h3 style="color:#1e3a5f">👷 الساكنين</h3>
+      <div id="stats"></div>
+    </div>
+    <div id="box-meals" class="dash-box" hidden>
+      <h3 id="dashMealsTitle" style="color:#1e3a5f">🍽️ الوجبات هذا الشهر</h3>
+      <div id="dashMeals" class="dash-meals"></div>
+    </div>
     <div id="charts">
       <div class="chart-box"><h3>الساكنين حسب الجنسية</h3><div id="chartCountry"></div></div>
       <div class="chart-box"><h3>البطاطين</h3><div id="chartBlanket"></div></div>
@@ -539,6 +563,7 @@
       const blanket = workers.filter(w => w.blanket === "نعم").length;
       const noImg = workers.filter(w => !w.iqamaImg).length;
 
+      document.getElementById("tileStatsSub").textContent = workers.length + " ساكن — اضغط لعرض البيانات";
       document.getElementById("stats").innerHTML = `
         <div class="stat click" onclick="dashOpen('', '')"><b>${workers.length}</b>إجمالي الساكنين</div>
         <div class="stat click" onclick="dashOpen('السكن الأول', '')"><b>${b1}</b>السكن الأول</div>
@@ -1644,6 +1669,14 @@
       document.getElementById("mealMonthBar").scrollIntoView({ behavior: "smooth" });
     }
 
+    // مربعات لوحة التحكم: تفتح وتقفل البيانات
+    function toggleDash(name) {
+      const box = document.getElementById("box-" + name);
+      box.hidden = !box.hidden;
+      document.getElementById("tile-" + name).classList.toggle("open", !box.hidden);
+      if (!box.hidden) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
     // إجمالي الوجبات في لوحة التحكم (الشهر الحالي)
     async function loadDashMeals() {
       const ym = new Date().toLocaleDateString("en-CA").slice(0, 7);
@@ -1657,6 +1690,7 @@
       const tl = data.filter(r => r.lunch).length;
       const monthName = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
       document.getElementById("dashMealsTitle").textContent = "🍽️ الوجبات - " + monthName;
+      document.getElementById("tileMealsSub").textContent = money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE) + " هذا الشهر — اضغط لعرض البيانات";
       box.innerHTML = `
         <div class="stat click" onclick="dashOpenMeals()"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
         <div class="stat click" onclick="dashOpenMeals()"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
