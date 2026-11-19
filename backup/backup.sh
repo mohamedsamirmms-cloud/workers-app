@@ -17,6 +17,37 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/out"
 
+# نشيل المسافات والسطور الفاضية اللي ممكن تتلزق مع الرابط بالغلط
+SUPABASE_DB_URL="$(printf '%s' "$SUPABASE_DB_URL" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+export SUPABASE_DB_URL
+
+# فحص شكل رابط قاعدة البيانات (من غير ما نطبع الباسورد)
+python3 - <<'PY'
+import os, urllib.parse as u
+url = os.environ["SUPABASE_DB_URL"]
+scheme, _, rest = url.partition("://")
+cred, _, server = rest.rpartition("@")       # آخر @ هو اللي قبل السيرفر
+user, _, raw_pw = cred.partition(":")
+hostport, _, db = server.partition("/")
+host, _, port = hostport.partition(":")
+pw = u.unquote(raw_pw)
+print("🔎 فحص الرابط:")
+print("   البداية:", scheme + "://", "✅" if scheme in ("postgresql", "postgres") else "❌ لازم يبدأ بـ postgresql://")
+print("   المستخدم:", user, "✅" if user.startswith("postgres.") else "❌ لازم يبقى postgres.<رقم المشروع>")
+print("   السيرفر:", host, "✅" if host.endswith("pooler.supabase.com") else "❌ لازم Session pooler")
+print("   البورت:", port, "✅" if port == "5432" else "❌ لازم 5432 (Session pooler)")
+print("   قاعدة البيانات:", db, "✅" if db.split("?")[0] == "postgres" else "❌ لازم postgres")
+print("   طول الباسورد:", len(pw), "حرف")
+if pw.startswith("[") or pw.endswith("]"):
+    print("   ❌ الباسورد لسه حواليه أقواس [ ] — شيلهم")
+if "YOUR-" in pw.upper():
+    print("   ❌ الباسورد لسه مكتوب فيه YOUR-PASSWORD — حط الباسورد الحقيقي")
+if pw != pw.strip():
+    print("   ❌ فيه مسافة في أول أو آخر الباسورد")
+if cred.count("@") or any(c in raw_pw for c in "#/?"):
+    print("   ⚠️ الباسورد فيه رموز بتبوّظ الرابط — استخدم حروف وأرقام بس")
+PY
+
 echo "🗄️ قاعدة البيانات..."
 "${PG_BIN}pg_dump" "$SUPABASE_DB_URL" --schema=public --no-owner --no-privileges -Fc -f "$WORK/out/database.dump"
 N=$("${PG_BIN}pg_restore" -l "$WORK/out/database.dump" | grep -c " TABLE DATA public " || true)
