@@ -10,6 +10,7 @@
     #mealTotals, #mealMonthTotals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
     #mealList > div, #mealMonthList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
     .meal-prices { background: #fff7ed; color: #9a3412; padding: 10px 15px; border-radius: 10px; }
+    tr.meal-sum td { background: #fff7ed; font-weight: bold; color: #9a3412; }
     td input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
           /* التنقل بين الصفحات */
     .pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
@@ -1501,7 +1502,8 @@
       `;
 
       let html = `<div><table>
-        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>🍳 فطار</th><th>🍛 غداء</th><th>التكلفة</th></tr>`;
+        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>🍳 فطار</th><th>🍛 غداء</th><th>التكلفة</th></tr>
+        <tr class="meal-sum"><td colspan="3">الإجمالي</td><td>${b} (${money(b * BREAKFAST_PRICE)})</td><td>${l} (${money(l * LUNCH_PRICE)})</td><td>${money(b * BREAKFAST_PRICE + l * LUNCH_PRICE)}</td></tr>`;
       mealResult.slice(mPage * PAGE_SIZE, (mPage + 1) * PAGE_SIZE).forEach(function (w, i) {
         const r = mealRecords[w.id] || {};
         const cost = (r.breakfast ? BREAKFAST_PRICE : 0) + (r.lunch ? LUNCH_PRICE : 0);
