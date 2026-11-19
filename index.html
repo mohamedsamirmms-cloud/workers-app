@@ -11,6 +11,7 @@
     #mealList > div, #mealMonthList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
     .meal-prices { background: #fff7ed; color: #9a3412; padding: 10px 15px; border-radius: 10px; }
     tr.meal-sum td { background: #fff7ed; font-weight: bold; color: #9a3412; }
+    .dash-meals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
     td input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
           /* التنقل بين الصفحات */
     .pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
@@ -323,6 +324,8 @@
   <section id="page-dashboard" class="page" hidden>
     <h2>📊 لوحة التحكم</h2>
     <div id="stats"></div>
+    <h3 id="dashMealsTitle" style="color:#1e3a5f">🍽️ الوجبات هذا الشهر</h3>
+    <div id="dashMeals" class="dash-meals"></div>
     <div id="charts">
       <div class="chart-box"><h3>الساكنين حسب الجنسية</h3><div id="chartCountry"></div></div>
       <div class="chart-box"><h3>البطاطين</h3><div id="chartBlanket"></div></div>
@@ -475,6 +478,7 @@
       document.getElementById("mealMonth").value = document.getElementById("tsDate").value.slice(0, 7);
       loadMeals();
       showMealMonth();
+      loadDashMeals();
     }
 
     // تسجيل الدخول
@@ -1540,6 +1544,7 @@
       else delete mealRecords[workerId];
       showMeals();
       showMealMonth();
+      loadDashMeals();
     }
 
     async function mealAll(kind) {
@@ -1558,6 +1563,7 @@
       rows.forEach(r => mealRecords[r.worker_id] = r);
       showMeals();
       showMealMonth();
+      loadDashMeals();
     }
 
     // حساب الشهر لكل عامل
@@ -1606,6 +1612,26 @@
       });
       html += sumRow + `</table></div>`;
       document.getElementById("mealMonthList").innerHTML = html;
+    }
+
+    // إجمالي الوجبات في لوحة التحكم (الشهر الحالي)
+    async function loadDashMeals() {
+      const ym = new Date().toLocaleDateString("en-CA").slice(0, 7);
+      const [y, m] = ym.split("-").map(Number);
+      const last = ym + "-" + String(new Date(y, m, 0).getDate()).padStart(2, "0");
+      const { data, error } = await fetchAll(() => db.from("meals").select("breakfast,lunch").gte("meal_date", ym + "-01").lte("meal_date", last).order("id"));
+      const box = document.getElementById("dashMeals");
+      if (error) { box.innerHTML = '<div class="stat">❌ مشكلة في تحميل الوجبات</div>'; return; }
+
+      const tb = data.filter(r => r.breakfast).length;
+      const tl = data.filter(r => r.lunch).length;
+      const monthName = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+      document.getElementById("dashMealsTitle").textContent = "🍽️ الوجبات - " + monthName;
+      box.innerHTML = `
+        <div class="stat"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>💰 إجمالي الوجبات</div>
+      `;
     }
 
     function exportMealMonth() {
