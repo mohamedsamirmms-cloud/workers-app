@@ -1502,8 +1502,7 @@
       `;
 
       let html = `<div><table>
-        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>🍳 فطار</th><th>🍛 غداء</th><th>التكلفة</th></tr>
-        <tr class="meal-sum"><td colspan="3">الإجمالي</td><td>${b} (${money(b * BREAKFAST_PRICE)})</td><td>${l} (${money(l * LUNCH_PRICE)})</td><td>${money(b * BREAKFAST_PRICE + l * LUNCH_PRICE)}</td></tr>`;
+        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>🍳 فطار</th><th>🍛 غداء</th><th>التكلفة</th></tr>`;
       mealResult.slice(mPage * PAGE_SIZE, (mPage + 1) * PAGE_SIZE).forEach(function (w, i) {
         const r = mealRecords[w.id] || {};
         const cost = (r.breakfast ? BREAKFAST_PRICE : 0) + (r.lunch ? LUNCH_PRICE : 0);
@@ -1599,11 +1598,13 @@
         return;
       }
       let html = `<div><table>
-        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>عدد الفطار</th><th>عدد الغداء</th><th>الإجمالي</th></tr>`;
+        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>عدد الفطار</th><th>سعر الفطار</th><th>عدد الغداء</th><th>سعر الغداء</th><th>الإجمالي</th></tr>`;
+      const sumRow = `<tr class="meal-sum"><td colspan="3">إجمالي الشهر</td><td>${tb}</td><td>${money(tb * BREAKFAST_PRICE)}</td><td>${tl}</td><td>${money(tl * LUNCH_PRICE)}</td><td>${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</td></tr>`;
+      html += sumRow;
       mealMonthRows.forEach(function (r, i) {
-        html += `<tr><td>${i + 1}</td><td><b>${r.name}</b></td><td>${r.room || "-"}</td><td>${r.b}</td><td>${r.l}</td><td>${money(r.cost)}</td></tr>`;
+        html += `<tr><td>${i + 1}</td><td><b>${r.name}</b></td><td>${r.room || "-"}</td><td>${r.b}</td><td>${money(r.b * BREAKFAST_PRICE)}</td><td>${r.l}</td><td>${money(r.l * LUNCH_PRICE)}</td><td>${money(r.cost)}</td></tr>`;
       });
-      html += `<tr><td colspan="3"><b>الإجمالي</b></td><td><b>${tb}</b></td><td><b>${tl}</b></td><td><b>${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b></td></tr></table></div>`;
+      html += sumRow + `</table></div>`;
       document.getElementById("mealMonthList").innerHTML = html;
     }
 
