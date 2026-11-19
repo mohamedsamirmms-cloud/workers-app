@@ -135,7 +135,44 @@
           /* السيارات */
     #carBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #carBox[hidden] { display: none; }
-    #carForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: grid; gap: 10px; }
+    #carForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 10px; box-sizing: border-box; }
+    #page-cars input, #page-cars button { box-sizing: border-box; }
+    #carStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #carStats .stat { border-top: 4px solid #1e3a5f; }
+    #carStats .stat.red { border-color: #c0392b; } #carStats .stat.red b { color: #c0392b; }
+    #carStats .stat.amber { border-color: #f59e0b; } #carStats .stat.amber b { color: #b45309; }
+    #carStats .stat.green { border-color: #16a34a; } #carStats .stat.green b { color: #16a34a; }
+    #carStats .stat.on { background: #fff7ed; box-shadow: 0 0 0 2px #e08a1e inset; }
+    #carBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    #carSearch { flex: 1; min-width: 180px; }
+    #carsList th { position: sticky; top: 0; background: white; z-index: 1; }
+    #carsList tr.car-row:hover td { background: #fff7ed; }
+    #carsList .badge, #carsList td { white-space: nowrap; }
+    #carsList td.car-whocell { white-space: normal; }
+    .icon-btns button { white-space: nowrap; }
+    #carsList tr.car-row.car-bad td:first-child { box-shadow: inset -4px 0 0 #c0392b; }
+    #carsList tr.car-row.car-warn td:first-child { box-shadow: inset -4px 0 0 #f59e0b; }
+    .car-who { display: flex; align-items: center; gap: 10px; }
+    .car-icon { width: 38px; height: 38px; flex: none; border-radius: 10px; background: #eef1f5; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .car-who b { display: block; color: #1e3a5f; }
+    .car-who small { color: #64748b; font-size: 12px; }
+    .plate { display: inline-block; border: 2px solid #1f2937; border-radius: 6px; padding: 2px 10px; font-weight: bold; letter-spacing: 1px; background: white; direction: ltr; white-space: nowrap; font-family: monospace, Tahoma; }
+    .car-sub { color: #64748b; font-size: 12px; display: block; }
+    @media (max-width: 700px) {
+      #carsList > div { padding: 8px; }
+      #carsList table, #carsList tbody { display: block; width: 100%; }
+      #carsList tr.car-head { display: none; }
+      #carsList tr.car-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; padding: 10px; }
+      #carsList tr.car-row.car-bad { border-color: #fca5a5; }
+      #carsList tr.car-row.car-warn { border-color: #fcd34d; }
+      #carsList tr.car-row td { display: block; border: none; padding: 0; background: transparent !important; box-shadow: none !important; }
+      #carsList tr.car-row td.car-whocell { grid-column: 1; }
+      #carsList tr.car-row td.car-platecell { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
+      #carsList tr.car-row td[data-label]::before { content: attr(data-label); display: block; color: #64748b; font-size: 12px; margin-bottom: 2px; }
+      #carsList tr.car-row td.car-actions { grid-column: 1 / -1; }
+      #carsList .icon-btns button { flex: 1; padding: 9px; }
+      #carBar > button { flex: 1; }
+    }
     #carForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
           /* معدات المشروع */
     #eqBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
@@ -165,19 +202,33 @@
           /* القائمة الجانبية */
     #app { display: flex; gap: 20px; align-items: flex-start; }
     #app[hidden] { display: none; }
-    #sidebar { position: sticky; top: 10px; width: 220px; flex: none; background: #1e3a5f; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 6px; }
-    .brand { color: white; font-size: 20px; font-weight: bold; padding: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); }
-    .nav { background: transparent; color: #cbd5e1; text-align: right; }
-    .nav:hover { background: rgba(255,255,255,0.1); }
-    .nav.active { background: #e08a1e; color: white; }
-    .nav.logout { margin-top: 20px; color: #fca5a5; }
+    #sidebar { position: sticky; top: 10px; width: 230px; flex: none; background: linear-gradient(180deg, #1e3a5f 0%, #172e4d 100%); border-radius: 16px; padding: 15px 12px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 6px 20px rgba(30, 58, 95, 0.25); max-height: calc(100vh - 20px); overflow-y: auto; box-sizing: border-box; }
+    .brand { display: flex; align-items: center; gap: 10px; color: white; padding: 6px 6px 14px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+    .brand-logo { width: 42px; height: 42px; flex: none; border-radius: 12px; background: #e08a1e; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .brand b { display: block; font-size: 18px; }
+    .brand small { color: #94a3b8; font-size: 12px; }
+    .nav-group { color: #7f93ad; font-size: 11px; font-weight: bold; padding: 10px 12px 4px; letter-spacing: 0.5px; }
+    .nav { background: transparent; color: #cbd5e1; text-align: right; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-size: 14px; position: relative; transition: background 0.15s, color 0.15s; }
+    .nav .ni { width: 30px; height: 30px; flex: none; border-radius: 8px; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .nav:hover { background: rgba(255,255,255,0.08); color: white; }
+    .nav.active { background: rgba(224, 138, 30, 0.16); color: white; font-weight: bold; }
+    .nav.active .ni { background: #e08a1e; }
+    .nav.active::before { content: ""; position: absolute; right: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: #e08a1e; }
+    .side-foot { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.12); }
+    #sideUser { color: #94a3b8; font-size: 12px; padding: 0 12px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: right; }
+    #sideUser:empty { display: none; }
+    .nav.logout { color: #fca5a5; width: 100%; }
+    .nav.logout .ni { background: rgba(252, 165, 165, 0.12); }
+    .nav.logout:hover { background: rgba(192, 57, 43, 0.25); }
     #content { flex: 1; min-width: 0; }
     @media (max-width: 800px) {
       #app { flex-direction: column; }
-      #sidebar { position: static; width: 100%; box-sizing: border-box; flex-direction: row; overflow-x: auto; }
+      #sidebar { position: static; width: 100%; max-height: none; box-sizing: border-box; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 8px; gap: 4px; border-radius: 12px; }
       #content { width: 100%; }
-      .brand { display: none; }
-      .nav { white-space: nowrap; }
+      .brand, .nav-group, #sideUser { display: none; }
+      .side-foot { margin: 0; padding: 0; border: none; display: flex; }
+      .nav { white-space: nowrap; flex-direction: column; gap: 3px; font-size: 12px; padding: 6px 10px; }
+      .nav.active::before { display: none; }
     }
           /* بيانات الوحدة */
     .room .tags { display: block; font-size: 12px; margin-top: 4px; }
@@ -403,18 +454,27 @@
   <!-- البرنامج نفسه (مخفي لحد ما تسجل دخول) -->
   <div id="app" hidden>
       <nav id="sidebar">
-    <div class="brand">🏢 سجل السكن</div>
-    <button class="nav" data-page="dashboard" onclick="showPage('dashboard')">📊 لوحة التحكم</button>
-    <button class="nav active" data-page="residents" onclick="showPage('residents')">👷 الساكنين</button>
-    <button class="nav" data-page="moves" onclick="showPage('moves')">🏗️ معدات المشروع</button>
-     <button class="nav" data-page="cars" onclick="showPage('cars')">🚗 سيارات المشروع</button>
-    <button class="nav" data-page="timesheet" onclick="showPage('timesheet')">⏱️ التايم شيت</button>
-    <button class="nav" data-page="meals" onclick="showPage('meals')">🍽️ الوجبات</button>
-    <button class="nav" data-page="archive" onclick="showPage('archive')">🗂️ الأرشيف</button>
-    <button class="nav" data-page="reports" onclick="showPage('reports')">📄 التقارير</button>
-    <button class="nav" data-page="users" onclick="showPage('users')">👥 المستخدمين</button>
-    <button class="nav" data-page="settings" onclick="showPage('settings')">⚙️ الإعدادات</button>
-    <button class="nav logout" onclick="logout()">🚪 تسجيل خروج</button>
+    <div class="brand">
+      <span class="brand-logo">🏢</span>
+      <span><b>سجل السكن</b><small>إدارة السكن والمشروع</small></span>
+    </div>
+    <button class="nav" data-page="dashboard" onclick="showPage('dashboard')"><span class="ni">📊</span>لوحة التحكم</button>
+    <div class="nav-group">السكن</div>
+    <button class="nav active" data-page="residents" onclick="showPage('residents')"><span class="ni">👷</span>الساكنين</button>
+    <button class="nav" data-page="meals" onclick="showPage('meals')"><span class="ni">🍽️</span>الوجبات</button>
+    <div class="nav-group">المشروع</div>
+    <button class="nav" data-page="timesheet" onclick="showPage('timesheet')"><span class="ni">⏱️</span>التايم شيت</button>
+    <button class="nav" data-page="moves" onclick="showPage('moves')"><span class="ni">🏗️</span>معدات المشروع</button>
+    <button class="nav" data-page="cars" onclick="showPage('cars')"><span class="ni">🚗</span>سيارات المشروع</button>
+    <div class="nav-group">أخرى</div>
+    <button class="nav" data-page="archive" onclick="showPage('archive')"><span class="ni">🗂️</span>الأرشيف</button>
+    <button class="nav" data-page="reports" onclick="showPage('reports')"><span class="ni">📄</span>التقارير</button>
+    <button class="nav" data-page="users" onclick="showPage('users')"><span class="ni">👥</span>المستخدمين</button>
+    <button class="nav" data-page="settings" onclick="showPage('settings')"><span class="ni">⚙️</span>الإعدادات</button>
+    <div class="side-foot">
+      <div id="sideUser"></div>
+      <button class="nav logout" onclick="logout()"><span class="ni">🚪</span>تسجيل خروج</button>
+    </div>
   </nav>
 
   <main id="content">
@@ -546,8 +606,16 @@
     </div>
   </section>
    <section id="page-cars" class="page" hidden>
-    <h2>🚗 سيارات المشروع</h2>
-    <button onclick="openCar()" style="background:#16a34a">➕ إضافة سيارة</button>
+    <div class="res-head">
+      <h2>🚗 سيارات المشروع</h2>
+      <button onclick="openCar()" style="background:#16a34a">➕ إضافة سيارة</button>
+    </div>
+    <div id="carStats"></div>
+    <div id="carBar" class="res-panel">
+      <input id="carSearch" placeholder="🔍 ابحث باللوحة أو النوع أو السواق" oninput="showCars()">
+      <b id="carCount"></b>
+      <button onclick="exportCars()" style="background:#16a34a">📊 تصدير Excel</button>
+    </div>
     <div id="carsList"></div>
 
     <div id="carBox" hidden onclick="if (event.target === this) closeCar()">
@@ -704,6 +772,9 @@
                   loadRooms();
                         loadCars();
       loadEquipment();
+      db.auth.getUser().then(function ({ data }) {
+        if (data && data.user) document.getElementById("sideUser").textContent = "👤 " + data.user.email;
+      });
                          document.getElementById("tsDate").value = new Date().toLocaleDateString("en-CA");
       loadTimesheet();
       document.getElementById("mealDate").value = document.getElementById("tsDate").value;
@@ -1357,29 +1428,82 @@
       return `<span class="badge ok">${date}</span>`;
     }
 
+    let carFilter = "all";
+
+    // حالة التاريخ: bad منتهي، warn باقي 30 يوم أو أقل
+    function expiryState(date) {
+      if (!date) return "";
+      const days = Math.ceil((new Date(date) - new Date()) / 86400000);
+      return days < 0 ? "bad" : days <= 30 ? "warn" : "ok";
+    }
+
+    function setCarFilter(f) {
+      carFilter = carFilter === f ? "all" : f;
+      showCars();
+    }
+
     function showCars() {
       const list = document.getElementById("carsList");
-      if (cars.length === 0) { list.innerHTML = "<p>لا يوجد سيارات بعد</p>"; return; }
+      const st = c => [expiryState(c.reg_expiry), expiryState(c.ins_expiry)];
+      const regBad = cars.filter(c => ["bad", "warn"].includes(expiryState(c.reg_expiry))).length;
+      const insBad = cars.filter(c => ["bad", "warn"].includes(expiryState(c.ins_expiry))).length;
+      const allOk = cars.filter(c => !st(c).some(x => x === "bad" || x === "warn")).length;
+      const card = (f, cls, n, label) => `<div class="stat click ${cls} ${carFilter === f ? "on" : ""}" onclick="setCarFilter('${f}')"><b>${n}</b>${label}</div>`;
+      document.getElementById("carStats").innerHTML =
+        card("all", "", cars.length, "🚗 إجمالي السيارات") +
+        card("reg", regBad ? "red" : "green", regBad, "📄 استمارة منتهية أو قربت") +
+        card("ins", insBad ? "amber" : "green", insBad, "🛡️ تأمين منتهي أو قرب") +
+        card("ok", "green", allOk, "✅ ورقها سليم");
+
+      const q = (document.getElementById("carSearch").value || "").trim().toLowerCase();
+      const tests = {
+        all: () => true,
+        reg: c => ["bad", "warn"].includes(expiryState(c.reg_expiry)),
+        ins: c => ["bad", "warn"].includes(expiryState(c.ins_expiry)),
+        ok: c => !st(c).some(x => x === "bad" || x === "warn")
+      };
+      const result = cars.filter(tests[carFilter]).filter(c => !q ||
+        [c.plate, c.car_type, c.model, c.driver].join(" ").toLowerCase().includes(q));
+      document.getElementById("carCount").textContent = "العدد: " + result.length;
+
+      if (cars.length === 0) { list.innerHTML = "<div><p>لا يوجد سيارات بعد — دوس ➕ إضافة سيارة</p></div>"; return; }
+      if (result.length === 0) { list.innerHTML = "<div><p>لا يوجد نتائج</p></div>"; return; }
 
       let html = `<div><table>
-        <tr><th>اللوحة</th><th>النوع</th><th>الموديل</th><th>السواق</th><th>الاستمارة</th><th>التأمين</th><th>آخر صيانة</th><th>العداد</th><th></th></tr>`;
-      cars.forEach(function (c) {
-        html += `<tr>
-          <td><b>${c.plate}</b></td>
-          <td>${c.car_type || "-"}</td>
-          <td>${c.model || "-"}</td>
-          <td>${c.driver || "-"}</td>
-          <td>${expiryBadge(c.reg_expiry)}</td>
-          <td>${expiryBadge(c.ins_expiry)}</td>
-          <td>${c.last_service || "-"}</td>
-          <td>${c.km || "-"}</td>
-          <td>
-            <button onclick="openCar(${c.id})" style="background:#e08a1e">تعديل</button>
-            <button onclick="deleteCar(${c.id})" style="background:#c0392b">حذف</button>
-          </td>
+        <tr class="car-head"><th>السيارة</th><th>اللوحة</th><th>السواق</th><th>الاستمارة</th><th>التأمين</th><th>آخر صيانة</th><th>العداد</th><th></th></tr>`;
+      result.forEach(function (c) {
+        const s2 = st(c);
+        const rowCls = s2.includes("bad") ? "car-bad" : s2.includes("warn") ? "car-warn" : "";
+        html += `<tr class="car-row ${rowCls}">
+          <td class="car-whocell"><div class="car-who"><span class="car-icon">🚗</span>
+            <span><b>${c.car_type || "سيارة"}</b><small>${c.model ? "موديل " + c.model : ""}${c.notes ? (c.model ? " · " : "") + c.notes : ""}</small></span></div></td>
+          <td class="car-platecell"><span class="plate">${c.plate}</span></td>
+          <td data-label="السواق">${c.driver ? "👤 " + c.driver : "-"}</td>
+          <td data-label="الاستمارة">${expiryBadge(c.reg_expiry)}</td>
+          <td data-label="التأمين">${expiryBadge(c.ins_expiry)}</td>
+          <td data-label="آخر صيانة">${c.last_service ? "🔧 " + c.last_service : "-"}</td>
+          <td data-label="العداد">${c.km ? Number(c.km).toLocaleString("en-US") + " كم" : "-"}</td>
+          <td class="car-actions"><div class="icon-btns">
+            <button class="edit" onclick="openCar(${c.id})">✏️ تعديل</button>
+            <button class="del" onclick="deleteCar(${c.id})" title="حذف">🗑️</button>
+          </div></td>
         </tr>`;
       });
       list.innerHTML = html + "</table></div>";
+    }
+
+    function exportCars() {
+      if (cars.length === 0) { alert("مفيش بيانات للتصدير"); return; }
+      const rows = cars.map((c, i) => ({
+        "#": i + 1, "اللوحة": c.plate, "النوع": c.car_type || "", "الموديل": c.model || "", "السواق": c.driver || "",
+        "انتهاء الاستمارة": c.reg_expiry || "", "انتهاء التأمين": c.ins_expiry || "", "آخر صيانة": c.last_service || "",
+        "العداد (كم)": c.km || "", "ملاحظات": c.notes || ""
+      }));
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, sheet, "السيارات");
+      XLSX.writeFile(book, "سيارات-المشروع-" + new Date().toISOString().slice(0, 10) + ".xlsx");
     }
 
     function openCar(id) {
