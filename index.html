@@ -5,11 +5,49 @@
   <title>سجل العمالة</title>
     <style>
           /* الوجبات */
-    #mealBar, #mealMonthBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
-    #mealSearch { flex: 1; min-width: 200px; }
-    #mealTotals, #mealMonthTotals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #page-meals input, #page-meals button { box-sizing: border-box; }
+    #mealBar, #mealMonthBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
+    #mealSearch { flex: 1; min-width: 180px; }
+    #mealDayName { font-weight: bold; color: #1e3a5f; min-width: 60px; text-align: center; }
+    #mealTotals, #mealMonthTotals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #mealTotals .stat, #mealMonthTotals .stat { border-top: 4px solid #1e3a5f; }
+    #mealTotals .stat small, #mealMonthTotals .stat small { display: block; color: #64748b; margin-top: 2px; }
+    .stat.amber { border-color: #f59e0b !important; } .stat.amber b { color: #b45309; }
+    .stat.green { border-color: #16a34a !important; } .stat.green b { color: #16a34a; }
+    .stat.orange { border-color: #e08a1e !important; } .stat.orange b { color: #e08a1e; }
+    .stat.gray { border-color: #94a3b8 !important; } .stat.gray b { color: #64748b; }
     #mealList > div, #mealMonthList > div { background: white; padding: 15px 20px; border-radius: 12px; overflow-x: auto; }
-    .meal-prices { background: #fff7ed; color: #9a3412; padding: 10px 15px; border-radius: 10px; }
+    .meal-prices { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .meal-prices span { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; border-radius: 20px; padding: 6px 14px; }
+    #mealList th, #mealMonthList th { position: sticky; top: 0; background: white; z-index: 1; }
+    #mealList tr.has-meal td { background: #fffbeb; }
+    #mealList tr.has-meal td:first-child { box-shadow: inset -4px 0 0 #f59e0b; }
+    #mealList tr.meal-row:hover td, #mealMonthList tr.mm-row:hover td { background: #fff7ed; }
+    #mealMonthList tr.mm-row:nth-child(even) td { background: #f8fafc; }
+    .meal-toggle { box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; border: 2px solid #cbd5e1; color: #64748b; background: white; border-radius: 20px; padding: 6px 14px; font-size: 14px; white-space: nowrap; transition: all 0.15s; }
+    .meal-toggle:hover { border-color: #f59e0b; }
+    .meal-toggle.on { background: #16a34a; border-color: #16a34a; color: white; }
+    .meal-toggle input { display: none; }
+    .meal-cost { display: inline-block; min-width: 60px; text-align: center; background: #eef1f5; border-radius: 20px; padding: 3px 10px; font-weight: bold; color: #1e3a5f; white-space: nowrap; }
+    .meal-cost.zero { color: #94a3b8; font-weight: normal; }
+    #mealMonthBar h3 { margin: 0; color: #1e3a5f; flex: 1; }
+    @media (max-width: 700px) {
+      #mealBar, #mealMonthBar { padding: 10px; }
+      #mealBar .ts-day { flex-wrap: wrap; width: 100%; }
+      #mealBar .ts-day input { flex: 1; min-width: 0; }
+      #mealSearch { min-width: 0; flex-basis: 100%; }
+      #mealBar > button { flex: 1; }
+      #mealList > div { padding: 8px; }
+      #mealList table, #mealList tbody { display: block; width: 100%; }
+      #mealList tr.meal-head { display: none; }
+      #mealList tr.meal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; padding: 10px; }
+      #mealList tr.has-meal { border-color: #fcd34d; background: #fffbeb; }
+      #mealList tr.meal-row td { display: block; border: none; padding: 0; background: transparent !important; box-shadow: none !important; }
+      #mealList td.ts-num { display: none !important; }
+      #mealList td.ts-who, #mealList td.meal-cost-cell { grid-column: 1 / -1; }
+      #mealList .meal-toggle { width: 100%; justify-content: center; padding: 10px; }
+      #mealList td.meal-cost-cell::before { content: "التكلفة: "; color: #64748b; font-size: 13px; }
+    }
     tr.meal-sum td { background: #fff7ed; font-weight: bold; color: #9a3412; }
     .dash-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
     .dash-tile { background: #1e3a5f; color: white; border-radius: 14px; padding: 25px 20px; text-align: center; cursor: pointer; position: relative; transition: background 0.2s; }
@@ -136,7 +174,8 @@
     #content { flex: 1; min-width: 0; }
     @media (max-width: 800px) {
       #app { flex-direction: column; }
-      #sidebar { position: static; width: 100%; flex-direction: row; overflow-x: auto; }
+      #sidebar { position: static; width: 100%; box-sizing: border-box; flex-direction: row; overflow-x: auto; }
+      #content { width: 100%; }
       .brand { display: none; }
       .nav { white-space: nowrap; }
     }
@@ -511,18 +550,29 @@
   </section>
   <section id="page-meals" class="page" hidden>
     <h2>🍽️ الوجبات</h2>
-    <p class="meal-prices">🍳 الفطار: <b>3.5 ريال</b> للفرد &nbsp;|&nbsp; 🍛 الغداء: <b>9 ريال</b> للفرد</p>
+    <div class="meal-prices">
+      <span>🍳 الفطار: <b>3.5 ريال</b> للفرد</span>
+      <span>🍛 الغداء: <b>9 ريال</b> للفرد</span>
+    </div>
     <div id="mealBar">
-      <input type="date" id="mealDate" onchange="loadMeals()">
-      <input id="mealSearch" placeholder="ابحث بالاسم أو الإقامة أو الغرفة" oninput="mPage = 0; showMeals()">
+      <div class="ts-day">
+        <button onclick="shiftMealDate(-1)" title="اليوم اللي قبله">→</button>
+        <input type="date" id="mealDate" onchange="loadMeals()">
+        <button onclick="shiftMealDate(1)" title="اليوم اللي بعده">←</button>
+        <button onclick="shiftMealDate(0)">النهارده</button>
+        <span id="mealDayName"></span>
+      </div>
+      <input id="mealSearch" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="mPage = 0; showMeals()">
       <button onclick="mealAll('breakfast')" style="background:#16a34a">🍳 فطار للكل</button>
       <button onclick="mealAll('lunch')" style="background:#16a34a">🍛 غداء للكل</button>
     </div>
     <div id="mealTotals"></div>
+    <div class="ts-chips" id="mealChips"></div>
     <div id="mealList"></div>
 
     <h2>📅 حساب الوجبات الشهري</h2>
     <div id="mealMonthBar">
+      <h3 id="mealMonthName"></h3>
       <input type="month" id="mealMonth" onchange="showMealMonth()">
       <button onclick="exportMealMonth()" style="background:#16a34a">📊 تصدير Excel</button>
     </div>
@@ -2036,32 +2086,73 @@
       showMeals();
     }
 
+    let mealFilter = "all";
+
+    function setMealFilter(f) {
+      mealFilter = f;
+      mPage = 0;
+      showMeals();
+    }
+
+    function shiftMealDate(n) {
+      const input = document.getElementById("mealDate");
+      if (n === 0 || !input.value) {
+        input.value = new Date().toLocaleDateString("en-CA");
+      } else {
+        const d = new Date(input.value + "T12:00:00");
+        d.setDate(d.getDate() + n);
+        input.value = d.toLocaleDateString("en-CA");
+      }
+      loadMeals();
+    }
+
     function showMeals() {
+      const date = document.getElementById("mealDate").value;
+      document.getElementById("mealDayName").textContent = date
+        ? new Date(date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long" }) : "";
+
       const q = document.getElementById("mealSearch").value.trim().toLowerCase();
-      mealResult = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
+      const searched = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
+      const rec = w => mealRecords[w.id] || {};
+      const tests = {
+        all: () => true,
+        breakfast: w => rec(w).breakfast,
+        lunch: w => rec(w).lunch,
+        none: w => !rec(w).breakfast && !rec(w).lunch
+      };
+      mealResult = searched.filter(tests[mealFilter]);
       if (mPage * PAGE_SIZE >= mealResult.length) mPage = 0;
 
       const recs = Object.values(mealRecords);
       const b = recs.filter(r => r.breakfast).length;
       const l = recs.filter(r => r.lunch).length;
+      const none = workers.filter(tests.none).length;
       document.getElementById("mealTotals").innerHTML = `
-        <div class="stat"><b>${b}</b>فطار (${money(b * BREAKFAST_PRICE)})</div>
-        <div class="stat"><b>${l}</b>غداء (${money(l * LUNCH_PRICE)})</div>
-        <div class="stat"><b style="color:#e08a1e">${money(b * BREAKFAST_PRICE + l * LUNCH_PRICE)}</b>إجمالي اليوم</div>
-      `;
+        <div class="stat amber"><b>${b}</b>🍳 فطار<small>${money(b * BREAKFAST_PRICE)}</small></div>
+        <div class="stat green"><b>${l}</b>🍛 غداء<small>${money(l * LUNCH_PRICE)}</small></div>
+        <div class="stat orange"><b>${money(b * BREAKFAST_PRICE + l * LUNCH_PRICE)}</b>💰 إجمالي اليوم</div>
+        <div class="stat gray"><b>${none}</b>🚫 بدون وجبات</div>`;
+
+      const chip = (f, label) => `<button class="chip ${mealFilter === f ? "on" : ""}" onclick="setMealFilter('${f}')">${label} (${searched.filter(tests[f]).length})</button>`;
+      document.getElementById("mealChips").innerHTML =
+        chip("all", "الكل") + chip("breakfast", "🍳 أخد فطار") + chip("lunch", "🍛 أخد غداء") + chip("none", "🚫 بدون وجبات");
+
+      if (mealResult.length === 0) {
+        document.getElementById("mealList").innerHTML = "<div><p>لا يوجد عمال هنا</p></div>";
+        return;
+      }
 
       let html = `<div><table>
-        <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>🍳 فطار</th><th>🍛 غداء</th><th>التكلفة</th></tr>`;
+        <tr class="meal-head"><th>#</th><th>العامل</th><th>🍳 فطار</th><th>🍛 غداء</th><th>التكلفة</th></tr>`;
       mealResult.slice(mPage * PAGE_SIZE, (mPage + 1) * PAGE_SIZE).forEach(function (w, i) {
-        const r = mealRecords[w.id] || {};
+        const r = rec(w);
         const cost = (r.breakfast ? BREAKFAST_PRICE : 0) + (r.lunch ? LUNCH_PRICE : 0);
-        html += `<tr>
-          <td>${mPage * PAGE_SIZE + i + 1}</td>
-          <td><b>${w.name}</b></td>
-          <td>${w.room || "-"}</td>
-          <td><input type="checkbox" id="mb_${w.id}" ${r.breakfast ? "checked" : ""} onchange="toggleMeal(${w.id})"></td>
-          <td><input type="checkbox" id="ml_${w.id}" ${r.lunch ? "checked" : ""} onchange="toggleMeal(${w.id})"></td>
-          <td>${cost ? money(cost) : "-"}</td>
+        html += `<tr class="meal-row ${cost ? "has-meal" : ""}">
+          <td class="ts-num">${mPage * PAGE_SIZE + i + 1}</td>
+          <td class="ts-who"><b>${w.name}</b><small>🚪 غرفة ${w.room || "-"}${w.idNo ? " · " + w.idNo : ""}</small></td>
+          <td><label class="meal-toggle ${r.breakfast ? "on" : ""}"><input type="checkbox" id="mb_${w.id}" ${r.breakfast ? "checked" : ""} onchange="toggleMeal(${w.id})">${r.breakfast ? "✔" : "＋"} فطار</label></td>
+          <td><label class="meal-toggle ${r.lunch ? "on" : ""}"><input type="checkbox" id="ml_${w.id}" ${r.lunch ? "checked" : ""} onchange="toggleMeal(${w.id})">${r.lunch ? "✔" : "＋"} غداء</label></td>
+          <td class="meal-cost-cell"><span class="meal-cost ${cost ? "" : "zero"}">${cost ? money(cost) : "-"}</span></td>
         </tr>`;
       });
       html += "</table></div>";
@@ -2119,6 +2210,7 @@
       const days = new Date(y, m, 0).getDate();
       const first = ym + "-01";
       const last = ym + "-" + String(days).padStart(2, "0");
+      document.getElementById("mealMonthName").textContent = "🗓️ " + new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
 
       const { data, error } = await fetchAll(() => db.from("meals").select("*").gte("meal_date", first).lte("meal_date", last).order("id"));
       if (error) { alert("❌ مشكلة في تحميل حساب الشهر: " + error.message); return; }
@@ -2139,9 +2231,9 @@
       }).sort((a, b) => (a.room || "").localeCompare(b.room || "", "en", { numeric: true }));
 
       document.getElementById("mealMonthTotals").innerHTML = `
-        <div class="stat"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار الشهري<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
-        <div class="stat"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء الشهري<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
-        <div class="stat"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>💰 إجمالي الشهر (فطار + غداء)</div>
+        <div class="stat amber"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار الشهري<small>${tb.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat green"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء الشهري<small>${tl.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat orange"><b>${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>💰 إجمالي الشهر (فطار + غداء)</div>
       `;
 
       if (mealMonthRows.length === 0) {
@@ -2153,7 +2245,7 @@
       const sumRow = `<tr class="meal-sum"><td colspan="3">إجمالي الشهر</td><td>${tb}</td><td>${money(tb * BREAKFAST_PRICE)}</td><td>${tl}</td><td>${money(tl * LUNCH_PRICE)}</td><td>${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</td></tr>`;
       html += sumRow;
       mealMonthRows.forEach(function (r, i) {
-        html += `<tr><td>${i + 1}</td><td><b>${r.name}</b></td><td>${r.room || "-"}</td><td>${r.b}</td><td>${money(r.b * BREAKFAST_PRICE)}</td><td>${r.l}</td><td>${money(r.l * LUNCH_PRICE)}</td><td>${money(r.cost)}</td></tr>`;
+        html += `<tr class="mm-row"><td>${i + 1}</td><td><b>${r.name}</b></td><td>${r.room || "-"}</td><td>${r.b}</td><td>${money(r.b * BREAKFAST_PRICE)}</td><td>${r.l}</td><td>${money(r.l * LUNCH_PRICE)}</td><td>${money(r.cost)}</td></tr>`;
       });
       html += sumRow + `</table></div>`;
       document.getElementById("mealMonthList").innerHTML = html;
