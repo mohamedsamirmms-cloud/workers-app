@@ -1757,11 +1757,12 @@
     let me = null;            // صف المستخدم الحالي في جدول app_users
     let myEmail = "";
     let usersReady = false;   // الجدول موجود؟
+    let usersEmpty = false;   // الجدول فاضي؟ (أول حد يدخل يبقى مدير)
     let editingUserId = null;
 
     const isAdmin = () => !usersReady || !me || me.role === "مدير";
     function myPages() {
-      if (!usersReady || me === null && !appUsers.length) return PAGES.map(x => x.key);
+      if (!usersReady || me === null && usersEmpty) return PAGES.map(x => x.key);
       if (!me) return ["dashboard"];
       if (!me.active) return [];
       return me.role === "مدير" ? PAGES.map(x => x.key) : (me.pages || []);
@@ -1779,10 +1780,16 @@
         usersReady = true;
         appUsers = res.data;
         me = appUsers.find(u => (u.email || "").toLowerCase() === myEmail) || null;
+        // مع قواعد الأمان، المستخدم العادي بيشوف نفسه بس — فبنسأل السيرفر لو الجدول فاضي فعلًا
+        usersEmpty = false;
+        if (!me && !appUsers.length) {
+          const chk = await db.rpc("app_users_empty");
+          usersEmpty = chk.error ? true : chk.data === true;
+        }
         // أول حد يدخل بعد ما الجدول يتعمل بيبقى المدير
-        if (!me && !appUsers.length && myEmail) {
+        if (!me && usersEmpty && myEmail) {
           const ins = await db.from("app_users").insert({ email: myEmail, name: myEmail.split("@")[0], role: "مدير", pages: ROLES["مدير"].pages, active: true }).select();
-          if (!ins.error && ins.data) { appUsers = ins.data; me = ins.data[0]; }
+          if (!ins.error && ins.data) { appUsers = ins.data; me = ins.data[0]; usersEmpty = false; }
         }
         if (me) db.from("app_users").update({ last_login: new Date().toISOString() }).eq("id", me.id).then(() => {});
       }
@@ -1820,7 +1827,7 @@
       } else if (!pages.includes(name)) showPage(pages[0]);
       const old = document.getElementById("notRegistered");
       if (old) old.remove();
-      if (me === null && usersReady && appUsers.length && myEmail) {
+      if (me === null && usersReady && !usersEmpty && myEmail) {
         document.getElementById("page-dashboard").insertAdjacentHTML("afterbegin",
           '<div id="notRegistered" class="no-access" style="margin-bottom:12px"><b>🔒</b>حسابك (' + myEmail + ') مش متسجّل في المستخدمين. كلّم المدير يضيفك ويديك الصلاحيات.</div>');
       }
