@@ -322,6 +322,18 @@
     .eq-who { display: flex; align-items: center; gap: 10px; white-space: normal; }
     .eq-thumb { width: 56px; height: 46px; flex: none; border-radius: 10px; background: #eef1f5; display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; border: 1px solid #e2e8f0; }
     .eq-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+    .eq-thumb svg, .eq-photo-prev svg { width: 100%; height: 100%; }
+    .eq-thumb.kind, .eq-photo-prev.kind { background: linear-gradient(#f8fbff, #e3ebf4); padding: 2px; box-sizing: border-box; }
+    .eq-kind-tag { display: inline-block; background: #fef3c7; color: #92400e; border-radius: 6px; padding: 0 6px; font-size: 11px; margin-left: 4px; }
+    .kind-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .kind-chips .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px 3px 6px; }
+    .kind-chips .chip svg { width: 30px; height: 20px; }
+    .kind-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; max-height: 280px; overflow-y: auto; background: #f8fafc; border-radius: 10px; padding: 8px; }
+    .kind-pick button { background: white; color: #1f2937; border: 2px solid #e2e8f0; border-radius: 10px; padding: 4px; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .kind-pick button:hover { border-color: #e08a1e; background: #fff7ed; }
+    .kind-pick button.on { border-color: #e08a1e; background: #fff7ed; font-weight: bold; }
+    .kind-pick button svg { width: 100%; height: 44px; }
+    .alert-row .ai svg { width: 30px; height: 22px; }
     .eq-who b { display: block; color: #1e3a5f; min-width: 110px; max-width: 160px; }
     #eqList th, #eqList td { padding: 8px 5px; }
     .eq-who small { color: #64748b; font-size: 12px; }
@@ -953,6 +965,7 @@
       <button onclick="openEq()" style="background:#16a34a">➕ إضافة معدة</button>
     </div>
     <div id="eqStats"></div>
+    <div class="kind-chips" id="eqKindChips"></div>
     <div id="eqBar" class="res-panel">
       <input id="eqSearch" placeholder="🔍 ابحث بالمعدة أو السائق أو أي رقم" oninput="showEquipment()">
       <b id="eqCount"></b>
@@ -982,7 +995,11 @@
             <input type="file" id="eqPhotoFile" accept="image/*" onchange="pickEqPhoto(this)" hidden>
           </div>
         </div>
-        <label>المعدة <input id="eq_name" required placeholder="مثلًا: لودر كاتربلر 950"></label>
+        <label>المعدة <input id="eq_name" required placeholder="مثلًا: لودر كاتربلر 950" oninput="autoKind()"></label>
+        <div>
+          <span style="font-size:14px; color:#475569">نوع المعدة <small id="eqKindHint" style="color:#64748b"></small></span>
+          <div class="kind-pick" id="eqKindPick"></div>
+        </div>
         <label>السائق <input id="eq_driver" list="eqDriverList" placeholder="اسم السائق"></label>
         <datalist id="eqDriverList"></datalist>
         <p style="margin:5px 0 0; color:#475569">📄 المستندات: تاريخ الانتهاء + صورة أو PDF</p>
@@ -3625,7 +3642,10 @@
     let eqPhotoRemoved = false;
 
     function showEqPhotoPrev(src) {
-      document.getElementById("eqPhotoPrev").innerHTML = src ? `<img src="${src}">` : "🏗️";
+      const box = document.getElementById("eqPhotoPrev");
+      const kind = EQ_KINDS.find(k => k.key === eqKindSel) || EQ_KINDS[EQ_KINDS.length - 1];
+      box.innerHTML = src ? `<img src="${src}">` : kindSvg(kind);
+      box.classList.toggle("kind", !src);
       document.getElementById("eqPhotoDel").hidden = !src;
     }
 
@@ -3656,6 +3676,157 @@
       return path ? `<a class="file-link" title="عرض المرفق" onclick="openFile('${path}')">📎</a>` : "";
     }
 
+    // ===== رسومات أنواع المعدات (SVG) =====
+    // كل الرسومات بتبص يمين، viewBox 0 0 120 80، نفس الألوان
+    const EQC = { y: "#F5B70A", yd: "#D99A00", k: "#1F2937", g: "#6B7280", gl: "#9CA3AF", w: "#BFE3F7", r: "#E5E7EB" };
+    const eqWheel = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${EQC.k}"/><circle cx="${x}" cy="${y}" r="${r * 0.45}" fill="${EQC.gl}"/><circle cx="${x}" cy="${y}" r="${r * 0.15}" fill="${EQC.k}"/>`;
+    const eqTrack = (x, y, w, h) => {
+      const n = Math.max(2, Math.round(w / 14));
+      return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="${EQC.k}"/>` +
+        Array.from({ length: n }, (_, i) => `<circle cx="${x + h / 2 + i * (w - h) / (n - 1)}" cy="${y + h / 2}" r="${h * 0.28}" fill="${EQC.g}"/>`).join("");
+    };
+    const eqCab = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${c || EQC.y}"/><rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h * 0.5}" rx="2" fill="${EQC.w}"/>`;
+    const eqTruckCab = (x) => `<path d="M${x} 32 L${x + 16} 32 L${x + 24} 44 L${x + 24} 60 L${x} 60 Z" fill="${EQC.y}"/><path d="M${x + 4} 35 L${x + 15} 35 L${x + 21} 44 L${x + 4} 44 Z" fill="${EQC.w}"/><rect x="${x + 20}" y="52" width="5" height="4" rx="1" fill="#FDE68A"/>`;
+    const eqShadow = `<ellipse cx="60" cy="74" rx="52" ry="3.5" fill="#000" opacity="0.10"/>`;
+
+    const EQ_KINDS = [
+      { key: "skid", label: "بوبكات", words: ["bobcat", "بوبكات", "بوب كات", "skid", "سكيد"],
+        svg: eqShadow + `<path d="M74 22 L82 22 L104 50 L97 54 Z" fill="${EQC.yd}"/>` +
+          `<rect x="26" y="38" width="58" height="22" rx="4" fill="${EQC.y}"/>` +
+          `<rect x="38" y="14" width="32" height="28" rx="4" fill="${EQC.k}"/><rect x="42" y="18" width="24" height="20" rx="2" fill="${EQC.w}"/>` +
+          `<path d="M95 44 L114 44 L117 64 L97 64 Z" fill="${EQC.g}"/><path d="M97 60 L117 60 L117 64 L97 64 Z" fill="${EQC.k}"/>` +
+          eqWheel(40, 62, 11) + eqWheel(72, 62, 11) },
+      { key: "excavator", label: "بوكلين", words: ["بوكلين", "بوكلن", "excavator", "حفار", "poclain", "حفارة"],
+        svg: eqShadow + eqTrack(10, 58, 72, 14) +
+          `<rect x="14" y="40" width="60" height="18" rx="3" fill="${EQC.y}"/><rect x="8" y="42" width="12" height="14" rx="3" fill="${EQC.yd}"/>` +
+          eqCab(22, 20, 22, 22) +
+          `<path d="M54 46 L62 48 L92 16 L85 11 Z" fill="${EQC.y}"/>` +
+          `<path d="M85 11 L92 14 L110 48 L103 51 Z" fill="${EQC.yd}"/>` +
+          `<path d="M100 47 L116 51 L111 66 L97 61 Z" fill="${EQC.g}"/><path d="M111 66 L97 61 L99 58 L113 62 Z" fill="${EQC.k}"/>` },
+      { key: "dump", label: "دامب تراك", words: ["dump", "دامب", "دمب", "قلاب", "tipper", "ديمبر"],
+        svg: eqShadow + `<rect x="8" y="56" width="104" height="6" fill="${EQC.k}"/>` +
+          `<path d="M8 26 L84 26 L82 56 L12 56 Z" fill="${EQC.yd}"/><path d="M8 26 L84 26 L83 32 L8 32 Z" fill="${EQC.y}"/>` +
+          [24, 40, 56, 72].map(x => `<rect x="${x}" y="34" width="3" height="20" fill="${EQC.y}" opacity="0.7"/>`).join("") +
+          eqTruckCab(86) + eqWheel(24, 64, 9) + eqWheel(44, 64, 9) + eqWheel(100, 64, 9) },
+      { key: "boom", label: "بوم تراك", words: ["boom", "بوم", "هياب", "hiab", "ونش"],
+        svg: eqShadow + `<rect x="8" y="56" width="104" height="6" fill="${EQC.k}"/><rect x="8" y="48" width="74" height="8" fill="${EQC.g}"/>` +
+          `<rect x="68" y="28" width="9" height="22" rx="2" fill="${EQC.yd}"/>` +
+          `<path d="M76 27 L14 8 L12 15 L72 35 Z" fill="${EQC.y}"/><path d="M44 17 L12 8 L11 13 L42 22 Z" fill="${EQC.yd}"/>` +
+          `<line x1="13" y1="13" x2="13" y2="36" stroke="${EQC.k}" stroke-width="1.5"/><path d="M10 36 L16 36 L16 40 Q13 44 11 40" fill="none" stroke="${EQC.k}" stroke-width="2"/>` +
+          eqTruckCab(86) + eqWheel(24, 64, 9) + eqWheel(44, 64, 9) + eqWheel(100, 64, 9) },
+      { key: "dozer", label: "بلدوزر", words: ["بلدوزر", "بولدوزر", "دوزر", "dozer", "bulldozer"],
+        svg: eqShadow + eqTrack(12, 56, 74, 16) +
+          `<rect x="22" y="36" width="58" height="22" rx="3" fill="${EQC.y}"/><rect x="66" y="26" width="4" height="12" fill="${EQC.k}"/>` +
+          eqCab(28, 14, 28, 26) +
+          `<path d="M78 46 L96 40 L96 48 L80 56 Z" fill="${EQC.yd}"/>` +
+          `<path d="M94 30 Q104 30 106 50 L106 70 Q100 72 94 70 Z" fill="${EQC.g}"/><path d="M104 66 L112 72 L104 72 Z" fill="${EQC.k}"/>` },
+      { key: "backhoe", label: "جي سي بي", words: ["jcb", "جي سي بي", "جى سى بى", "جيسيبي", "backhoe", "باك هو", "3cx"],
+        svg: eqShadow +
+          `<rect x="22" y="50" width="5" height="18" fill="${EQC.k}"/><rect x="19" y="67" width="11" height="4" rx="1" fill="${EQC.k}"/>` +
+          `<path d="M32 46 L25 40 L9 12 L16 8 Z" fill="${EQC.y}"/>` +
+          `<path d="M9 12 L16 9 L13 46 L6 46 Z" fill="${EQC.yd}"/>` +
+          `<path d="M2 44 L17 44 L15 58 L4 56 Z" fill="${EQC.g}"/><path d="M4 56 L15 58 L14 61 L5 59 Z" fill="${EQC.k}"/>` +
+          `<rect x="26" y="40" width="76" height="17" rx="3" fill="${EQC.y}"/>` +
+          eqCab(42, 14, 28, 28) +
+          `<path d="M88 38 L96 38 L110 54 L104 58 Z" fill="${EQC.yd}"/><path d="M102 50 L118 50 L117 66 L101 66 Z" fill="${EQC.g}"/>` +
+          eqWheel(42, 60, 13) + eqWheel(92, 64, 9) },
+      { key: "loader", label: "شيول", words: ["شيول", "wheel loader", "لودر", "loader"],
+        svg: eqShadow + `<rect x="18" y="38" width="66" height="18" rx="4" fill="${EQC.y}"/><rect x="14" y="40" width="10" height="14" rx="3" fill="${EQC.yd}"/>` +
+          eqCab(28, 12, 26, 28) +
+          `<path d="M66 40 L74 38 L100 48 L96 54 Z" fill="${EQC.yd}"/>` +
+          `<path d="M96 36 L116 40 L113 70 L94 68 Z" fill="${EQC.g}"/><path d="M94 64 L114 66 L113 70 L94 68 Z" fill="${EQC.k}"/>` +
+          eqWheel(34, 60, 13) + eqWheel(78, 60, 13) },
+      { key: "forklift", label: "رافعة شوكية", words: ["فوركلفت", "forklift", "رافعة شوكية", "شوكية", "كلارك"],
+        svg: eqShadow + `<rect x="22" y="42" width="56" height="20" rx="4" fill="${EQC.y}"/><rect x="18" y="46" width="12" height="16" rx="3" fill="${EQC.yd}"/>` +
+          `<rect x="34" y="14" width="3" height="30" fill="${EQC.k}"/><rect x="64" y="14" width="3" height="30" fill="${EQC.k}"/><rect x="32" y="12" width="37" height="4" rx="1" fill="${EQC.k}"/>` +
+          `<rect x="42" y="32" width="12" height="10" rx="2" fill="${EQC.g}"/>` +
+          `<rect x="82" y="8" width="6" height="60" fill="${EQC.g}"/><rect x="88" y="30" width="5" height="34" fill="${EQC.k}"/>` +
+          `<rect x="92" y="62" width="24" height="4" fill="${EQC.k}"/>` +
+          eqWheel(34, 64, 9) + eqWheel(70, 66, 7) },
+      { key: "roller", label: "رولر (مدحلة)", words: ["رولر", "roller", "مدحلة", "حدلة", "مدحله"],
+        svg: eqShadow + `<rect x="24" y="38" width="56" height="20" rx="4" fill="${EQC.y}"/>` +
+          `<rect x="34" y="16" width="3" height="24" fill="${EQC.k}"/><rect x="58" y="16" width="3" height="24" fill="${EQC.k}"/><rect x="30" y="12" width="36" height="5" rx="2" fill="${EQC.y}"/>` +
+          `<rect x="38" y="28" width="16" height="10" rx="2" fill="${EQC.g}"/>` +
+          `<path d="M76 40 L96 40 L104 50 L80 52 Z" fill="${EQC.yd}"/>` +
+          `<circle cx="96" cy="58" r="15" fill="${EQC.g}"/><circle cx="96" cy="58" r="11" fill="${EQC.gl}"/><circle cx="96" cy="58" r="3" fill="${EQC.k}"/>` +
+          eqWheel(34, 62, 11) },
+      { key: "crane", label: "كرين", words: ["كرين", "crane", "رافعة", "سلبي"],
+        svg: eqShadow + `<rect x="6" y="50" width="106" height="10" rx="2" fill="${EQC.y}"/>` +
+          `<rect x="34" y="36" width="30" height="16" rx="3" fill="${EQC.yd}"/><rect x="38" y="39" width="10" height="8" rx="1" fill="${EQC.w}"/>` +
+          `<path d="M54 40 L60 44 L114 6 L110 2 Z" fill="${EQC.y}"/><path d="M80 25 L84 28 L114 6 L110 2 Z" fill="${EQC.yd}"/>` +
+          `<line x1="112" y1="5" x2="112" y2="30" stroke="${EQC.k}" stroke-width="1.5"/><path d="M109 30 L115 30 L115 34 Q112 38 110 34" fill="none" stroke="${EQC.k}" stroke-width="2"/>` +
+          `<rect x="92" y="38" width="18" height="14" rx="2" fill="${EQC.y}"/><rect x="95" y="40" width="12" height="6" rx="1" fill="${EQC.w}"/>` +
+          eqWheel(18, 64, 8) + eqWheel(36, 64, 8) + eqWheel(82, 64, 8) + eqWheel(100, 64, 8) },
+      { key: "tanker", label: "وايت مية", words: ["وايت", "تانكر", "tanker", "صهريج", "water", "مياه", "مية"],
+        svg: eqShadow + `<rect x="8" y="56" width="104" height="6" fill="${EQC.k}"/>` +
+          `<rect x="8" y="26" width="76" height="30" rx="15" fill="#93C5FD"/><rect x="8" y="38" width="76" height="5" fill="#3B82F6"/>` +
+          `<path d="M42 30 Q46 36 46 39 A4 4 0 0 1 38 39 Q38 36 42 30 Z" fill="#fff" opacity="0.85"/>` +
+          eqTruckCab(86) + eqWheel(24, 64, 9) + eqWheel(44, 64, 9) + eqWheel(100, 64, 9) },
+      { key: "mixer", label: "خلاطة خرسانة", words: ["خلاطة", "خلاط", "mixer", "ميكسر", "خرسانة"],
+        svg: eqShadow + `<rect x="8" y="56" width="104" height="6" fill="${EQC.k}"/>` +
+          `<path d="M10 40 L28 22 L76 28 L84 44 L76 54 L22 56 Z" fill="#F97316"/>` +
+          `<path d="M28 22 L36 23 L30 55 L22 56 Z" fill="#fff" opacity="0.8"/><path d="M50 25 L58 26 L54 55 L46 55 Z" fill="#fff" opacity="0.8"/>` +
+          `<path d="M76 28 L84 44 L80 48 L72 30 Z" fill="${EQC.k}" opacity="0.5"/>` +
+          eqTruckCab(86) + eqWheel(24, 64, 9) + eqWheel(44, 64, 9) + eqWheel(100, 64, 9) },
+      { key: "grader", label: "جريدر", words: ["جريدر", "قريدر", "grader", "ممهدة", "ممهده"],
+        svg: eqShadow + `<rect x="8" y="42" width="36" height="16" rx="3" fill="${EQC.y}"/>` +
+          eqCab(30, 18, 22, 26) +
+          `<path d="M44 46 L106 50 L106 56 L44 54 Z" fill="${EQC.yd}"/><rect x="100" y="44" width="8" height="14" rx="2" fill="${EQC.y}"/>` +
+          `<path d="M54 62 L84 59 L86 66 L54 68 Z" fill="${EQC.g}"/><line x1="64" y1="54" x2="66" y2="61" stroke="${EQC.k}" stroke-width="2"/>` +
+          eqWheel(16, 64, 9) + eqWheel(36, 64, 9) + eqWheel(104, 64, 9) },
+      { key: "bus", label: "باص", words: ["باص", "bus", "اتوبيس", "أتوبيس", "كوستر", "coaster", "هايس", "hiace"],
+        svg: eqShadow + `<rect x="6" y="20" width="108" height="42" rx="6" fill="#FBBF24"/>` +
+          [12, 30, 48, 66, 84].map(x => `<rect x="${x}" y="26" width="14" height="14" rx="2" fill="${EQC.w}"/>`).join("") +
+          `<rect x="100" y="26" width="10" height="22" rx="2" fill="${EQC.w}"/><rect x="6" y="46" width="108" height="4" fill="#B45309" opacity="0.6"/>` +
+          eqWheel(28, 62, 9) + eqWheel(92, 62, 9) },
+      { key: "generator", label: "مولد كهربا", words: ["مولد", "generator", "جنريتر", "ماطور"],
+        svg: eqShadow + `<rect x="14" y="22" width="92" height="44" rx="4" fill="${EQC.y}"/>` +
+          [22, 30, 38, 46, 54].map(x => `<rect x="${x}" y="30" width="4" height="28" rx="1" fill="${EQC.yd}"/>`).join("") +
+          `<rect x="66" y="30" width="32" height="20" rx="2" fill="${EQC.k}"/><circle cx="74" cy="40" r="4" fill="#22C55E"/><circle cx="86" cy="40" r="4" fill="#EF4444"/>` +
+          `<path d="M84 52 L78 60 L83 60 L80 66 L88 57 L83 57 Z" fill="${EQC.k}"/>` +
+          `<rect x="18" y="66" width="10" height="5" fill="${EQC.k}"/><rect x="92" y="66" width="10" height="5" fill="${EQC.k}"/>` },
+      { key: "other", label: "معدة تانية", words: [],
+        svg: eqShadow + `<rect x="20" y="40" width="64" height="20" rx="4" fill="${EQC.y}"/>` + eqCab(30, 16, 28, 26) +
+          `<circle cx="92" cy="30" r="14" fill="none" stroke="${EQC.g}" stroke-width="6" stroke-dasharray="6 4"/><circle cx="92" cy="30" r="5" fill="${EQC.g}"/>` +
+          eqWheel(34, 62, 11) + eqWheel(72, 62, 11) }
+    ];
+
+    // نعرف النوع من اسم المعدة (بالترتيب: الأدق الأول)
+    function detectKind(name) {
+      const n = (name || "").toLowerCase();
+      const k = EQ_KINDS.find(k => k.words.some(w => n.includes(w.toLowerCase())));
+      return k ? k.key : "other";
+    }
+    const eqKind = e => EQ_KINDS.find(k => k.key === (e.kind || detectKind(e.name))) || EQ_KINDS[EQ_KINDS.length - 1];
+    const kindSvg = (k, cls) => `<svg class="${cls || ""}" viewBox="0 0 120 80" role="img" aria-label="${k.label}">${k.svg}</svg>`;
+
+    let eqKindFilter = "all";
+    let eqKindSel = "other";
+    let eqKindManual = false;
+
+    function setEqKindFilter(k) {
+      eqKindFilter = eqKindFilter === k ? "all" : k;
+      showEquipment();
+    }
+
+    // نوع المعدة في نافذة الإضافة/التعديل
+    function drawKindPick() {
+      document.getElementById("eqKindPick").innerHTML = EQ_KINDS.map(k =>
+        `<button type="button" class="${k.key === eqKindSel ? "on" : ""}" onclick="pickKind('${k.key}')">${kindSvg(k)}${k.label}</button>`).join("");
+      document.getElementById("eqKindHint").textContent = eqKindManual ? "" : "(بيتعرف لوحده من الاسم — دوس على نوع لو عايز تغيّره)";
+      if (!eqPhotoNew && !document.querySelector("#eqPhotoPrev img")) showEqPhotoPrev("");
+    }
+    function pickKind(k) {
+      eqKindSel = k;
+      eqKindManual = true;
+      drawKindPick();
+    }
+    function autoKind() {
+      if (eqKindManual) return;
+      const k = detectKind(document.getElementById("eq_name").value);
+      if (k !== eqKindSel) { eqKindSel = k; drawKindPick(); }
+    }
+
     let eqFilter = "all";
 
     function setEqFilter(f) {
@@ -3679,8 +3850,19 @@
         card("warn", "amber", cnt("warn"), "⏳ مستند قرب يخلص") +
         card("ok", "green", cnt("ok"), "✅ ورقها سليم");
 
+      // شرايح الأنواع (اللي موجود منها بس)
+      const kindCount = {};
+      equipment.forEach(e => kindCount[eqKind(e).key] = (kindCount[eqKind(e).key] || 0) + 1);
+      const present = EQ_KINDS.filter(k => kindCount[k.key]);
+      if (eqKindFilter !== "all" && !kindCount[eqKindFilter]) eqKindFilter = "all";
+      document.getElementById("eqKindChips").innerHTML = present.length > 1
+        ? `<button class="chip ${eqKindFilter === "all" ? "on" : ""}" onclick="setEqKindFilter('all')">كل الأنواع (${equipment.length})</button>` +
+          present.map(k => `<button class="chip ${eqKindFilter === k.key ? "on" : ""}" onclick="setEqKindFilter('${k.key}')">${kindSvg(k)}${k.label} (${kindCount[k.key]})</button>`).join("")
+        : "";
+
       const q = document.getElementById("eqSearch").value.trim().toLowerCase();
       const result = equipment
+        .filter(e => eqKindFilter === "all" || eqKind(e).key === eqKindFilter)
         .filter(e => eqFilter === "all" || eqState(e) === eqFilter)
         .filter(e => !q || [e.name, e.driver, e.iqama_no, e.license_no, e.operator_no].join(" ").toLowerCase().includes(q));
       document.getElementById("eqCount").textContent = "العدد: " + result.length;
@@ -3697,8 +3879,8 @@
         html += `<tr class="eq-row ${state === "bad" ? "eq-bad" : state === "warn" ? "eq-warn" : ""}">
           <td class="eq-numcell">${i + 1}</td>
           <td class="eq-whocell"><div class="eq-who">
-            <span class="eq-thumb">${url ? `<img src="${url}" onclick="viewEqPhoto('${e.photo}')" alt="">` : "🏗️"}</span>
-            <span><b>${e.name}</b><small>${e.driver ? "👤 " + e.driver : "بدون سائق"}</small></span>
+            <span class="eq-thumb ${url ? "" : "kind"}">${url ? `<img src="${url}" onclick="viewEqPhoto('${e.photo}')" alt="">` : kindSvg(eqKind(e))}</span>
+            <span><b>${e.name}</b><small><span class="eq-kind-tag">${eqKind(e).label}</span>${e.driver ? "👤 " + e.driver : "بدون سائق"}</small></span>
           </div></td>`;
         EQ_DOCS.forEach(d => html += `<td data-label="${d.label}">${d.num
           ? (e[eqField(d)] ? `<span class="eq-num">${e[eqField(d)]}</span>` : "-")
@@ -3720,6 +3902,9 @@
       eqPendingFiles = [];
       eqPhotoNew = null;
       eqPhotoRemoved = false;
+      eqKindManual = !!e.kind;
+      eqKindSel = e.kind || detectKind(e.name);
+      drawKindPick();
       showEqPhotoPrev(e.photo ? eqPhotoUrls[e.photo] || "" : "");
       document.getElementById("eqScanStatus").innerHTML = "";
       eqRemoved = [];
@@ -3909,7 +4094,7 @@
           const shown = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split("-").reverse().join("/") : value;
           filled.push(label + ": <b dir=\"ltr\">" + shown + "</b>");
         };
-        if (found.name) set("eq_name", found.name, "المعدة");
+        if (found.name) { set("eq_name", found.name, "المعدة"); autoKind(); }
         if (found.driver) set("eq_driver", found.driver, "السائق");
         EQ_DOCS.forEach(function (d) {
           if (found[eqField(d)]) set("eq_" + eqField(d), found[eqField(d)], d.label);
@@ -3954,7 +4139,8 @@
       const old = equipment.find(x => x.id === editingEqId) || {};
       const row = {
         name: document.getElementById("eq_name").value.trim(),
-        driver: document.getElementById("eq_driver").value.trim()
+        driver: document.getElementById("eq_driver").value.trim(),
+        kind: eqKindSel
       };
       const toRemove = eqRemoved.slice();
 
@@ -3989,9 +4175,16 @@
         return;
       }
 
-      const { error } = editingEqId
-        ? await db.from("equipment").update(row).eq("id", editingEqId)
-        : await db.from("equipment").insert(row);
+      const save = r => editingEqId
+        ? db.from("equipment").update(r).eq("id", editingEqId)
+        : db.from("equipment").insert(r);
+      let { error } = await save(row);
+      // عمود النوع لسه متعملش في Supabase: نحفظ الباقي، والنوع بيتعرف من الاسم
+      if (error && /kind/.test(error.message)) {
+        delete row.kind;
+        ({ error } = await save(row));
+        if (!error) alert("✅ اتحفظ. بس عشان النوع اللي اخترته يتحفظ كمان، شغّل في Supabase:\nalter table equipment add column kind text;");
+      }
       btn.disabled = false;
       if (error) { msg.textContent = "❌ محصلش حفظ: " + error.message; return; }
 
@@ -4016,6 +4209,7 @@
         const r = { "#": i + 1, "المعدة": e.name, "السائق": e.driver || "" };
         EQ_DOCS.forEach(d => r[d.label] = e[eqField(d)] || "");
         r["مرفقات أخرى"] = (e.other_files || []).length;
+        r["النوع"] = eqKind(e).label;
         return r;
       });
       const sheet = XLSX.utils.json_to_sheet(rows);
@@ -4326,7 +4520,7 @@
       }));
       equipment.forEach(e => EQ_DOCS.filter(d => !d.num).forEach(d => {
         if (["bad", "warn"].includes(expiryState(e[eqField(d)])))
-          items.push({ icon: "🏗️", name: e.name, doc: d.label, date: e[eqField(d)], go: `showPage('moves'); openEq(${e.id})` });
+          items.push({ icon: kindSvg(eqKind(e)), name: e.name, doc: d.label, date: e[eqField(d)], go: `showPage('moves'); openEq(${e.id})` });
       }));
       items.sort((a, b) => a.date.localeCompare(b.date));
       document.getElementById("dashAlerts").innerHTML = `<h3>🔔 تنبيهات المستندات ${items.length ? `<span class="badge bad">${items.length}</span>` : ""}</h3>` +

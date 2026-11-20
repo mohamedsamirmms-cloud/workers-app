@@ -4,8 +4,9 @@
 select item as "البند", case when ok then '✅' else '❌' end as "الحالة" from (values
   (1,  'جدول الوجبات',                    to_regclass('public.meals') is not null),
   (2,  'جدول المعدات',                    to_regclass('public.equipment') is not null),
-  (3,  'أعمدة المعدات الجديدة (صورة، أرقام)', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'equipment' and column_name = 'photo')
-                                          and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'equipment' and column_name = 'operator_no')),
+  (3,  'أعمدة المعدات الجديدة (صورة، أرقام، نوع)', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'equipment' and column_name = 'photo')
+                                          and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'equipment' and column_name = 'operator_no')
+                                          and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'equipment' and column_name = 'kind')),
   (4,  'مكان تخزين ملفات المعدات',         exists (select 1 from storage.buckets where id = 'equipment')),
   (5,  'أعمدة الأرشيف في الساكنين',         exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'workers' and column_name = 'archived')),
   (6,  'جدول المستخدمين',                  to_regclass('public.app_users') is not null),
