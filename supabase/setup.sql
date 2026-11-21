@@ -66,6 +66,10 @@ alter table public.workers
   add column if not exists archive_reason text,
   add column if not exists archive_note text;
 
+-- 3أ) تاريخ انتهاء الإقامة لكل ساكن (للتنبيهات)
+alter table public.workers
+  add column if not exists iqama_expiry date;
+
 -- 3ب) تجهيزات الغرف: غاز وسلندرات وغسالات وتلاجات
 alter table if exists public.rooms
   add column if not exists gas boolean default false,

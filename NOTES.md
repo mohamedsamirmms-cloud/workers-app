@@ -35,10 +35,12 @@
 | `archive` | الأرشيف: الساكنين اللي سابوا السكن (سبب + تاريخ + ملاحظة)، رجوع للسكن | `openArchive`, `restoreWorker`, `showArchive` |
 | `reports` | 6 تقارير بشهر: ملخص شهري، السكن، الحضور، الوجبات، المستندات، حركة الساكنين + طباعة + Excel | `openReport`, `repMonthData`, `exportReport` |
 | `users` | المستخدمين والصلاحيات (للمدير بس) | `loadMe`, `applyPermissions`, `showUsers`, `openUser` |
-| `settings` | الإعدادات + حسابي + نسخة Excel كاملة | `loadSettings`, `applySettings`, `saveSettings`, `fullBackup` |
+| `settings` | الإعدادات + نسخة Excel كاملة | `loadSettings`, `applySettings`, `saveSettings`, `fullBackup` |
 
 **حاجات عامة:**
 - **الملف الشامل للعامل** (`showProfile`): صورة الإقامة (رفع/تغيير)، البيانات، حضور ووجبات الشهر، المعدات والسيارات اللي بيسوقها، طباعة.
+- **حسابي** (`openAccount`, `saveMyAccount`): زرار "👤 حسابي" تحت في القائمة (ودوس على الاسم كمان) — نافذة لأي مستخدم مهما كانت صلاحياته يغيّر اسمه وباسورده.
+- **انتهاء الإقامة** (`iqama_expiry`): في الإضافة والتعديل، علامة ملوّنة جنب رقم الإقامة، مربع "⏳ إقامة منتهية أو قربت" (فلتر `iqama`)، في تنبيهات لوحة التحكم (لو ليه صفحة الساكنين) وتقرير المستندات والملف الشامل. `hasIqamaExp` بيتأكد إن العمود موجود قبل ما يبعته.
 - **القائمة الجانبية** بتتضم لأيقونات (`toggleSidebar`، بتتحفظ في `localStorage`)، والصفحة تاخد عرض الشاشة.
 - **الطباعة:** `printWith('print-profile' | 'print-report')`.
 - العمال: `workers` (النشطين) و `archivedWorkers`، ودوّر بـ `findWorker(id)`. و`onDuty(w, date)` = كان في السكن اليوم ده (بعد القدوم وقبل الأرشفة) وبيُستخدم في حساب الغياب.
@@ -47,7 +49,7 @@
 
 | الجدول | الأعمدة المهمة |
 |---|---|
-| `workers` | `id, name, id_no, country, job, sponsor, building, room, bed_no, arrival, blanket ('نعم'/'لا'), iqama_img, archived, archived_at, archive_reason, archive_note` (+ `language` في نافذة التعديل — شوف المعلّق) |
+| `workers` | `id, name, id_no, iqama_expiry, country, job, sponsor, building, room, bed_no, arrival, blanket ('نعم'/'لا'), iqama_img, archived, archived_at, archive_reason, archive_note` |
 | `rooms` | المفتاح `(building, room)`: `bedrooms, bathrooms, kitchen, gas, cylinders, washers, fridges` |
 | `timesheet` | `worker_id, work_date, time_in, time_out, hours, overtime` (unique على `worker_id, work_date`) |
 | `meals` | `id, worker_id, meal_date, breakfast, lunch` (unique على `worker_id, meal_date`) |
@@ -62,8 +64,8 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (14 بند) يأكد إن كله متجهز.
-- **الحالة الحالية:** صاحب المشروع شغّل كل الأكواد، وكل البنود ✅.
+- `check.sql`: جدول ✅/❌ (15 بند) يأكد إن كله متجهز.
+- **الحالة الحالية:** كل البنود ✅ لحد 14. بند 15 (`iqama_expiry`) محتاج السطر ده يتشغّل: `alter table public.workers add column if not exists iqama_expiry date;`
 
 ## 5. الصلاحيات والأمان
 
@@ -99,12 +101,10 @@
 ## 8. معلّق / أفكار جاية
 
 **صغير ومعلّق:**
-- خانة **اللغة** (`e_language`) في نافذة تعديل الساكن فاضية ومفيهاش اختيارات، وبتبعت `language` في الحفظ. يا إما نشيلها أو نملاها.
-- **"حسابي"** (تغيير الاسم والباسورد) لسه جوه صفحة الإعدادات، والمشرفين ملهمش إعدادات. محتاج يبقى متاح للكل.
 - فرعين قديمين على GitHub ملهمش لازمة: `add-meals-page` و `meals-total-row`.
 
 **أفكار اقترحناها (بالأولوية):**
-1. تاريخ انتهاء الإقامة (والجواز والرخصة) لكل ساكن + تنبيهات.
+1. انتهاء الجواز والرخصة لكل ساكن (الإقامة اتعملت ✅).
 2. سجل التعديلات (مين عمل إيه وإمتى).
 3. منع تكرار رقم الإقامة.
 4. الأسرّة الفاضية لكل وحدة.

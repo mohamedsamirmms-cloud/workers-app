@@ -411,6 +411,8 @@
     .side-foot { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.12); }
     #sideUser { color: #94a3b8; font-size: 12px; padding: 0 12px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: right; }
     #sideUser:empty { display: none; }
+    #sideUser { cursor: pointer; }
+    #sideUser:hover { color: white; }
     .nav.logout { color: #fca5a5; width: 100%; }
     .nav.logout .ni { background: rgba(252, 165, 165, 0.12); }
     .nav.logout:hover { background: rgba(192, 57, 43, 0.25); }
@@ -592,6 +594,13 @@
     .arch-note { color: #64748b; font-size: 12px; white-space: normal; max-width: 220px; display: block; }
     .icon-btns button.restore:hover { background: #16a34a; color: white; }
     .icon-btns button.archive:hover { background: #64748b; color: white; }
+    #accBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #accBox[hidden] { display: none; }
+    #accForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 420px; max-height: 92vh; overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: 10px; box-sizing: border-box; }
+    #accForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    #accForm h3 { margin: 0; color: #1e3a5f; }
+    #accForm input { box-sizing: border-box; width: 100%; }
+    #accForm .acc-who { margin: 0; font-size: 13px; color: #64748b; direction: ltr; text-align: right; overflow-wrap: anywhere; }
     #archBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #archBox[hidden] { display: none; }
     #archForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 460px; display: grid; grid-template-columns: 1fr; gap: 10px; box-sizing: border-box; }
@@ -686,6 +695,8 @@
       #workersList .icon-btns { justify-content: stretch; }
       #workersList .icon-btns button { flex: 1; padding: 9px; }
     }
+    .res-exp { display: block; margin-top: 3px; }
+      @media (max-width: 700px) { .res-exp { display: inline-block; margin: 0 6px 0 0; } }
           /* مربعات الغرف */
     #buildingTabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     #roomsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
@@ -864,7 +875,8 @@
     <button class="nav" data-page="users" onclick="showPage('users')"><span class="ni">👥</span>المستخدمين</button>
     <button class="nav" data-page="settings" onclick="showPage('settings')"><span class="ni">⚙️</span>الإعدادات</button>
     <div class="side-foot">
-      <div id="sideUser"></div>
+      <div id="sideUser" onclick="openAccount()" title="حسابي"></div>
+      <button class="nav account" onclick="openAccount()"><span class="ni">👤</span>حسابي</button>
       <button class="nav logout" onclick="logout()"><span class="ni">🚪</span>تسجيل خروج</button>
     </div>
   </nav>
@@ -893,6 +905,7 @@
   <form id="workerForm">
     <input id="name" placeholder="اسم العامل" required>
         <input id="idNo" placeholder="رقم الإقامة">
+    <label>انتهاء الإقامة <input id="iqamaExp" type="date"></label>
     <select id="country">
       <option value="">اختار البلد</option>
       <option>هندي</option>
@@ -1202,7 +1215,7 @@
       <div class="rep-tile" data-rep="housing" onclick="openReport('housing')"><span class="icon" style="background:#dcfce7">🏢</span><b>تقرير السكن</b><small>الغرف وساكنيها، الجنسيات، البطاطين، الإقامات الناقصة</small></div>
       <div class="rep-tile" data-rep="attendance" onclick="openReport('attendance')"><span class="icon" style="background:#e0e7ff">⏱️</span><b>تقرير الحضور</b><small>حضور وغياب وساعات وأوفر تايم كل عامل في الشهر</small></div>
       <div class="rep-tile" data-rep="meals" onclick="openReport('meals')"><span class="icon" style="background:#fef3c7">🍽️</span><b>تقرير الوجبات</b><small>فطار وغداء وتكلفة كل عامل في الشهر</small></div>
-      <div class="rep-tile" data-rep="docs" onclick="openReport('docs')"><span class="icon" style="background:#fee2e2">🔔</span><b>تقرير المستندات</b><small>استمارات وتأمينات وفحوصات منتهية أو قربت</small></div>
+      <div class="rep-tile" data-rep="docs" onclick="openReport('docs')"><span class="icon" style="background:#fee2e2">🔔</span><b>تقرير المستندات</b><small>إقامات الساكنين واستمارات وتأمينات وفحوصات منتهية أو قربت</small></div>
       <div class="rep-tile" data-rep="moves" onclick="openReport('moves')"><span class="icon" style="background:#ede9fe">🧳</span><b>حركة الساكنين</b><small>اللي وصلوا واللي خرجوا في الشهر</small></div>
     </div>
     <div id="reportOut"></div>
@@ -1245,7 +1258,7 @@
       <div class="set-card">
         <h3><span class="ic">🔔</span>تنبيهات المستندات</h3>
         <label>نبّهني قبل انتهاء المستند بـ (يوم) <input id="s_warn" type="number" min="1" max="365"></label>
-        <small class="hint">استمارات وتأمينات وفحوصات السيارات والمعدات هتتلوّن برتقالي وتظهر في التنبيهات قبل انتهائها بالمدة دي.</small>
+        <small class="hint">إقامات الساكنين واستمارات وتأمينات وفحوصات السيارات والمعدات هتتلوّن برتقالي وتظهر في التنبيهات قبل انتهائها بالمدة دي.</small>
       </div>
       <div class="set-card">
         <h3><span class="ic">🌍</span>الجنسيات</h3>
@@ -1256,16 +1269,6 @@
         <h3><span class="ic">🤝</span>الكفلاء</h3>
         <textarea id="s_sponsors" placeholder="كفيل في كل سطر"></textarea>
         <small class="hint">كفيل في كل سطر. بيظهروا كاقتراحات في خانة الكفيل.</small>
-      </div>
-      <div class="set-card">
-        <h3><span class="ic">👤</span>حسابي</h3>
-        <label>اسمي <input id="s_myname"></label>
-        <div class="row2">
-          <label>باسورد جديد <input id="s_pass1" type="password" minlength="6" dir="ltr" autocomplete="new-password"></label>
-          <label>تأكيد الباسورد <input id="s_pass2" type="password" minlength="6" dir="ltr" autocomplete="new-password"></label>
-        </div>
-        <button type="button" onclick="saveMyAccount()" style="background:#1e3a5f">💾 حفظ حسابي</button>
-        <span id="accMsg" style="font-size:13px"></span>
       </div>
       <div class="set-card">
         <h3><span class="ic">💾</span>نسخة احتياطية</h3>
@@ -1318,6 +1321,21 @@
       <p id="usrMsg" style="margin:0"></p>
     </form>
   </div>
+  <div id="accBox" hidden onclick="if (event.target === this) closeAccount()">
+    <form id="accForm" onsubmit="event.preventDefault(); saveMyAccount()">
+      <h3>👤 حسابي</h3>
+      <p class="acc-who" id="accWho"></p>
+      <label>اسمي <input id="s_myname"></label>
+      <label>باسورد جديد <input id="s_pass1" type="password" minlength="6" dir="ltr" autocomplete="new-password" placeholder="سيبه فاضي لو مش عايز تغيّره"></label>
+      <label>تأكيد الباسورد <input id="s_pass2" type="password" minlength="6" dir="ltr" autocomplete="new-password"></label>
+      <small style="color:#64748b">💡 الباسورد لازم 6 حروف على الأقل. بعد ما تغيّره، استخدم الجديد المرة الجاية وانت بتدخل.</small>
+      <div>
+        <button type="submit" style="background:#1e3a5f">💾 حفظ</button>
+        <button type="button" onclick="closeAccount()" style="background:#64748b">إغلاق</button>
+      </div>
+      <span id="accMsg" style="font-size:13px"></span>
+    </form>
+  </div>
   <div id="archBox" hidden onclick="if (event.target === this) this.hidden = true">
     <form id="archForm">
       <h3>🗂️ نقل للأرشيف</h3>
@@ -1356,8 +1374,8 @@
       <h3>✏️ تعديل بيانات ساكن</h3>
       <label>الاسم <input id="e_name" required></label>
       <label>رقم الإقامة <input id="e_idNo"></label>
+      <label>انتهاء الإقامة <input id="e_iqamaExp" type="date"></label>
       <label>البلد <select id="e_country"></select></label>
-      <label>اللغة <select id="e_language"></select></label>
       <label>السكن
         <select id="e_building">
           <option>السكن الأول</option>
@@ -1458,6 +1476,10 @@
     const findWorker = id => workers.find(x => x.id == id) || archivedWorkers.find(x => x.id == id);
 
     // نجيب العمال من Supabase
+    let hasIqamaExp = true;
+    const iqamaExpField = v => hasIqamaExp ? { iqama_expiry: v || null } : {};
+    // ساكنين إقامتهم منتهية أو قربت تخلص
+    const iqamaAlert = w => ["bad", "warn"].includes(expiryState(w.iqama_expiry));
     async function loadWorkers() {
       const { data, error } = await db.from("workers").select("*").order("building").order("room").order("bed_no");
       if (error) {
@@ -1465,6 +1487,8 @@
         return;
       }
       const all = data.map(w => ({ ...w, idNo: w.id_no, iqamaImg: w.iqama_img }));
+      // عمود انتهاء الإقامة موجود في قاعدة البيانات؟ (لو لسه سطر الـ SQL ماتشغّلش، منبعتهوش عشان الحفظ مايبوظش)
+      hasIqamaExp = !data.length || "iqama_expiry" in data[0];
       workers = all.filter(w => !w.archived);
       archivedWorkers = all.filter(w => w.archived);
       showArchive();
@@ -1474,6 +1498,7 @@
       showRooms(currentRoom);
             showTimesheet();
       if (typeof showMeals === "function") showMeals();
+      renderDashDocs();
     }
 
     // 2. دالة بتعرض العمال في الصفحة
@@ -1553,7 +1578,8 @@
         card("", cnt(w => w.building === "السكن الأول"), "🏢 السكن الأول", "dashOpen('السكن الأول', '')", b === "السكن الأول" && !specialFilter) +
         card("", cnt(w => w.building === "السكن الثاني"), "🏢 السكن الثاني", "dashOpen('السكن الثاني', '')", b === "السكن الثاني" && !specialFilter) +
         card("amber", cnt(w => w.blanket !== "نعم"), "🛏️ لم يستلم بطانية", "dashOpen('', 'noblanket')", specialFilter === "noblanket") +
-        card("red", cnt(w => !w.iqamaImg), "🪪 بدون صورة إقامة", "dashOpen('', 'noimg')", specialFilter === "noimg");
+        card("red", cnt(w => !w.iqamaImg), "🪪 بدون صورة إقامة", "dashOpen('', 'noimg')", specialFilter === "noimg") +
+        card("red", cnt(iqamaAlert), "⏳ إقامة منتهية أو قربت", "dashOpen('', 'iqama')", specialFilter === "iqama");
 
       // تابات المساكن
       const tab = (val, label) => `<button class="chip ${b === val ? "on" : ""}" onclick="openBuilding('${val}')">${label} (${val ? cnt(w => w.building === val) : workers.length})</button>`;
@@ -1567,13 +1593,16 @@
         if (specialFilter === "blanket" && w.blanket !== "نعم") return false;
         if (specialFilter === "noblanket" && w.blanket === "نعم") return false;
         if (specialFilter === "noimg" && w.iqamaImg) return false;
+        if (specialFilter === "iqama" && !iqamaAlert(w)) return false;
         if (!q) return true;
         const text = (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase();
         return text.includes(q);
       });
       if (wPage * PAGE_SIZE >= result.length) wPage = 0;
            lastResult = result;
-      const filterName = { blanket: "استلموا بطانية", noblanket: "لم يستلم بطانية", noimg: "بدون صورة إقامة" }[specialFilter];
+      const filterName = { blanket: "استلموا بطانية", noblanket: "لم يستلم بطانية", noimg: "بدون صورة إقامة", iqama: "إقامة منتهية أو قربت" }[specialFilter];
+      // في فلتر الإقامة: الأقرب انتهاءً الأول
+      if (specialFilter === "iqama") result.sort((a, b) => a.iqama_expiry.localeCompare(b.iqama_expiry));
       document.getElementById("resultCount").innerHTML = "العدد: " + result.length +
         (currentRoom ? ` <span class="badge warn">غرفة ${currentRoom} <a href="#" onclick="openBuilding(currentBuilding); return false;">✖</a></span>` : "") +
         (filterName ? ` <span class="badge warn">${filterName} <a href="#" onclick="specialFilter = ''; showWorkers(); return false;">✖</a></span>` : "");
@@ -1592,7 +1621,7 @@
           <td class="res-num">${wPage * PAGE_SIZE + i + 1}</td>
           <td class="res-who"><b onclick="showProfile(${worker.id})" title="الملف">${worker.name}</b><small>${sub}</small></td>
           <td class="res-placecell"><span class="res-place"><b>🚪 ${worker.room || "-"}</b>${worker.bed_no ? " · سرير " + worker.bed_no : ""}<small>${short ? "السكن " + short : ""}</small></span></td>
-          <td class="res-iqama">${worker.idNo || "-"}</td>
+          <td class="res-iqama">${worker.idNo || "-"}${worker.iqama_expiry ? `<small class="res-exp">${expiryBadge(worker.iqama_expiry)}</small>` : ""}</td>
           <td class="res-badges">${worker.blanket === "نعم" ? '<span class="badge ok">🛏️ استلم</span>' : '<span class="badge bad">🛏️ لم يستلم</span>'}</td>
           <td class="res-badges">${worker.iqamaImg ? '<span class="badge ok">🪪 الصورة موجودة</span>' : '<span class="badge miss">🪪 الصورة ناقصة</span>'}</td>
           <td class="res-actions"><div class="icon-btns">
@@ -1620,6 +1649,7 @@
        
         room: document.getElementById("room").value,
         arrival: document.getElementById("arrival").value || null,
+        ...iqamaExpField(document.getElementById("iqamaExp").value),
                 blanket: document.getElementById("blanket").value,
         building: document.getElementById("building").value,
         bed_no: Number(document.getElementById("bedNo").value) || null,
@@ -1708,8 +1738,6 @@
       v("s_bprice", settings.breakfast); v("s_lprice", settings.lunch);
       v("s_hours", settings.hours); v("s_in", settings.timeIn); v("s_warn", settings.warnDays);
       v("s_countries", settings.countries.join("\n")); v("s_sponsors", settings.sponsors.join("\n"));
-      v("s_myname", me ? me.name : ""); v("s_pass1", ""); v("s_pass2", "");
-      document.getElementById("s_myname").disabled = !me;
       document.getElementById("setNotice").innerHTML = settingsReady ? "" :
         '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>الإعدادات محتاجة جدول <code>app_settings</code> في Supabase عشان تتحفظ. لحد ما تشغّل الكود، التغييرات هتشتغل لحد ما تقفل الصفحة بس.</div>';
     }
@@ -1739,6 +1767,17 @@
       const { error } = await db.from("app_settings").upsert({ key: "main", value: next });
       msg.textContent = error ? "❌ محصلش حفظ: " + error.message : "✅ الإعدادات اتحفظت";
     }
+
+    // نافذة "حسابي" — متاحة لأي مستخدم مهما كانت صلاحياته
+    function openAccount() {
+      const v = (id, x) => document.getElementById(id).value = x;
+      v("s_myname", me ? me.name : ""); v("s_pass1", ""); v("s_pass2", "");
+      document.getElementById("s_myname").disabled = !me;
+      document.getElementById("accWho").textContent = myEmail;
+      document.getElementById("accMsg").textContent = "";
+      document.getElementById("accBox").hidden = false;
+    }
+    function closeAccount() { document.getElementById("accBox").hidden = true; }
 
     async function saveMyAccount() {
       const msg = document.getElementById("accMsg");
@@ -1864,7 +1903,7 @@
         document.getElementById("tile-" + t).hidden = !ok;
         if (!ok) document.getElementById("box-" + t).hidden = true;
       });
-      document.getElementById("dashAlerts").hidden = !pages.includes("moves") && !pages.includes("cars");
+      document.getElementById("dashAlerts").hidden = !pages.includes("moves") && !pages.includes("cars") && !pages.includes("residents");
       const side = document.getElementById("sideUser");
       side.innerHTML = myEmail ? `👤 ${me ? me.name + ` <span class="role ${(ROLES[me.role] || {}).cls || "r-view"}" style="font-size:10px;padding:0 6px">${me.role}</span>` : myEmail}` : "";
       const current = [...document.querySelectorAll(".page")].find(x => !x.hidden);
@@ -1882,6 +1921,7 @@
         document.getElementById("page-dashboard").insertAdjacentHTML("afterbegin",
           '<div id="notRegistered" class="no-access" style="margin-bottom:12px"><b>🔒</b>حسابك (' + myEmail + ') مش متسجّل في المستخدمين. كلّم المدير يضيفك ويديك الصلاحيات.</div>');
       }
+      renderDashDocs();
     }
 
     function roleBadge(role) {
@@ -2135,6 +2175,7 @@
       const push = (kind, name, doc, date, holder) => { if (date && date <= lim) items.push({ kind, name, doc, date, holder }); };
       cars.forEach(c => { push("🚗 سيارة", (c.car_type || "سيارة") + " — " + c.plate, "الاستمارة", c.reg_expiry, c.driver); push("🚗 سيارة", (c.car_type || "سيارة") + " — " + c.plate, "التأمين", c.ins_expiry, c.driver); });
       equipment.forEach(e => EQ_DOCS.filter(d => !d.num).forEach(d => push("🏗️ معدة", e.name, d.label, e[eqField(d)], e.driver)));
+      workers.forEach(w => push("👷 ساكن", w.name, "الإقامة", w.iqama_expiry, ""));
       return items.sort((a, b) => a.date.localeCompare(b.date));
     }
 
@@ -2470,6 +2511,7 @@
               <h4>👤 البيانات الشخصية</h4>
               <div class="pf-info">
                 ${info("رقم الإقامة", w.idNo)}
+                ${info("انتهاء الإقامة", w.iqama_expiry ? expiryBadge(w.iqama_expiry) : "")}
                 ${info("الجنسية", w.country)}
                 ${info("المهنة", w.job)}
                 ${info("الكفيل", w.sponsor)}
@@ -2773,10 +2815,11 @@
       const w = workers.find(x => x.id === id);
       editingId = id;
 
-      // ننسخ قوائم البلد واللغة من فورم الإضافة
+      // ننسخ قايمة البلد من فورم الإضافة
            document.getElementById("e_country").innerHTML = document.getElementById("country").innerHTML;
       document.getElementById("e_name").value = w.name || "";
       document.getElementById("e_idNo").value = w.idNo || "";
+      document.getElementById("e_iqamaExp").value = w.iqama_expiry || "";
       document.getElementById("e_country").value = w.country || "";
       document.getElementById("e_building").value = w.building || "السكن الأول";
       document.getElementById("e_room").value = w.room || "";
@@ -2785,7 +2828,7 @@
       document.getElementById("e_sponsor").value = w.sponsor || "";
       document.getElementById("e_blanket").value = w.blanket || "لا";
       document.getElementById("e_img").value = "";
-      document.getElementById("editMsg").textContent = "";
+      document.getElementById("editMsg").textContent = hasIqamaExp ? "" : "⚠️ تاريخ انتهاء الإقامة مش هيتحفظ لحد ما سطر الـ SQL بتاعه يتشغّل في Supabase.";
       document.getElementById("editBox").hidden = false;
     }
 
@@ -2802,8 +2845,8 @@
       const changes = {
         name: document.getElementById("e_name").value,
         id_no: document.getElementById("e_idNo").value,
+        ...iqamaExpField(document.getElementById("e_iqamaExp").value),
         country: document.getElementById("e_country").value,
-        language: document.getElementById("e_language").value,
         building: document.getElementById("e_building").value,
         room: document.getElementById("e_room").value.trim().toUpperCase(),
         bed_no: Number(document.getElementById("e_bed").value) || null,
@@ -4625,6 +4668,8 @@
         if (["bad", "warn"].includes(expiryState(e[eqField(d)])))
           items.push({ icon: kindSvg(eqKind(e)), name: e.name, doc: d.label, date: e[eqField(d)], go: `showPage('moves'); openEq(${e.id})` });
       }));
+      if (canOpen("residents")) workers.filter(iqamaAlert).forEach(w =>
+        items.push({ icon: "🪪", name: w.name, doc: "الإقامة" + (w.idNo ? " — " + w.idNo : ""), date: w.iqama_expiry, go: `showProfile(${w.id})` }));
       items.sort((a, b) => a.date.localeCompare(b.date));
       document.getElementById("dashAlerts").innerHTML = `<h3>🔔 تنبيهات المستندات ${items.length ? `<span class="badge bad">${items.length}</span>` : ""}</h3>` +
         (items.length
@@ -4633,7 +4678,7 @@
               <span class="at"><b>${it.name}</b><small>${it.doc}</small></span>
               ${expiryBadge(it.date)}
             </div>`).join("")
-          : '<p class="alerts-ok">✅ مفيش مستندات منتهية أو قربت تخلص في السيارات والمعدات</p>');
+          : '<p class="alerts-ok">✅ مفيش مستندات منتهية أو قربت تخلص</p>');
     }
 
     function eqFilterTo(f) { eqFilter = f; showEquipment(); }

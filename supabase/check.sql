@@ -22,6 +22,7 @@ select item as "البند", case when ok then '✅' else '❌' end as "الحا
   (12, 'الأمان: حماية الصلاحيات من التغيير', exists (select 1 from pg_trigger where tgname = 'app_users_guard')),
   (13, 'الأمان: صور الإقامة وملفات المعدات', (select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like 'rls\_%') = 8)
 ,
-  (14, 'تجهيزات الغرف (غاز، سلندر، غسالة، تلاجة)', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'rooms' and column_name = 'fridges'))
+  (14, 'تجهيزات الغرف (غاز، سلندر، غسالة، تلاجة)', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'rooms' and column_name = 'fridges')),
+  (15, 'تاريخ انتهاء الإقامة في الساكنين',   exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'workers' and column_name = 'iqama_expiry'))
 ) as t(n, item, ok)
 order by n;
