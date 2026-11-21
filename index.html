@@ -410,9 +410,25 @@
     }
           /* بيانات الوحدة */
     .room .tags { display: block; font-size: 12px; margin-top: 4px; }
-    #roomInfo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
+    #roomInfo { background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; border-top: 4px solid #e08a1e; }
     #roomInfo:empty { display: none; }
-    #roomInfo label { display: inline-flex; gap: 6px; align-items: center; }
+    #roomInfo input, #roomInfo select, #roomInfo button { box-sizing: border-box; }
+    .ri-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .ri-head b { font-size: 17px; color: #1e3a5f; }
+    .ri-head small { color: #64748b; }
+    .ri-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .ri-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+    .ri-item > span { font-size: 13px; color: #475569; }
+    .ri-item select { width: 100%; }
+    .ri-step { display: flex; align-items: center; gap: 6px; }
+    .ri-step button { padding: 4px 10px; background: #eef1f5; color: #1e3a5f; font-size: 16px; }
+    .ri-step button:hover { background: #e08a1e; color: white; }
+    .ri-step input { width: 100%; min-width: 0; text-align: center; padding: 6px; }
+    .ri-check { flex-direction: row; align-items: center; cursor: pointer; }
+    .ri-check input { width: 20px; height: 20px; }
+    .ri-check.on { background: #f0fdf4; border-color: #86efac; }
+    .ri-foot { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+    #roomMsg { font-size: 13px; }
           /* نافذة الإضافة */
     #addBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #addBox[hidden] { display: none; }
@@ -2165,15 +2181,24 @@
               ${stat(noBlanket.length, "🛏️ لم يستلم بطانية", "#b45309")}
               ${stat(noImg.length, "🪪 بدون صورة إقامة", "#c0392b")}
             </div></div>
+            <div class="rep-sec"><h4>🔧 تجهيزات الوحدات</h4><div class="rep-cards">
+              ${stat(keys.filter(k => (roomsInfo[k] || {}).gas).length + " / " + keys.length, "🔥 وحدات فيها غاز")}
+              ${ROOM_ITEMS.map(it => stat(keys.reduce((n, k) => n + (Number((roomsInfo[k] || {})[it.key]) || 0), 0), it.icon + " " + it.label)).join("")}
+              ${stat(keys.filter(k => !roomsInfo[k]).length, "❔ وحدات بياناتها ناقصة", "#b45309")}
+            </div></div>
             <div class="rep-two">
               <div class="rep-sec"><h4>🌍 الجنسيات</h4>${barRows(byCountry)}</div>
               <div class="rep-sec"><h4>🪪 بدون صورة إقامة</h4>${noImg.length ? tableHtml(["الاسم", "الغرفة"], noImg.map(w => `<tr><td><b>${w.name}</b></td><td>${w.room || "-"}</td></tr>`)) : '<p class="rep-empty">✅ كل الإقامات موجودة</p>'}</div>
             </div>
-            <div class="rep-sec"><h4>🚪 الغرف وساكنيها</h4>${tableHtml(["السكن", "الغرفة", "العدد", "الساكنين"], keys.map(k => {
+            <div class="rep-sec"><h4>🚪 الغرف وساكنيها</h4>${tableHtml(["السكن", "الغرفة", "العدد", "🔥", "🛢️", "🧺", "🧊", "الساكنين"], keys.map(k => {
               const [b, r] = k.split("|");
-              return `<tr><td>${b}</td><td><b>${r}</b></td><td>${rooms[k].length}</td><td class="names">${rooms[k].map(w => w.name).join("، ")}</td></tr>`;
+              const ri = roomsInfo[k] || {};
+              const n = v => Number(v) || "-";
+              return `<tr><td>${b}</td><td><b>${r}</b></td><td>${rooms[k].length}</td><td>${roomsInfo[k] ? (ri.gas ? "✅" : "❌") : "-"}</td><td>${n(ri.cylinders)}</td><td>${n(ri.washers)}</td><td>${n(ri.fridges)}</td><td class="names">${rooms[k].map(w => w.name).join("، ")}</td></tr>`;
             }))}</div>`;
-          repSheets.push(["الغرف", keys.map(k => { const [b, r] = k.split("|"); return { "السكن": b, "الغرفة": r, "العدد": rooms[k].length, "الساكنين": rooms[k].map(w => w.name).join("، ") }; })]);
+          repSheets.push(["الغرف", keys.map(k => { const [b, r] = k.split("|"); const ri = roomsInfo[k] || {};
+            return { "السكن": b, "الغرفة": r, "العدد": rooms[k].length, "غاز": roomsInfo[k] ? (ri.gas ? "نعم" : "لا") : "", "سلندر": Number(ri.cylinders) || 0,
+              "غسالة": Number(ri.washers) || 0, "تلاجة": Number(ri.fridges) || 0, "الساكنين": rooms[k].map(w => w.name).join("، ") }; })]);
           repSheets.push(["الجنسيات", Object.entries(byCountry).map(([c, n]) => ({ "الجنسية": c, "العدد": n }))]);
           repSheets.push(["بدون إقامة", noImg.map(w => ({ "الاسم": w.name, "رقم الإقامة": w.idNo || "", "السكن": w.building || "", "الغرفة": w.room || "" }))]);
         }
@@ -2814,42 +2839,79 @@
       showRooms(currentRoom);
     }
 
+    // تجهيزات الوحدة (الأجهزة)
+    const ROOM_ITEMS = [
+      { key: "cylinders", icon: "🛢️", label: "سلندر غاز" },
+      { key: "washers", icon: "🧺", label: "غسالة" },
+      { key: "fridges", icon: "🧊", label: "تلاجة" }
+    ];
+
     function roomTags(room) {
       const info = roomsInfo[currentBuilding + "|" + room];
       if (!info) return "";
-      return "🛏️" + info.bedrooms + " 🚿" + info.bathrooms + (info.kitchen ? " 🍳" : "");
+      return "🛏️" + info.bedrooms + " 🚿" + info.bathrooms + (info.kitchen ? " 🍳" : "") + (info.gas ? " 🔥" : "") +
+        ROOM_ITEMS.map(it => Number(info[it.key]) ? " " + it.icon + (info[it.key] > 1 ? info[it.key] : "") : "").join("");
     }
 
     function showRoomInfo(room) {
       const box = document.getElementById("roomInfo");
       if (!room) { box.innerHTML = ""; return; }
       const info = roomsInfo[currentBuilding + "|" + room] || { bedrooms: 1, bathrooms: 1, kitchen: false };
+      const people = workers.filter(w => w.building === currentBuilding && w.room === room).length;
+      const step = (id, val, label, icon) => `<div class="ri-item"><span>${icon} ${label}</span>
+        <div class="ri-step">
+          <button type="button" onclick="stepRoom('${id}', -1)">−</button>
+          <input id="${id}" type="number" min="0" max="20" value="${Number(val) || 0}">
+          <button type="button" onclick="stepRoom('${id}', 1)">+</button>
+        </div></div>`;
+      const check = (id, on, label) => `<label class="ri-item ri-check ${on ? "on" : ""}"><input type="checkbox" id="${id}" ${on ? "checked" : ""}
+        onchange="this.parentElement.classList.toggle('on', this.checked)"> ${label}</label>`;
 
       box.innerHTML = `
-        <b>وحدة ${room}</b>
-        <label>الغرف
-          <select id="r_bed">${[1, 2, 3].map(n => `<option ${n == info.bedrooms ? "selected" : ""}>${n}</option>`).join("")}</select>
-        </label>
-        <label>الحمامات
-          <select id="r_bath">${[1, 2].map(n => `<option ${n == info.bathrooms ? "selected" : ""}>${n}</option>`).join("")}</select>
-        </label>
-        <label><input type="checkbox" id="r_kitchen" ${info.kitchen ? "checked" : ""}> مطبخ</label>
-        <button onclick="saveRoomInfo('${room}')">💾 حفظ</button>
+        <div class="ri-head"><b>🚪 وحدة ${room}</b><small>${currentBuilding} · 👷 ${people} ساكن</small></div>
+        <div class="ri-grid">
+          <div class="ri-item"><span>🛏️ الغرف</span>
+            <select id="r_bed">${[1, 2, 3, 4].map(n => `<option ${n == info.bedrooms ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+          <div class="ri-item"><span>🚿 الحمامات</span>
+            <select id="r_bath">${[1, 2, 3].map(n => `<option ${n == info.bathrooms ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+          ${check("r_kitchen", info.kitchen, "🍳 مطبخ")}
+          ${check("r_gas", info.gas, "🔥 غاز (بوتجاز)")}
+          ${ROOM_ITEMS.map(it => step("r_" + it.key, info[it.key], it.label, it.icon)).join("")}
+        </div>
+        <div class="ri-foot">
+          <button onclick="saveRoomInfo('${room}')">💾 حفظ</button>
+          <span id="roomMsg"></span>
+        </div>
       `;
     }
 
+    function stepRoom(id, n) {
+      const el = document.getElementById(id);
+      el.value = Math.max(0, Math.min(20, (Number(el.value) || 0) + n));
+    }
+
     async function saveRoomInfo(room) {
+      const msg = document.getElementById("roomMsg");
       const row = {
         building: currentBuilding,
         room: room,
         bedrooms: Number(document.getElementById("r_bed").value),
         bathrooms: Number(document.getElementById("r_bath").value),
-        kitchen: document.getElementById("r_kitchen").checked
+        kitchen: document.getElementById("r_kitchen").checked,
+        gas: document.getElementById("r_gas").checked
       };
+      ROOM_ITEMS.forEach(it => row[it.key] = Math.max(0, Number(document.getElementById("r_" + it.key).value) || 0));
+      msg.textContent = "⏳ جاري الحفظ...";
       const { error } = await db.from("rooms").upsert(row);
-      if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
+      if (error) {
+        msg.textContent = /gas|cylinders|washers|fridges/.test(error.message)
+          ? "⚠️ محتاج تشغّل كود الغاز والأجهزة في Supabase الأول (الكود في setup.sql)"
+          : "❌ محصلش حفظ: " + error.message;
+        return;
+      }
       roomsInfo[currentBuilding + "|" + room] = row;
       showRooms(room);
+      msg.textContent = "✅ اتحفظ";
     }
        // 15. التنقل بين الصفحات
     function showPage(name) {

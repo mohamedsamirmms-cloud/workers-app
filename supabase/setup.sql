@@ -66,6 +66,13 @@ alter table public.workers
   add column if not exists archive_reason text,
   add column if not exists archive_note text;
 
+-- 3ب) تجهيزات الغرف: غاز وسلندرات وغسالات وتلاجات
+alter table if exists public.rooms
+  add column if not exists gas boolean default false,
+  add column if not exists cylinders int default 0,
+  add column if not exists washers int default 0,
+  add column if not exists fridges int default 0;
+
 -- 4) المستخدمين
 create table if not exists public.app_users (
   id bigint generated always as identity primary key,
