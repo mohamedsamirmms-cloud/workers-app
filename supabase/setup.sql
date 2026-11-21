@@ -74,8 +74,8 @@ alter table public.workers
 -- بيتعمل بس لو مفيش أرقام متكررة دلوقتي — لو فيه، صلّحها من البرنامج (مربع "رقم إقامة متكرر") وشغّل الملف تاني
 do $$
 begin
-  if not exists (select 1 from public.workers where coalesce(trim(id_no), '') <> '' group by trim(id_no) having count(*) > 1) then
-    create unique index if not exists workers_id_no_unique on public.workers (trim(id_no)) where coalesce(trim(id_no), '') <> '';
+  if not exists (select 1 from public.workers where coalesce(trim(id_no::text), '') <> '' group by trim(id_no::text) having count(*) > 1) then
+    create unique index if not exists workers_id_no_unique on public.workers ((trim(id_no::text))) where coalesce(trim(id_no::text), '') <> '';
   end if;
 end $$;
 
