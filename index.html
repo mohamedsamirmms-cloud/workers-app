@@ -456,6 +456,23 @@
     .dup-msg.bad { color: #c0392b; background: #fef2f2; border-radius: 8px; padding: 6px 10px; }
     .dup-msg.warn { color: #92400e; background: #fff7ed; border-radius: 8px; padding: 6px 10px; }
     .dup-msg a { cursor: pointer; color: #2563eb; text-decoration: underline; }
+    #dupPanel { background: white; border-radius: 12px; padding: 12px 15px; margin-bottom: 12px; border-top: 4px solid #c0392b; }
+    #dupPanel:empty { display: none; }
+    #dupPanel h4 { margin: 0 0 6px; color: #c0392b; }
+    #dupPanel p { margin: 0 0 8px; font-size: 13px; color: #475569; }
+    .dup-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid #eef1f5; flex-wrap: wrap; }
+    .dup-row .dn { flex: 1; min-width: 160px; font-size: 14px; }
+    .dup-row .dn small { display: block; color: #64748b; font-size: 12px; direction: ltr; text-align: right; }
+    .dup-row button { font-size: 13px; padding: 7px 14px; background: #7c3aed; }
+    #mergeBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #mergeBox[hidden] { display: none; }
+    #mergeForm { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; display: grid; gap: 10px; box-sizing: border-box; }
+    #mergeForm h3 { margin: 0; color: #1e3a5f; }
+    .mg-opt { display: flex; gap: 10px; align-items: flex-start; border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px; cursor: pointer; }
+    .mg-opt:has(input:checked) { border-color: #16a34a; background: #f0fdf4; }
+    .mg-opt input { margin-top: 4px; width: auto; }
+    .mg-opt .mi { flex: 1; font-size: 13px; color: #475569; line-height: 1.7; }
+    .mg-opt .mi b { color: #1e3a5f; font-size: 14px; }
     input.dup { border-color: #c0392b !important; background: #fef2f2; }
     #addInner { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
           /* نافذة الملف الشخصي */
@@ -990,6 +1007,7 @@
     <b id="resultCount"></b>
     <button onclick="exportExcel()" style="background:#16a34a">📊 تصدير Excel</button>
   </div>
+  <div id="dupPanel"></div>
   <div id="workersList"></div>
          </section>
   <section id="page-dashboard" class="page" hidden>
@@ -1358,6 +1376,18 @@
       <p id="usrMsg" style="margin:0"></p>
     </form>
   </div>
+  <div id="mergeBox" hidden onclick="if (event.target === this && !mergeBusy) this.hidden = true">
+    <form id="mergeForm" onsubmit="event.preventDefault(); doMerge()">
+      <h3>🔗 دمج سجلات متكررة</h3>
+      <p style="margin:0; font-size:13px; color:#475569">اختار السجل اللي هيفضل. الحضور والوجبات والصورة من السجلات التانية هتتنقل له، وبعدين السجلات التانية هتتمسح.</p>
+      <div id="mergeList"></div>
+      <div>
+        <button type="submit" id="mergeBtn" style="background:#7c3aed">🔗 دمج</button>
+        <button type="button" onclick="if (!mergeBusy) document.getElementById('mergeBox').hidden = true" style="background:#64748b">إلغاء</button>
+      </div>
+      <span id="mergeMsg" style="font-size:13px"></span>
+    </form>
+  </div>
   <div id="accBox" hidden onclick="if (event.target === this) closeAccount()">
     <form id="accForm" onsubmit="event.preventDefault(); saveMyAccount()">
       <h3>👤 حسابي</h3>
@@ -1548,6 +1578,105 @@
     const iqamaTwins = w => workers.concat(archivedWorkers).filter(o => o.id !== w.id && normIqama(o.idNo) === normIqama(w.idNo));
     const isUniqueErr = e => e && (e.code === "23505" || /duplicate|unique/i.test(e.message || ""));
 
+    // ===== دمج السجلات المتكررة (نفس الشخص متسجّل مرتين) =====
+    let mergeGroup = [], mergeBusy = false;
+    async function openMerge(iqama) {
+      mergeGroup = workers.concat(archivedWorkers).filter(w => normIqama(w.idNo) === iqama);
+      if (mergeGroup.length < 2) return;
+      const box = document.getElementById("mergeBox"), list = document.getElementById("mergeList");
+      document.getElementById("mergeMsg").textContent = "";
+      list.innerHTML = "⏳ جاري تحميل البيانات...";
+      box.hidden = false;
+      const counts = await Promise.all(mergeGroup.map(async w => {
+        const [t, m] = await Promise.all([
+          fetchAll(() => db.from("timesheet").select("work_date").eq("worker_id", w.id).order("work_date")),
+          fetchAll(() => db.from("meals").select("meal_date").eq("worker_id", w.id).order("meal_date"))]);
+        return { ts: t.data ? t.data.length : 0, ml: m.data ? m.data.length : 0 };
+      }));
+      // الافتراضي: النشط، وبعدين اللي حضوره أكتر
+      let best = 0;
+      mergeGroup.forEach((w, i) => {
+        const b = mergeGroup[best];
+        if ((!w.archived && b.archived) || (!!w.archived === !!b.archived && counts[i].ts > counts[best].ts)) best = i;
+      });
+      list.innerHTML = mergeGroup.map((w, i) => `<label class="mg-opt">
+        <input type="radio" name="mgKeep" value="${w.id}" ${i === best ? "checked" : ""}>
+        <span class="mi"><b>${w.name}</b> ${w.archived ? `<span class="badge miss">🗂️ أرشيف ${w.archived_at || ""}</span>` : '<span class="badge ok">✅ في السكن</span>'}<br>
+          🏢 ${w.building || "-"} — غرفة ${w.room || "-"}${w.bed_no ? " · سرير " + w.bed_no : ""} · قدوم ${w.arrival || "-"}<br>
+          ⏱️ ${counts[i].ts} يوم حضور · 🍽️ ${counts[i].ml} يوم وجبات · 🪪 ${w.iqamaImg ? "فيه صورة إقامة" : "مفيش صورة"}${w.iqama_expiry ? " · انتهاء " + w.iqama_expiry : ""}</span>
+      </label>`).join("");
+    }
+
+    async function doMerge() {
+      const sel = document.querySelector('input[name="mgKeep"]:checked');
+      if (!sel || mergeBusy) return;
+      const keep = mergeGroup.find(w => w.id === Number(sel.value));
+      const drops = mergeGroup.filter(w => w !== keep);
+      if (!confirm(`هيفضل سجل ${keep.name}${keep.archived ? " (اللي في الأرشيف)" : ""}، و${drops.length} سجل تاني هيتمسح بعد ما بياناته تتنقل. تكمل؟`)) return;
+      const msg = document.getElementById("mergeMsg"), btn = document.getElementById("mergeBtn");
+      mergeBusy = true; btn.disabled = true;
+      const fail = e => { mergeBusy = false; btn.disabled = false; msg.textContent = "❌ الدمج وقف: " + e + " — مفيش بيانات ضاعت، جرّب تاني."; loadWorkers(); };
+      const chunks = a => { const out = []; for (let i = 0; i < a.length; i += 200) out.push(a.slice(i, i + 200)); return out; };
+      try {
+        for (const d of drops) {
+          msg.textContent = "⏳ بنقل حضور ووجبات " + d.name + "...";
+          // التايم شيت: لو نفس اليوم في الاتنين، بيفضل اللي ساعاته أكتر
+          const [kt, dt] = await Promise.all([
+            fetchAll(() => db.from("timesheet").select("work_date,hours").eq("worker_id", keep.id).order("work_date")),
+            fetchAll(() => db.from("timesheet").select("work_date,hours").eq("worker_id", d.id).order("work_date"))]);
+          if (kt.error || dt.error) throw (kt.error || dt.error).message;
+          const kMap = {}; kt.data.forEach(r => kMap[r.work_date] = Number(r.hours) || 0);
+          const both = dt.data.filter(r => r.work_date in kMap);
+          const dropD = both.filter(r => (Number(r.hours) || 0) <= kMap[r.work_date]).map(r => r.work_date);
+          const dropK = both.filter(r => (Number(r.hours) || 0) > kMap[r.work_date]).map(r => r.work_date);
+          for (const c of chunks(dropD)) { const r = await db.from("timesheet").delete().eq("worker_id", d.id).in("work_date", c); if (r.error) throw r.error.message; }
+          for (const c of chunks(dropK)) { const r = await db.from("timesheet").delete().eq("worker_id", keep.id).in("work_date", c); if (r.error) throw r.error.message; }
+          let r = await db.from("timesheet").update({ worker_id: keep.id }).eq("worker_id", d.id);
+          if (r.error) throw r.error.message;
+
+          // الوجبات: لو نفس اليوم في الاتنين، بنجمع (فطار لو أي واحد فيهم، وغداء كذلك)
+          const [km, dm] = await Promise.all([
+            fetchAll(() => db.from("meals").select("meal_date,breakfast,lunch").eq("worker_id", keep.id).order("meal_date")),
+            fetchAll(() => db.from("meals").select("meal_date,breakfast,lunch").eq("worker_id", d.id).order("meal_date"))]);
+          if (km.error || dm.error) throw (km.error || dm.error).message;
+          const kmMap = {}; km.data.forEach(x => kmMap[x.meal_date] = x);
+          const mBoth = dm.data.filter(x => x.meal_date in kmMap);
+          for (const x of mBoth) {
+            const k = kmMap[x.meal_date];
+            if ((x.breakfast && !k.breakfast) || (x.lunch && !k.lunch)) {
+              r = await db.from("meals").update({ breakfast: !!(k.breakfast || x.breakfast), lunch: !!(k.lunch || x.lunch) }).eq("worker_id", keep.id).eq("meal_date", x.meal_date);
+              if (r.error) throw r.error.message;
+            }
+          }
+          for (const c of chunks(mBoth.map(x => x.meal_date))) { r = await db.from("meals").delete().eq("worker_id", d.id).in("meal_date", c); if (r.error) throw r.error.message; }
+          r = await db.from("meals").update({ worker_id: keep.id }).eq("worker_id", d.id);
+          if (r.error) throw r.error.message;
+
+          // البيانات الناقصة في السجل اللي فاضل بتتكمّل من التاني
+          const fill = {};
+          ["country", "job", "sponsor", "building", "room", "bed_no", "arrival", "iqama_img"].forEach(f => { if (!keep[f] && d[f]) fill[f] = d[f]; });
+          if (d.iqama_expiry && (!keep.iqama_expiry || d.iqama_expiry > keep.iqama_expiry)) fill.iqama_expiry = d.iqama_expiry;
+          if (d.blanket === "نعم" && keep.blanket !== "نعم") fill.blanket = "نعم";
+          msg.textContent = "⏳ بمسح السجل المتكرر...";
+          // نمسح الأول (عشان رقم الإقامة)، وبعدين نكمّل البيانات
+          r = await db.from("workers").delete().eq("id", d.id);
+          if (r.error) throw r.error.message;
+          if (Object.keys(fill).length) {
+            r = await db.from("workers").update(fill).eq("id", keep.id);
+            if (r.error) throw r.error.message;
+            Object.assign(keep, fill);
+            if (fill.iqama_img) keep.iqamaImg = fill.iqama_img;
+          }
+          if (d.iqama_img && d.iqama_img !== keep.iqama_img) await db.storage.from("iqama").remove([d.iqama_img]);
+        }
+      } catch (e) { fail(e); return; }
+      mergeBusy = false; btn.disabled = false;
+      document.getElementById("mergeBox").hidden = true;
+      await loadWorkers();
+      if (typeof loadTimesheet === "function") loadTimesheet();
+      if (typeof loadMeals === "function") loadMeals();
+    }
+
     let hasIqamaExp = true;
     const iqamaExpField = v => hasIqamaExp ? { iqama_expiry: v || null } : {};
     // ساكنين إقامتهم منتهية أو قربت تخلص
@@ -1646,6 +1775,11 @@
       const dupGroups = dupIqamaIds();
       const dupSet = new Set(dupGroups.flat().map(w => w.id));
       if (specialFilter === "dup" && !dupGroups.length) specialFilter = "";
+      const canMerge = ["residents", "timesheet", "meals"].every(canOpen);
+      document.getElementById("dupPanel").innerHTML = specialFilter === "dup" ? `<h4>⛔ أرقام إقامة متكررة (${dupGroups.length})</h4>
+        <p>${canMerge ? "لو ده نفس الشخص متسجّل مرتين، دوس 🔗 دمج. لو اتنين مختلفين، صلّح رقم الإقامة الغلط من ✏️ تعديل." : "صلّح رقم الإقامة الغلط من ✏️ تعديل. الدمج للمدير بس."}</p>` +
+        dupGroups.map(g => `<div class="dup-row"><span class="dn"><b>${g.map(w => w.name + (w.archived ? " (أرشيف)" : "")).join(" ، ")}</b><small>🪪 ${normIqama(g[0].idNo)}</small></span>
+          ${canMerge ? `<button onclick="openMerge('${normIqama(g[0].idNo)}')">🔗 دمج</button>` : ""}</div>`).join("") : "";
       const card = (cls, n, label, onclick, on) =>
         `<div class="stat click ${cls} ${on ? "on" : ""}" onclick="${onclick}"><b>${n}</b>${label}</div>`;
       document.getElementById("resStats").innerHTML =
