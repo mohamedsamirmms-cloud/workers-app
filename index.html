@@ -479,6 +479,25 @@
     .pf-list a { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; color: #1e3a5f; text-decoration: none; cursor: pointer; }
     .pf-list a:hover { background: #fff7ed; }
     .pf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* الملف الشامل للمعدة والسيارة */
+    .pf-avatar-svg { background: #f8fbff; padding: 4px; box-sizing: border-box; }
+    .pf-avatar-svg svg { width: 100%; height: 100%; }
+    .pf-photo .img svg { width: 80%; max-width: 240px; }
+    .pf-docs { display: grid; gap: 8px; }
+    .pf-doc { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; background: #f8fafc; border-right: 4px solid #cbd5e1; flex-wrap: wrap; }
+    .pf-doc.bad { border-right-color: #c0392b; background: #fef2f2; }
+    .pf-doc.warn { border-right-color: #e08a1e; background: #fff7ed; }
+    .pf-doc.ok { border-right-color: #16a34a; }
+    .pf-doc .dn { flex: 1; min-width: 110px; }
+    .pf-doc .dn b { display: block; color: #1e3a5f; font-size: 14px; }
+    .pf-doc .dn small { color: #64748b; font-size: 12px; }
+    .pf-doc .file-link, .pf-files a { cursor: pointer; color: #2563eb; font-size: 13px; text-decoration: none; white-space: nowrap; }
+    .pf-files { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pf-files a { background: #eff6ff; border-radius: 8px; padding: 5px 10px; }
+    .pf-driver { cursor: pointer; color: #2563eb !important; }
+    .pf-driver:hover { text-decoration: underline; }
+    .eq-who b, .car-who b { cursor: pointer; }
+    .eq-who b:hover, .car-who b:hover { text-decoration: underline; }
     /* الإعدادات */
     #page-settings input, #page-settings button, #page-settings textarea { box-sizing: border-box; }
     .set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
@@ -2482,8 +2501,8 @@
       // المعدات والسيارات اللي بيسوقها
       const myEq = equipment.filter(e => (e.driver && e.driver.trim().toLowerCase() === w.name.trim().toLowerCase()) || (w.idNo && e.iqama_no === w.idNo));
       const myCars = cars.filter(c => c.driver && c.driver.trim().toLowerCase() === w.name.trim().toLowerCase());
-      const vehicles = myEq.map(e => `<a onclick="closeProfile(); showPage('moves'); openEq(${e.id})">🏗️ <b>${e.name}</b> ${eqState(e) === "bad" ? '<span class="badge bad">فيها مستند منتهي</span>' : eqState(e) === "warn" ? '<span class="badge warn">مستند قرب يخلص</span>' : ""}</a>`)
-        .concat(myCars.map(c => `<a onclick="closeProfile(); showPage('cars')">🚗 <b>${c.car_type || "سيارة"}</b> <span class="plate">${c.plate}</span></a>`));
+      const vehicles = myEq.map(e => `<a onclick="showEqProfile(${e.id})">🏗️ <b>${e.name}</b> ${eqState(e) === "bad" ? '<span class="badge bad">فيها مستند منتهي</span>' : eqState(e) === "warn" ? '<span class="badge warn">مستند قرب يخلص</span>' : ""}</a>`)
+        .concat(myCars.map(c => `<a onclick="showCarProfile(${c.id})">🚗 <b>${c.car_type || "سيارة"}</b> <span class="plate">${c.plate}</span></a>`));
 
       document.getElementById("profile").innerHTML = `
         <div class="tsm-head">
@@ -2615,6 +2634,141 @@
       showWorkers();
       showStats();
       showProfile(w.id);
+    }
+
+    // ===== الملف الشامل للمعدة والسيارة (في نفس نافذة ملف الساكن) =====
+    // السائق كساكن (بالاسم أو برقم الإقامة)
+    function driverWorker(name, iqamaNo) {
+      const n = (name || "").trim().toLowerCase();
+      const all = workers.concat(archivedWorkers);
+      return (n && all.find(w => w.name.trim().toLowerCase() === n)) || (iqamaNo && all.find(w => w.idNo === iqamaNo)) || null;
+    }
+    function driverHtml(name, iqamaNo) {
+      if (!name) return "";
+      const w = driverWorker(name, iqamaNo);
+      return w ? `<a class="pf-driver" onclick="showProfile(${w.id})" title="ملف السائق">👤 ${name}</a>` : "👤 " + name;
+    }
+    const daysLeftText = date => {
+      if (!date) return "مفيش تاريخ";
+      const days = Math.ceil((new Date(date) - new Date()) / 86400000);
+      return days < 0 ? "منتهي من " + -days + " يوم" : days === 0 ? "بينتهي النهارده" : "فاضل " + days + " يوم";
+    };
+    // صف مستند: الاسم + الحالة + المرفق
+    function pfDoc(label, date, file, num) {
+      const st = num ? (date ? "ok" : "") : expiryState(date);
+      const right = num ? (date ? `<span class="eq-num">${date}</span>` : '<span class="badge miss">-</span>') : expiryBadge(date);
+      return `<div class="pf-doc ${st}">
+        <span class="dn"><b>${label}</b><small>${num ? (date ? "رقم " + label : "الرقم مش متسجّل") : (date ? "ينتهي " + date + " · " + daysLeftText(date) : "مفيش تاريخ")}</small></span>
+        ${right}
+        ${file ? `<a class="file-link" onclick="openFile('${file}')">📎 عرض المرفق</a>` : ""}
+      </div>`;
+    }
+    function openPfBox(html) {
+      profileId = null;
+      document.getElementById("profile").innerHTML = html;
+      document.getElementById("profileBox").hidden = false;
+      document.getElementById("profile").scrollTop = 0;
+    }
+    const pfInfo = (label, value) => `<div><small>${label}</small><b>${value || "-"}</b></div>`;
+    const pfStateLine = st => st === "bad" ? '<span class="badge bad">⛔ فيها مستند منتهي</span>'
+      : st === "warn" ? '<span class="badge warn">⏳ مستند قرب يخلص</span>' : '<span class="badge ok">✅ ورقها سليم</span>';
+
+    async function showEqProfile(id) {
+      const e = equipment.find(x => x.id === id);
+      if (!e) return;
+      let url = e.photo ? eqPhotoUrls[e.photo] : "";
+      if (e.photo && !url) {
+        const { data } = await db.storage.from("equipment").createSignedUrl(e.photo, 3600);
+        if (data) url = eqPhotoUrls[e.photo] = data.signedUrl;
+      }
+      const k = eqKind(e);
+      const st = eqState(e);
+      const dated = EQ_DOCS.filter(d => !d.num), nums = EQ_DOCS.filter(d => d.num);
+      const others = e.other_files || [];
+      const files = EQ_DOCS.filter(d => e[d.key + "_file"]).length + others.length;
+      const edit = canOpen("moves");
+      openPfBox(`
+        <div class="tsm-head">
+          <span class="tsm-avatar pf-avatar-svg">${kindSvg(k)}</span>
+          <div><h3>🏗️ الملف الشامل — ${e.name}</h3><small>${k.label}${e.driver ? " · السائق " + e.driver : ""}</small></div>
+          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+        </div>
+        <div class="pf-body">
+          <div class="pf-top">
+            <div class="pf-card pf-iqama pf-photo">
+              <h4>📷 صورة المعدة</h4>
+              <div class="img ${url ? "has" : ""}">
+                ${url ? `<img src="${url}" onclick="document.getElementById('iqamaBig').src = this.src; document.getElementById('iqamaView').hidden = false" alt="${e.name}">`
+                      : kindSvg(k) + '<span>مفيش صورة — دي رسمة النوع</span>'}
+              </div>
+            </div>
+            <div class="pf-card">
+              <h4>📋 البيانات ${pfStateLine(st)}</h4>
+              <div class="pf-info">
+                ${pfInfo("اسم المعدة", e.name)}
+                ${pfInfo("النوع", k.label)}
+                ${pfInfo("السائق", driverHtml(e.driver, e.iqama_no))}
+                ${nums.map(d => pfInfo("رقم " + d.label, e[eqField(d)] ? `<span class="eq-num">${e[eqField(d)]}</span>` : "")).join("")}
+                ${pfInfo("المرفقات", files ? files + " ملف" : "مفيش")}
+              </div>
+            </div>
+          </div>
+          <div class="pf-card">
+            <h4>📄 المستندات اللي ليها تاريخ انتهاء</h4>
+            <div class="pf-docs">${dated.map(d => pfDoc(d.label, e[eqField(d)], e[d.key + "_file"])).join("")}</div>
+          </div>
+          <div class="pf-card">
+            <h4>🪪 مستندات السائق</h4>
+            <div class="pf-docs">${nums.map(d => pfDoc(d.label, e[eqField(d)], e[d.key + "_file"], true)).join("")}</div>
+          </div>
+          <div class="pf-card">
+            <h4>📎 مرفقات تانية</h4>
+            ${others.length ? `<div class="pf-files">${others.map(f => `<a onclick="openFile('${f.path}')">📎 ${f.name}</a>`).join("")}</div>` : '<p style="color:#64748b;margin:0">مفيش مرفقات تانية</p>'}
+          </div>
+          <div class="pf-actions no-print">
+            ${edit ? `<button onclick="closeProfile(); showPage('moves'); openEq(${e.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>` : ""}
+            <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة الملف</button>
+            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+          </div>
+        </div>`);
+    }
+
+    function showCarProfile(id) {
+      const c = cars.find(x => x.id === id);
+      if (!c) return;
+      const sts = [expiryState(c.reg_expiry), expiryState(c.ins_expiry)];
+      const st = sts.includes("bad") ? "bad" : sts.includes("warn") ? "warn" : "ok";
+      const since = c.last_service ? Math.floor((new Date() - new Date(c.last_service)) / 86400000) : null;
+      const edit = canOpen("cars");
+      openPfBox(`
+        <div class="tsm-head">
+          <span class="tsm-avatar" style="font-size:26px">🚗</span>
+          <div><h3>🚗 الملف الشامل — ${c.car_type || "سيارة"}</h3><small>لوحة ${c.plate}${c.model ? " · موديل " + c.model : ""}</small></div>
+          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+        </div>
+        <div class="pf-body">
+          <div class="pf-card">
+            <h4>📋 البيانات ${pfStateLine(st)}</h4>
+            <div class="pf-info">
+              ${pfInfo("اللوحة", `<span class="plate">${c.plate}</span>`)}
+              ${pfInfo("النوع", c.car_type)}
+              ${pfInfo("الموديل", c.model)}
+              ${pfInfo("السواق", driverHtml(c.driver))}
+              ${pfInfo("العداد", c.km ? Number(c.km).toLocaleString("en-US") + " كم" : "")}
+              ${pfInfo("آخر صيانة", c.last_service ? "🔧 " + c.last_service + ` <small style="display:inline;color:#64748b">(من ${since} يوم)</small>` : "")}
+              ${pfInfo("ملاحظات", c.notes)}
+            </div>
+          </div>
+          <div class="pf-card">
+            <h4>📄 المستندات</h4>
+            <div class="pf-docs">${pfDoc("الاستمارة", c.reg_expiry)}${pfDoc("التأمين", c.ins_expiry)}</div>
+          </div>
+          <div class="pf-actions no-print">
+            ${edit ? `<button onclick="closeProfile(); showPage('cars'); openCar(${c.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>` : ""}
+            <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة الملف</button>
+            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+          </div>
+        </div>`);
     }
 
     function closeProfile() {
@@ -3103,7 +3257,7 @@
         const rowCls = s2.includes("bad") ? "car-bad" : s2.includes("warn") ? "car-warn" : "";
         html += `<tr class="car-row ${rowCls}">
           <td class="car-whocell"><div class="car-who"><span class="car-icon">🚗</span>
-            <span><b>${c.car_type || "سيارة"}</b><small>${c.model ? "موديل " + c.model : ""}${c.notes ? (c.model ? " · " : "") + c.notes : ""}</small></span></div></td>
+            <span><b onclick="showCarProfile(${c.id})" title="الملف الشامل">${c.car_type || "سيارة"}</b><small>${c.model ? "موديل " + c.model : ""}${c.notes ? (c.model ? " · " : "") + c.notes : ""}</small></span></div></td>
           <td class="car-platecell"><span class="plate">${c.plate}</span></td>
           <td data-label="السواق">${c.driver ? "👤 " + c.driver : "-"}</td>
           <td data-label="الاستمارة">${expiryBadge(c.reg_expiry)}</td>
@@ -3111,6 +3265,7 @@
           <td data-label="آخر صيانة">${c.last_service ? "🔧 " + c.last_service : "-"}</td>
           <td data-label="العداد">${c.km ? Number(c.km).toLocaleString("en-US") + " كم" : "-"}</td>
           <td class="car-actions"><div class="icon-btns">
+            <button class="view" onclick="showCarProfile(${c.id})" title="الملف الشامل">👁️ الملف</button>
             <button class="edit" onclick="openCar(${c.id})">✏️ تعديل</button>
             <button class="del" onclick="deleteCar(${c.id})" title="حذف">🗑️</button>
           </div></td>
@@ -4026,7 +4181,7 @@
           <td class="eq-numcell">${i + 1}</td>
           <td class="eq-whocell"><div class="eq-who">
             <span class="eq-thumb ${url ? "" : "kind"}">${url ? `<img src="${url}" onclick="viewEqPhoto('${e.photo}')" alt="">` : kindSvg(eqKind(e))}</span>
-            <span><b>${e.name}</b><small><span class="eq-kind-tag">${eqKind(e).label}</span>${e.driver ? "👤 " + e.driver : "بدون سائق"}</small></span>
+            <span><b onclick="showEqProfile(${e.id})" title="الملف الشامل">${e.name}</b><small><span class="eq-kind-tag">${eqKind(e).label}</span>${e.driver ? "👤 " + e.driver : "بدون سائق"}</small></span>
           </div></td>`;
         EQ_DOCS.forEach(d => html += `<td data-label="${d.label}">${d.num
           ? (e[eqField(d)] ? `<span class="eq-num">${e[eqField(d)]}</span>` : "-")
@@ -4034,6 +4189,7 @@
         const others = e.other_files || [];
         html += `<td data-label="مرفقات أخرى">${others.length ? others.map(f => `<a class="file-link" title="${f.name}" onclick="openFile('${f.path}')">📎</a>`).join("") : "-"}</td>
           <td class="eq-actions"><div class="icon-btns">
+            <button class="view" onclick="showEqProfile(${e.id})" title="الملف الشامل">👁️ الملف</button>
             <button class="edit" onclick="openEq(${e.id})">✏️ تعديل</button>
             <button class="del" onclick="deleteEq(${e.id})" title="حذف">🗑️</button>
           </div></td></tr>`;
@@ -4662,11 +4818,11 @@
       const items = [];
       cars.forEach(c => [["reg_expiry", "الاستمارة"], ["ins_expiry", "التأمين"]].forEach(([k, label]) => {
         if (["bad", "warn"].includes(expiryState(c[k])))
-          items.push({ icon: "🚗", name: (c.car_type || "سيارة") + " — " + c.plate, doc: label, date: c[k], go: "showPage('cars')" });
+          items.push({ icon: "🚗", name: (c.car_type || "سيارة") + " — " + c.plate, doc: label, date: c[k], go: `showCarProfile(${c.id})` });
       }));
       equipment.forEach(e => EQ_DOCS.filter(d => !d.num).forEach(d => {
         if (["bad", "warn"].includes(expiryState(e[eqField(d)])))
-          items.push({ icon: kindSvg(eqKind(e)), name: e.name, doc: d.label, date: e[eqField(d)], go: `showPage('moves'); openEq(${e.id})` });
+          items.push({ icon: kindSvg(eqKind(e)), name: e.name, doc: d.label, date: e[eqField(d)], go: `showEqProfile(${e.id})` });
       }));
       if (canOpen("residents")) workers.filter(iqamaAlert).forEach(w =>
         items.push({ icon: "🪪", name: w.name, doc: "الإقامة" + (w.idNo ? " — " + w.idNo : ""), date: w.iqama_expiry, go: `showProfile(${w.id})` }));
