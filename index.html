@@ -494,6 +494,17 @@
     .pf-doc .file-link, .pf-files a { cursor: pointer; color: #2563eb; font-size: 13px; text-decoration: none; white-space: nowrap; }
     .pf-files { display: flex; flex-wrap: wrap; gap: 8px; }
     .pf-files a { background: #eff6ff; border-radius: 8px; padding: 5px 10px; }
+    .pf-ids { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pf-id { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .pf-id > b { color: #1e3a5f; font-size: 14px; }
+    .pf-id .img { border-radius: 10px; overflow: hidden; background: #f8fafc; border: 2px dashed #cbd5e1; min-height: 130px; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #94a3b8; gap: 4px; font-size: 13px; text-align: center; padding: 6px; box-sizing: border-box; }
+    .pf-id .img.has { border: 1px solid #e2e8f0; padding: 0; }
+    .pf-id .img img { width: 100%; display: block; cursor: zoom-in; }
+    .pf-id .img a { cursor: pointer; color: #2563eb; }
+    .pf-id .from { font-size: 11px; color: #64748b; }
+    .pf-id .btns { display: flex; gap: 6px; }
+    .pf-id .btns button { flex: 1; font-size: 12px; padding: 7px 4px; }
+    @media (max-width: 420px) { .pf-id .btns { flex-direction: column; } }
     .pf-driver { cursor: pointer; color: #2563eb !important; }
     .pf-driver:hover { text-decoration: underline; }
     .eq-who b, .car-who b { cursor: pointer; }
@@ -1378,6 +1389,8 @@
       </div>
     </form>
   </div>
+  <input type="file" id="pfDocCam" accept="image/*" capture="environment" onchange="uploadPfDoc(this)" hidden>
+  <input type="file" id="pfDocFile" accept="image/*,application/pdf" onchange="uploadPfDoc(this)" hidden>
   <input type="file" id="pfIqamaCam" accept="image/*" capture="environment" onchange="uploadProfileIqama(this)" hidden>
   <input type="file" id="pfIqamaFile" accept="image/*" onchange="uploadProfileIqama(this)" hidden>
      <datalist id="sponsorList">
@@ -2663,6 +2676,92 @@
         ${file ? `<a class="file-link" onclick="openFile('${file}')">📎 عرض المرفق</a>` : ""}
       </div>`;
     }
+    // ===== صورة إقامة ورخصة السائق (في ملف المعدة والسيارة) =====
+    const PF_IDS = [{ key: "iqama", label: "🪪 الإقامة" }, { key: "license", label: "🚘 الرخصة" }];
+    const isImagePath = p => /\.(jpe?g|png|webp|gif|bmp|heic)$/i.test(p || "");
+    const signedCache = {};
+    async function signedUrl(bucket, path) {
+      const k = bucket + "/" + path;
+      if (signedCache[k]) return signedCache[k];
+      const { data } = await db.storage.from(bucket).createSignedUrl(path, 3600);
+      return data ? (signedCache[k] = data.signedUrl) : "";
+    }
+    const carsHaveFiles = () => !cars.length || "license_file" in cars[0];
+    let pfDocTarget = null;   // { type: "eq" | "car", id, key }
+
+    // كارت الصورتين — type: eq أو car
+    async function pfIdsHtml(type, obj, driver) {
+      const edit = canOpen(type === "eq" ? "moves" : "cars");
+      const ready = type === "eq" || carsHaveFiles();
+      const slots = await Promise.all(PF_IDS.map(async function (d) {
+        const path = obj[d.key + "_file"];
+        let view = "", from = "";
+        if (path && isImagePath(path)) {
+          const url = await signedUrl("equipment", path);
+          if (url) view = `<img src="${url}" alt="${d.label}" onclick="document.getElementById('iqamaBig').src = this.src; document.getElementById('iqamaView').hidden = false">`;
+        } else if (path) {
+          view = `<span style="font-size:34px">📄</span><a onclick="openFile('${path}')">افتح الملف (PDF)</a>`;
+        } else if (d.key === "iqama" && driver && driver.iqamaImg) {
+          // مفيش صورة هنا، بس السائق ساكن وعنده صورة إقامة
+          const url = await signedUrl("iqama", driver.iqamaImg);
+          if (url) { view = `<img src="${url}" alt="الإقامة" onclick="document.getElementById('iqamaBig').src = this.src; document.getElementById('iqamaView').hidden = false">`; from = "📌 من ملف الساكن"; }
+        }
+        const has = view.startsWith("<img");
+        return `<div class="pf-id">
+          <b>${d.label}</b>
+          <div class="img ${has ? "has" : ""}">${view || '<span style="font-size:34px">' + (d.key === "iqama" ? "🪪" : "🚘") + '</span><span>الصورة ناقصة</span>'}</div>
+          ${from ? `<span class="from">${from}</span>` : ""}
+          ${edit && ready ? `<div class="btns no-print">
+            <button type="button" onclick="pickPfDoc('${type}', ${obj.id}, '${d.key}', true)">📷 صوّر</button>
+            <button type="button" onclick="pickPfDoc('${type}', ${obj.id}, '${d.key}', false)">🖼️ ${path ? "غيّر" : "ارفع"}</button>
+          </div>` : ""}
+        </div>`;
+      }));
+      return `<div class="pf-card">
+        <h4>🪪 صورة إقامة ورخصة السائق</h4>
+        ${ready ? "" : '<p class="warn-note" style="margin:0 0 8px">⚠️ عشان تقدر ترفع صور للسيارات، شغّل سطر الـ SQL بتاع صور السيارات في Supabase.</p>'}
+        <div class="pf-ids">${slots.join("")}</div>
+        <span id="pfDocMsg" style="font-size:13px"></span>
+      </div>`;
+    }
+
+    function pickPfDoc(type, id, key, camera) {
+      pfDocTarget = { type, id, key };
+      document.getElementById(camera ? "pfDocCam" : "pfDocFile").click();
+    }
+
+    async function uploadPfDoc(input) {
+      const file = input.files[0];
+      input.value = "";
+      const t = pfDocTarget;
+      if (!file || !t) return;
+      const list = t.type === "eq" ? equipment : cars;
+      const table = t.type === "eq" ? "equipment" : "cars";
+      const obj = list.find(x => x.id === t.id);
+      if (!obj) return;
+      const msg = document.getElementById("pfDocMsg");
+      if (msg) msg.textContent = "⏳ جاري رفع الصورة...";
+
+      // الصور بتتصغّر، والـ PDF بيترفع زي ما هو
+      let body = file, ext = (file.name.split(".").pop() || "bin").toLowerCase(), type = file.type || undefined;
+      if ((file.type || "").startsWith("image/")) {
+        body = await (await fetch(await resizeImage(file))).blob();
+        ext = "jpg"; type = "image/jpeg";
+      }
+      const path = (t.type === "car" ? "car_" : "") + Date.now() + "_" + Math.random().toString(36).slice(2, 8) + "_" + t.key + "." + ext;
+      const up = await db.storage.from("equipment").upload(path, body, { contentType: type });
+      if (up.error) { if (msg) msg.textContent = "❌ الصورة مترفعتش: " + up.error.message; return; }
+
+      const field = t.key + "_file";
+      const { error } = await db.from(table).update({ [field]: path }).eq("id", obj.id);
+      if (error) { if (msg) msg.textContent = "❌ محصلش حفظ: " + error.message; await db.storage.from("equipment").remove([path]); return; }
+
+      if (obj[field]) await db.storage.from("equipment").remove([obj[field]]);
+      obj[field] = path;
+      if (t.type === "eq") { showEquipment(); showEqProfile(obj.id); }
+      else { showCars(); showCarProfile(obj.id); }
+    }
+
     function openPfBox(html) {
       profileId = null;
       document.getElementById("profile").innerHTML = html;
@@ -2687,6 +2786,7 @@
       const others = e.other_files || [];
       const files = EQ_DOCS.filter(d => e[d.key + "_file"]).length + others.length;
       const edit = canOpen("moves");
+      const idsCard = await pfIdsHtml("eq", e, driverWorker(e.driver, e.iqama_no));
       openPfBox(`
         <div class="tsm-head">
           <span class="tsm-avatar pf-avatar-svg">${kindSvg(k)}</span>
@@ -2717,6 +2817,7 @@
             <h4>📄 المستندات اللي ليها تاريخ انتهاء</h4>
             <div class="pf-docs">${dated.map(d => pfDoc(d.label, e[eqField(d)], e[d.key + "_file"])).join("")}</div>
           </div>
+          ${idsCard}
           <div class="pf-card">
             <h4>🪪 مستندات السائق</h4>
             <div class="pf-docs">${nums.map(d => pfDoc(d.label, e[eqField(d)], e[d.key + "_file"], true)).join("")}</div>
@@ -2733,13 +2834,14 @@
         </div>`);
     }
 
-    function showCarProfile(id) {
+    async function showCarProfile(id) {
       const c = cars.find(x => x.id === id);
       if (!c) return;
       const sts = [expiryState(c.reg_expiry), expiryState(c.ins_expiry)];
       const st = sts.includes("bad") ? "bad" : sts.includes("warn") ? "warn" : "ok";
       const since = c.last_service ? Math.floor((new Date() - new Date(c.last_service)) / 86400000) : null;
       const edit = canOpen("cars");
+      const idsCard = await pfIdsHtml("car", c, driverWorker(c.driver));
       openPfBox(`
         <div class="tsm-head">
           <span class="tsm-avatar" style="font-size:26px">🚗</span>
@@ -2763,6 +2865,7 @@
             <h4>📄 المستندات</h4>
             <div class="pf-docs">${pfDoc("الاستمارة", c.reg_expiry)}${pfDoc("التأمين", c.ins_expiry)}</div>
           </div>
+          ${idsCard}
           <div class="pf-actions no-print">
             ${edit ? `<button onclick="closeProfile(); showPage('cars'); openCar(${c.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>` : ""}
             <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة الملف</button>
@@ -3335,6 +3438,8 @@
       if (!confirm("متأكد إنك عايز تحذف السيارة " + c.plate + "؟")) return;
       const { error } = await db.from("cars").delete().eq("id", id);
       if (error) { alert("❌ محصلش حذف: " + error.message); return; }
+      const files = [c.iqama_file, c.license_file].filter(Boolean);
+      if (files.length) await db.storage.from("equipment").remove(files);
       loadCars();
     }
        // 18. التايم شيت

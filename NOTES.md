@@ -40,6 +40,7 @@
 **حاجات عامة:**
 - **الملف الشامل للعامل** (`showProfile`): صورة الإقامة (رفع/تغيير)، البيانات، حضور ووجبات الشهر، المعدات والسيارات اللي بيسوقها، طباعة.
 - **الملف الشامل للمعدة** (`showEqProfile`) **وللسيارة** (`showCarProfile`): في نفس نافذة ملف الساكن (`#profileBox`). البيانات، الصورة أو رسمة النوع، كل مستند بحالته وأيامه ومرفقه، والسائق لينك لملفه (`driverWorker`)، وتعديل (لو ليه الصفحة) وطباعة. بيتفتح من زرار "👁️ الملف" أو الاسم في القايمة، ومن تنبيهات لوحة التحكم، ومن ملف الساكن.
+- **صورة إقامة ورخصة السائق** في ملف المعدة والسيارة (`pfIdsHtml`, `pickPfDoc`, `uploadPfDoc`): بتظهر الصورة نفسها (والـ PDF لينك)، وفيه زرارين صوّر وارفع. ولو مفيش صورة إقامة والسائق ساكن، بتظهر صورته من ملف الساكن. للمعدات بتستخدم `iqama_file`/`license_file` الموجودين من قبل.
 - **حسابي** (`openAccount`, `saveMyAccount`): زرار "👤 حسابي" تحت في القائمة (ودوس على الاسم كمان) — نافذة لأي مستخدم مهما كانت صلاحياته يغيّر اسمه وباسورده.
 - **انتهاء الإقامة** (`iqama_expiry`): في الإضافة والتعديل، علامة ملوّنة جنب رقم الإقامة، مربع "⏳ إقامة منتهية أو قربت" (فلتر `iqama`)، في تنبيهات لوحة التحكم (لو ليه صفحة الساكنين) وتقرير المستندات والملف الشامل. `hasIqamaExp` بيتأكد إن العمود موجود قبل ما يبعته.
 - **القائمة الجانبية** بتتضم لأيقونات (`toggleSidebar`، بتتحفظ في `localStorage`)، والصفحة تاخد عرض الشاشة.
@@ -54,19 +55,19 @@
 | `rooms` | المفتاح `(building, room)`: `bedrooms, bathrooms, kitchen, gas, cylinders, washers, fridges` |
 | `timesheet` | `worker_id, work_date, time_in, time_out, hours, overtime` (unique على `worker_id, work_date`) |
 | `meals` | `id, worker_id, meal_date, breakfast, lunch` (unique على `worker_id, meal_date`) |
-| `cars` | `id, plate, car_type, model, driver, reg_expiry, ins_expiry, last_service, km, notes` |
+| `cars` | `id, plate, car_type, model, driver, reg_expiry, ins_expiry, last_service, km, notes, iqama_file, license_file` |
 | `equipment` | `id, name, driver, kind, photo, iqama_no, license_no, operator_no, reg_expiry, ins_expiry, inspection_expiry, *_file, other_files (jsonb)` |
 | `app_users` | `id, email, name, role, pages (text[]), active, last_login, created_at` |
 | `app_settings` | `key='main'`, `value` jsonb: `name, sub, breakfast, lunch, hours, timeIn, warnDays, countries[], sponsors[]` |
 
-**التخزين (Storage buckets، خاصة):** `iqama` (صور الإقامة)، `equipment` (صور وملفات المعدات). بنفتحها بروابط مؤقتة (`createSignedUrl(s)`).
+**التخزين (Storage buckets، خاصة):** `iqama` (صور الإقامة)، `equipment` (صور وملفات المعدات، وصور إقامة ورخصة سواقين السيارات وأسماءها بتبدأ بـ `car_`). الكتابة في `equipment` مسموحة لصفحة `moves` أو `cars`. بنفتحها بروابط مؤقتة (`createSignedUrl(s)`).
 
 **ملفات SQL في `supabase/`:**
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (15 بند) يأكد إن كله متجهز.
-- **الحالة الحالية:** كل البنود ✅ لحد 14. بند 15 (`iqama_expiry`) محتاج السطر ده يتشغّل: `alter table public.workers add column if not exists iqama_expiry date;`
+- `check.sql`: جدول ✅/❌ (17 بند) يأكد إن كله متجهز.
+- **الحالة الحالية:** كل البنود ✅ لحد 15. بنود 16 و17 (صور السيارات) محتاجين السطور اللي اتبعتت لصاحب المشروع (أو يعيد تشغيل `setup.sql` وبعده `security.sql`).
 
 ## 5. الصلاحيات والأمان
 

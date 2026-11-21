@@ -23,6 +23,9 @@ select item as "البند", case when ok then '✅' else '❌' end as "الحا
   (13, 'الأمان: صور الإقامة وملفات المعدات', (select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like 'rls\_%') = 8)
 ,
   (14, 'تجهيزات الغرف (غاز، سلندر، غسالة، تلاجة)', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'rooms' and column_name = 'fridges')),
-  (15, 'تاريخ انتهاء الإقامة في الساكنين',   exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'workers' and column_name = 'iqama_expiry'))
+  (15, 'تاريخ انتهاء الإقامة في الساكنين',   exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'workers' and column_name = 'iqama_expiry')),
+  (16, 'صورة الإقامة والرخصة في السيارات',  exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'cars' and column_name = 'license_file')),
+  (17, 'مشرف السيارات يقدر يرفع ملفات',      not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'rls_equip_write')
+                                            or exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'rls_equip_write' and with_check like '%cars%'))
 ) as t(n, item, ok)
 order by n;

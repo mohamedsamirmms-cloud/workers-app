@@ -70,6 +70,11 @@ alter table public.workers
 alter table public.workers
   add column if not exists iqama_expiry date;
 
+-- 3ج) صورة إقامة ورخصة السواق في السيارات (الملفات بتتحفظ في bucket المعدات)
+alter table if exists public.cars
+  add column if not exists iqama_file text,
+  add column if not exists license_file text;
+
 -- 3ب) تجهيزات الغرف: غاز وسلندرات وغسالات وتلاجات
 alter table if exists public.rooms
   add column if not exists gas boolean default false,

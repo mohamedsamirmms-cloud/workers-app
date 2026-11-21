@@ -155,7 +155,7 @@ drop trigger if exists app_users_guard on public.app_users;
 create trigger app_users_guard before update on public.app_users
   for each row execute function public.app_users_guard();
 
--- ---------- 5) التخزين (صور الإقامة وملفات المعدات) ----------
+-- ---------- 5) التخزين (صور الإقامة، وملفات المعدات والسيارات في bucket المعدات) ----------
 create policy rls_iqama_read  on storage.objects for select to authenticated
   using (bucket_id = 'iqama' and app_active());
 create policy rls_iqama_write on storage.objects for insert to authenticated
@@ -168,11 +168,11 @@ create policy rls_iqama_del   on storage.objects for delete to authenticated
 create policy rls_equip_read  on storage.objects for select to authenticated
   using (bucket_id = 'equipment' and app_active());
 create policy rls_equip_write on storage.objects for insert to authenticated
-  with check (bucket_id = 'equipment' and app_can('moves'));
+  with check (bucket_id = 'equipment' and (app_can('moves') or app_can('cars')));
 create policy rls_equip_edit  on storage.objects for update to authenticated
-  using (bucket_id = 'equipment' and app_can('moves'));
+  using (bucket_id = 'equipment' and (app_can('moves') or app_can('cars')));
 create policy rls_equip_del   on storage.objects for delete to authenticated
-  using (bucket_id = 'equipment' and app_can('moves'));
+  using (bucket_id = 'equipment' and (app_can('moves') or app_can('cars')));
 
 -- ---------- 6) الزوار من غير تسجيل دخول مايشوفوش أي حاجة ----------
 revoke all on public.workers, public.rooms, public.timesheet, public.meals, public.cars,
