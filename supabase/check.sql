@@ -26,6 +26,7 @@ select item as "البند", case when ok then '✅' else '❌' end as "الحا
   (15, 'تاريخ انتهاء الإقامة في الساكنين',   exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'workers' and column_name = 'iqama_expiry')),
   (16, 'صورة الإقامة والرخصة في السيارات',  exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'cars' and column_name = 'license_file')),
   (17, 'مشرف السيارات يقدر يرفع ملفات',      not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'rls_equip_write')
-                                            or exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'rls_equip_write' and with_check like '%cars%'))
+                                            or exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'rls_equip_write' and with_check like '%cars%')),
+  (18, 'منع تكرار رقم الإقامة',              exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'workers_id_no_unique'))
 ) as t(n, item, ok)
 order by n;

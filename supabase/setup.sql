@@ -70,6 +70,15 @@ alter table public.workers
 alter table public.workers
   add column if not exists iqama_expiry date;
 
+-- 3ب2) منع تكرار رقم الإقامة (الفاضي مسموح يتكرر)
+-- بيتعمل بس لو مفيش أرقام متكررة دلوقتي — لو فيه، صلّحها من البرنامج (مربع "رقم إقامة متكرر") وشغّل الملف تاني
+do $$
+begin
+  if not exists (select 1 from public.workers where coalesce(trim(id_no), '') <> '' group by trim(id_no) having count(*) > 1) then
+    create unique index if not exists workers_id_no_unique on public.workers (trim(id_no)) where coalesce(trim(id_no), '') <> '';
+  end if;
+end $$;
+
 -- 3ج) صورة إقامة ورخصة السواق في السيارات (الملفات بتتحفظ في bucket المعدات)
 alter table if exists public.cars
   add column if not exists iqama_file text,

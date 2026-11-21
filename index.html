@@ -451,6 +451,12 @@
           /* نافذة الإضافة */
     #addBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #addBox[hidden] { display: none; }
+    .dup-msg { display: block; font-size: 13px; line-height: 1.6; }
+    .dup-msg:empty { display: none; }
+    .dup-msg.bad { color: #c0392b; background: #fef2f2; border-radius: 8px; padding: 6px 10px; }
+    .dup-msg.warn { color: #92400e; background: #fff7ed; border-radius: 8px; padding: 6px 10px; }
+    .dup-msg a { cursor: pointer; color: #2563eb; text-decoration: underline; }
+    input.dup { border-color: #c0392b !important; background: #fef2f2; }
     #addInner { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
           /* نافذة الملف الشخصي */
     #profileBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 15px; }
@@ -934,7 +940,8 @@
   </div>
   <form id="workerForm">
     <input id="name" placeholder="اسم العامل" required>
-        <input id="idNo" placeholder="رقم الإقامة">
+        <input id="idNo" placeholder="رقم الإقامة" oninput="showDupMsg('idNo', 'idNoMsg', null)">
+    <span id="idNoMsg" class="dup-msg"></span>
     <label>انتهاء الإقامة <input id="iqamaExp" type="date"></label>
     <select id="country">
       <option value="">اختار البلد</option>
@@ -1405,7 +1412,8 @@
     <form id="editForm">
       <h3>✏️ تعديل بيانات ساكن</h3>
       <label>الاسم <input id="e_name" required></label>
-      <label>رقم الإقامة <input id="e_idNo"></label>
+      <label>رقم الإقامة <input id="e_idNo" oninput="showDupMsg('e_idNo', 'e_idNoMsg', editingId)"></label>
+      <span id="e_idNoMsg" class="dup-msg"></span>
       <label>انتهاء الإقامة <input id="e_iqamaExp" type="date"></label>
       <label>البلد <select id="e_country"></select></label>
       <label>السكن
@@ -1508,6 +1516,38 @@
     const findWorker = id => workers.find(x => x.id == id) || archivedWorkers.find(x => x.id == id);
 
     // نجيب العمال من Supabase
+    // ===== منع تكرار رقم الإقامة =====
+    // بنوحّد الرقم: أرقام عربي ← إنجليزي، ومن غير مسافات
+    const normIqama = v => String(v || "").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\s+/g, "");
+    // ساكن تاني (نشط أو في الأرشيف) عنده نفس الرقم
+    function iqamaOwner(idNo, exceptId) {
+      const n = normIqama(idNo);
+      if (!n) return null;
+      return workers.concat(archivedWorkers).find(w => w.id !== exceptId && normIqama(w.idNo) === n) || null;
+    }
+    function dupText(o) {
+      return o.archived
+        ? `⚠️ الرقم ده لـ <b>${o.name}</b> وهو في الأرشيف (${o.archive_reason || "-"}). <a onclick="closeAdd(); closeEdit(); restoreWorker(${o.id})">↩️ رجّعه للسكن</a> بدل ما تضيفه من جديد.`
+        : `⛔ الرقم ده متسجّل لـ <b>${o.name}</b> (${o.building || ""} — غرفة ${o.room || "-"}). <a onclick="closeAdd(); closeEdit(); showProfile(${o.id})">👁️ افتح ملفه</a>`;
+    }
+    // رسالة تحت الخانة وانت بتكتب
+    function showDupMsg(inputId, msgId, exceptId) {
+      const input = document.getElementById(inputId), msg = document.getElementById(msgId);
+      const o = iqamaOwner(input.value, exceptId);
+      input.classList.toggle("dup", !!o);
+      msg.className = "dup-msg " + (o ? (o.archived ? "warn" : "bad") : "");
+      msg.innerHTML = o ? dupText(o) : "";
+      return o;
+    }
+    // أرقام الإقامة المتكررة في البيانات الحالية
+    function dupIqamaIds() {
+      const seen = {};
+      workers.concat(archivedWorkers).forEach(w => { const n = normIqama(w.idNo); if (n) (seen[n] = seen[n] || []).push(w); });
+      return Object.values(seen).filter(g => g.length > 1);
+    }
+    const iqamaTwins = w => workers.concat(archivedWorkers).filter(o => o.id !== w.id && normIqama(o.idNo) === normIqama(w.idNo));
+    const isUniqueErr = e => e && (e.code === "23505" || /duplicate|unique/i.test(e.message || ""));
+
     let hasIqamaExp = true;
     const iqamaExpField = v => hasIqamaExp ? { iqama_expiry: v || null } : {};
     // ساكنين إقامتهم منتهية أو قربت تخلص
@@ -1603,6 +1643,9 @@
 
       // كروت الأرقام (بتتداس عشان تفلتر)
       const cnt = f => workers.filter(f).length;
+      const dupGroups = dupIqamaIds();
+      const dupSet = new Set(dupGroups.flat().map(w => w.id));
+      if (specialFilter === "dup" && !dupGroups.length) specialFilter = "";
       const card = (cls, n, label, onclick, on) =>
         `<div class="stat click ${cls} ${on ? "on" : ""}" onclick="${onclick}"><b>${n}</b>${label}</div>`;
       document.getElementById("resStats").innerHTML =
@@ -1611,7 +1654,8 @@
         card("", cnt(w => w.building === "السكن الثاني"), "🏢 السكن الثاني", "dashOpen('السكن الثاني', '')", b === "السكن الثاني" && !specialFilter) +
         card("amber", cnt(w => w.blanket !== "نعم"), "🛏️ لم يستلم بطانية", "dashOpen('', 'noblanket')", specialFilter === "noblanket") +
         card("red", cnt(w => !w.iqamaImg), "🪪 بدون صورة إقامة", "dashOpen('', 'noimg')", specialFilter === "noimg") +
-        card("red", cnt(iqamaAlert), "⏳ إقامة منتهية أو قربت", "dashOpen('', 'iqama')", specialFilter === "iqama");
+        card("red", cnt(iqamaAlert), "⏳ إقامة منتهية أو قربت", "dashOpen('', 'iqama')", specialFilter === "iqama") +
+        (dupGroups.length ? card("red", dupGroups.length, "⛔ رقم إقامة متكرر", "dashOpen('', 'dup')", specialFilter === "dup") : "");
 
       // تابات المساكن
       const tab = (val, label) => `<button class="chip ${b === val ? "on" : ""}" onclick="openBuilding('${val}')">${label} (${val ? cnt(w => w.building === val) : workers.length})</button>`;
@@ -1626,13 +1670,15 @@
         if (specialFilter === "noblanket" && w.blanket === "نعم") return false;
         if (specialFilter === "noimg" && w.iqamaImg) return false;
         if (specialFilter === "iqama" && !iqamaAlert(w)) return false;
+        if (specialFilter === "dup" && !dupSet.has(w.id)) return false;
         if (!q) return true;
         const text = (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase();
         return text.includes(q);
       });
       if (wPage * PAGE_SIZE >= result.length) wPage = 0;
            lastResult = result;
-      const filterName = { blanket: "استلموا بطانية", noblanket: "لم يستلم بطانية", noimg: "بدون صورة إقامة", iqama: "إقامة منتهية أو قربت" }[specialFilter];
+      const filterName = { blanket: "استلموا بطانية", noblanket: "لم يستلم بطانية", noimg: "بدون صورة إقامة", iqama: "إقامة منتهية أو قربت", dup: "رقم إقامة متكرر" }[specialFilter];
+      if (specialFilter === "dup") result.sort((a, b) => normIqama(a.idNo).localeCompare(normIqama(b.idNo)));
       // في فلتر الإقامة: الأقرب انتهاءً الأول
       if (specialFilter === "iqama") result.sort((a, b) => a.iqama_expiry.localeCompare(b.iqama_expiry));
       document.getElementById("resultCount").innerHTML = "العدد: " + result.length +
@@ -1653,7 +1699,7 @@
           <td class="res-num">${wPage * PAGE_SIZE + i + 1}</td>
           <td class="res-who"><b onclick="showProfile(${worker.id})" title="الملف">${worker.name}</b><small>${sub}</small></td>
           <td class="res-placecell"><span class="res-place"><b>🚪 ${worker.room || "-"}</b>${worker.bed_no ? " · سرير " + worker.bed_no : ""}<small>${short ? "السكن " + short : ""}</small></span></td>
-          <td class="res-iqama">${worker.idNo || "-"}${worker.iqama_expiry ? `<small class="res-exp">${expiryBadge(worker.iqama_expiry)}</small>` : ""}</td>
+          <td class="res-iqama">${worker.idNo || "-"}${dupSet.has(worker.id) ? `<small class="res-exp"><span class="badge bad">⛔ متكرر مع: ${iqamaTwins(worker).map(o => o.name + (o.archived ? " (أرشيف)" : "")).join("، ")}</span></small>` : ""}${worker.iqama_expiry ? `<small class="res-exp">${expiryBadge(worker.iqama_expiry)}</small>` : ""}</td>
           <td class="res-badges">${worker.blanket === "نعم" ? '<span class="badge ok">🛏️ استلم</span>' : '<span class="badge bad">🛏️ لم يستلم</span>'}</td>
           <td class="res-badges">${worker.iqamaImg ? '<span class="badge ok">🪪 الصورة موجودة</span>' : '<span class="badge miss">🪪 الصورة ناقصة</span>'}</td>
           <td class="res-actions"><div class="icon-btns">
@@ -1674,9 +1720,12 @@
       event.preventDefault();
       const form = event.target;
 
+      const owner = showDupMsg("idNo", "idNoMsg", null);
+      if (owner) { document.getElementById("idNo").focus(); return; }
+
       const worker = {
         name: document.getElementById("name").value,
-        id_no: document.getElementById("idNo").value,
+        id_no: normIqama(document.getElementById("idNo").value),
         country: document.getElementById("country").value,
        
         room: document.getElementById("room").value,
@@ -1703,11 +1752,13 @@
       
       const { error } = await db.from("workers").insert(worker);
       if (error) {
-        alert("❌ العامل متحفظش: " + error.message);
+        if (worker.iqama_img) await db.storage.from("iqama").remove([worker.iqama_img]);
+        alert(isUniqueErr(error) ? "⛔ رقم الإقامة ده متسجّل لساكن تاني. اعمل refresh وشوفه." : "❌ العامل متحفظش: " + error.message);
         return;
       }
 
       form.reset();
+      showDupMsg("idNo", "idNoMsg", null);
             closeAdd();
       lastIqamaImage = "";
       document.getElementById("iqamaPreview").hidden = true;
@@ -2965,6 +3016,7 @@
         const idMatch = text.match(/2\d{9}/);
         if (idMatch) {
           document.getElementById("idNo").value = idMatch[0];
+          showDupMsg("idNo", "idNoMsg", null);
 }
                 // الاسم: أطول سطر فيه حروف إنجليزي كبيرة
         const ignore = ["KINGDOM", "SAUDI", "ARABIA", "MINISTRY", "INTERIOR", "RESIDENT", "IDENTITY", "PERMIT"];
@@ -3077,6 +3129,7 @@
       document.getElementById("e_name").value = w.name || "";
       document.getElementById("e_idNo").value = w.idNo || "";
       document.getElementById("e_iqamaExp").value = w.iqama_expiry || "";
+      showDupMsg("e_idNo", "e_idNoMsg", id);
       document.getElementById("e_country").value = w.country || "";
       document.getElementById("e_building").value = w.building || "السكن الأول";
       document.getElementById("e_room").value = w.room || "";
@@ -3097,11 +3150,12 @@
     document.getElementById("editForm").addEventListener("submit", async function (event) {
       event.preventDefault();
       const msg = document.getElementById("editMsg");
+      if (showDupMsg("e_idNo", "e_idNoMsg", editingId)) { msg.textContent = ""; document.getElementById("e_idNo").focus(); return; }
       msg.textContent = "⏳ جاري الحفظ...";
 
       const changes = {
         name: document.getElementById("e_name").value,
-        id_no: document.getElementById("e_idNo").value,
+        id_no: normIqama(document.getElementById("e_idNo").value),
         ...iqamaExpField(document.getElementById("e_iqamaExp").value),
         country: document.getElementById("e_country").value,
         building: document.getElementById("e_building").value,
@@ -3128,7 +3182,7 @@
       }
 
       const { error } = await db.from("workers").update(changes).eq("id", editingId);
-      if (error) { msg.textContent = "❌ محصلش حفظ: " + error.message; return; }
+      if (error) { msg.textContent = isUniqueErr(error) ? "⛔ رقم الإقامة ده متسجّل لساكن تاني." : "❌ محصلش حفظ: " + error.message; return; }
 
       closeEdit();
       loadWorkers();
