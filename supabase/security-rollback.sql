@@ -10,7 +10,7 @@ begin
   for r in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings')
+      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals')
   loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
@@ -34,6 +34,12 @@ create policy "logged in users" on public.cars         for all to authenticated 
 create policy "logged in users" on public.equipment    for all to authenticated using (true) with check (true);
 create policy "logged in users" on public.app_users    for all to authenticated using (true) with check (true);
 create policy "logged in users" on public.app_settings for all to authenticated using (true) with check (true);
+do $$ begin
+  if to_regclass('public.meal_groups') is not null then
+    create policy "logged in users" on public.meal_groups for all to authenticated using (true) with check (true);
+    create policy "logged in users" on public.group_meals for all to authenticated using (true) with check (true);
+  end if;
+end $$;
 
 create policy "iqama files" on storage.objects for all to authenticated
   using (bucket_id = 'iqama') with check (bucket_id = 'iqama');

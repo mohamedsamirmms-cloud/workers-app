@@ -66,7 +66,7 @@ begin
   for r in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings')
+      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals')
   loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
@@ -90,6 +90,8 @@ alter table public.cars         enable row level security;
 alter table public.equipment    enable row level security;
 alter table public.app_users    enable row level security;
 alter table public.app_settings enable row level security;
+alter table if exists public.meal_groups enable row level security;
+alter table if exists public.group_meals enable row level security;
 
 -- ---------- 4) القواعد الجديدة ----------
 -- القراءة: أي مستخدم متسجّل وشغال (لوحة التحكم والتقارير والملف بيقروا من كذا جدول)
@@ -112,6 +114,17 @@ create policy rls_write on public.timesheet for all    to authenticated using (a
 -- الوجبات
 create policy rls_read  on public.meals for select to authenticated using (app_active());
 create policy rls_write on public.meals for all    to authenticated using (app_can('meals')) with check (app_can('meals'));
+
+-- فطار المجموعات (لو الجداول موجودة)
+do $$ begin
+  if to_regclass('public.meal_groups') is not null then
+    create policy rls_read  on public.meal_groups for select to authenticated using (app_active());
+    create policy rls_write on public.meal_groups for all    to authenticated using (app_can('meals')) with check (app_can('meals'));
+    create policy rls_read  on public.group_meals for select to authenticated using (app_active());
+    create policy rls_write on public.group_meals for all    to authenticated using (app_can('meals')) with check (app_can('meals'));
+    revoke all on public.meal_groups, public.group_meals from anon;
+  end if;
+end $$;
 
 -- السيارات
 create policy rls_read  on public.cars for select to authenticated using (app_active());

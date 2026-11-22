@@ -28,7 +28,7 @@
 |---|---|---|
 | `dashboard` | لوحة التحكم: 5 مربعات بتفتح تفاصيل (ساكنين، حضور النهارده، وجبات، معدات، سيارات) + تنبيهات المستندات | `refreshDashboard`, `renderDashDocs`, `loadDashAtt`, `loadDashMeals`, `toggleDash` |
 | `residents` | الساكنين: كروت بتفلتر، تابات المساكن، مربعات الغرف، **بيانات الوحدة** (غرف/حمامات/مطبخ/غاز/سلندر/غسالة/تلاجة)، جدول، إضافة/تعديل/أرشفة/حذف | `showWorkers`, `showRooms`, `showRoomInfo`, `saveRoomInfo`, `openBuilding`, `dashOpen` |
-| `meals` | الوجبات: يومي (فطار/غداء لكل عامل) + حساب شهري | `showMeals`, `toggleMeal`, `mealAll`, `showMealMonth`, `exportMealMonth` |
+| `meals` | الوجبات: تابين (`setMealTab`). **🍳 فطار المجموعات** (الأساسي): المجموعات بعددها وسعر الفرد، تسجيل يوم (− +)، كشف الشهر زي شيت صاحب المشروع، استيراد من شيت BREAKFAST، وExcel وطباعة. **👷 وجبات الأفراد**: يومي (فطار/غداء لكل عامل) + حساب شهري | `loadGroupMeals`, `renderGmDay`, `renderGmMonth`, `gmSave`, `readGmImport`, `doGmImport`, `exportGroupMeals`, `GM_PRICES` · `showMeals`, `toggleMeal`, `showMealMonth` |
 | `timesheet` | التايم شيت: يومي + **كشف شهري لكل عامل** (تقويم/جدول) + **كشف شهري لكل العمال** (ملخص/بالأيام) | `showTimesheet`, `markPresent`, `saveTime`, `openTsMonth`, `showTsMonth`, `openTsAll`, `loadTsAll`, `exportTsAll` |
 | `moves` | **معدات المشروع** (الاسم القديم في الكود `moves`): مستندات بأرقام وتواريخ ومرفقات، صورة لكل معدة، **رسومات لأنواع المعدات** (16 نوع بتتعرف من الاسم)، قراءة PDF/صورة تلقائيًا | `showEquipment`, `openEq`, `readEqFile`, `parseEqText`, `EQ_DOCS`, `EQ_KINDS`, `detectKind` |
 | `cars` | سيارات المشروع: استمارة وتأمين وصيانة وعداد | `showCars`, `openCar`, `exportCars` |
@@ -43,6 +43,7 @@
 - **صورة إقامة ورخصة السائق** في ملف المعدة والسيارة (`pfIdsHtml`, `pickPfDoc`, `uploadPfDoc`): بتظهر الصورة نفسها (والـ PDF لينك)، وفيه زرارين صوّر وارفع. ولو مفيش صورة إقامة والسائق ساكن، بتظهر صورته من ملف الساكن. للمعدات بتستخدم `iqama_file`/`license_file` الموجودين من قبل.
 - **منع تكرار رقم الإقامة** (`normIqama`, `iqamaOwner`, `showDupMsg`, `dupIqamaIds`): الرقم بيتوحّد (أرقام عربي ← إنجليزي، ومن غير مسافات). في الإضافة والتعديل بتظهر رسالة وانت بتكتب، والحفظ بيتمنع. لو الرقم لساكن في الأرشيف، بيقترح "رجّعه للسكن". ولو فيه أرقام متكررة قديمة، بيظهر مربع "⛔ رقم إقامة متكرر" (فلتر `dup`). وفي قاعدة البيانات فيه unique index اسمه `workers_id_no_unique` على `trim(id_no::text)` (الفاضي مسموح يتكرر).
 - **دمج السجلات المتكررة** (`openMerge`, `doMerge`): في فلتر `dup` فيه لوحة `#dupPanel` بكل الأرقام المتكررة (حتى اللي في الأرشيف) وزرار "🔗 دمج". الزرار بيظهر بس للي عنده residents وtimesheet وmeals. الدمج بينقل التايم شيت (لو نفس اليوم في الاتنين، بيفضل اللي ساعاته أكتر) والوجبات (لو نفس اليوم، بيجمعهم)، ويكمّل البيانات الناقصة، وبعدين يمسح السجل المتكرر. لما صاحب المشروع شغّل الفحص، طلع عنده 13 رقم متكرر وكلهم نفس الشخص متسجّل مرتين.
+- **فطار المجموعات:** صاحب المشروع بيحسب الفطار بالمجموعات (حوالي 36 مجموعة) في شيت Excel شكله: NAME، COUNT، أيام الشهر، THE COST، وفي الآخر TOTAL. سعر الفرد 3.5، ما عدا Dinner 9 و OMRAN 12.5 و abdelrahman 12.5 (`GM_PRICES`). SAMIR مبلغه 22.5 لفردين، ولسه مش معروف سعره. الجمعة مفيش فطار (بس Meals و Dinner ليهم أرقام). أكتوبر ونوفمبر 2026 اتعملهم import من ملفه.
 - **حسابي** (`openAccount`, `saveMyAccount`): زرار "👤 حسابي" تحت في القائمة (ودوس على الاسم كمان) — نافذة لأي مستخدم مهما كانت صلاحياته يغيّر اسمه وباسورده.
 - **انتهاء الإقامة** (`iqama_expiry`): في الإضافة والتعديل، علامة ملوّنة جنب رقم الإقامة، مربع "⏳ إقامة منتهية أو قربت" (فلتر `iqama`)، في تنبيهات لوحة التحكم (لو ليه صفحة الساكنين) وتقرير المستندات والملف الشامل. `hasIqamaExp` بيتأكد إن العمود موجود قبل ما يبعته.
 - **القائمة الجانبية** بتتضم لأيقونات (`toggleSidebar`، بتتحفظ في `localStorage`)، والصفحة تاخد عرض الشاشة.
@@ -59,6 +60,8 @@
 | `meals` | `id, worker_id, meal_date, breakfast, lunch` (unique على `worker_id, meal_date`) |
 | `cars` | `id, plate, car_type, model, driver, reg_expiry, ins_expiry, last_service, km, notes, iqama_file, license_file` |
 | `equipment` | `id, name, driver, kind, photo, iqama_no, license_no, operator_no, reg_expiry, ins_expiry, inspection_expiry, *_file, other_files (jsonb)` |
+| `meal_groups` | `id, name (unique), people (العدد الأساسي), price (سعر الفرد), sort, active` |
+| `group_meals` | المفتاح `(group_id, meal_date)`: `people` (ممكن null لو مبلغ بس)، `amount`. بيتمسحوا مع المجموعة (cascade) |
 | `app_users` | `id, email, name, role, pages (text[]), active, last_login, created_at` |
 | `app_settings` | `key='main'`, `value` jsonb: `name, sub, breakfast, lunch, hours, timeIn, warnDays, countries[], sponsors[]` |
 
@@ -68,7 +71,7 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (18 بند) يأكد إن كله متجهز.
+- `check.sql`: جدول ✅/❌ (20 بند) يأكد إن كله متجهز.
 - **الحالة الحالية:** صاحب المشروع شغّل كل الأكواد، وكل البنود لحد 17 ✅. بند 18 (منع التكرار) محتاج: يصلّح الأرقام المتكررة لو فيه، وبعدين يشغّل سطر الـ index.
 
 ## 5. الصلاحيات والأمان
@@ -77,7 +80,7 @@
 - **في البرنامج:** القائمة ومربعات لوحة التحكم بتظهر حسب الصفحات (`myPages`, `canOpen`). أول حد يدخل والجدول فاضي بيبقى مدير، والبرنامج بيسأل السيرفر بـ `rpc('app_users_empty')`.
 - **في قاعدة البيانات (`security.sql`):** دوال `app_email()`, `app_active()`, `app_is_admin()`, `app_can(page)`, `app_users_empty()`.
   - القراءة: أي مستخدم متسجّل وشغال.
-  - الكتابة حسب الصفحة: `workers` ← residents/archive، `rooms` ← residents، `timesheet` ← timesheet، `meals` ← meals، `cars` ← cars، `equipment` ← moves، `app_settings` ← settings، `app_users` ← المدير (والشخص يعدّل اسمه بس).
+  - الكتابة حسب الصفحة: `workers` ← residents/archive، `rooms` ← residents، `timesheet` ← timesheet، `meals` ← meals، `cars` ← cars، `equipment` ← moves، `app_settings` ← settings، `meal_groups`/`group_meals` ← meals، `app_users` ← المدير (والشخص يعدّل اسمه بس).
   - Trigger `app_users_guard` بيمنع غير المدير يغيّر الصلاحيات (التعديل من SQL Editor مسموح للتصليح).
   - الزوار (anon) ملهمش أي صلاحية.
 - اتجرّب على PostgreSQL محلي (60 اختبار).

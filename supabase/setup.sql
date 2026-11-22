@@ -121,3 +121,40 @@ do $$ begin
     create policy "logged in users" on public.app_settings for all to authenticated using (true) with check (true);
   end if;
 end $$;
+
+-- 6) فطار المجموعات: كل مجموعة ليها اسم وعدد وسعر للفرد، وتكلفة كل يوم
+create table if not exists public.meal_groups (
+  id bigint generated always as identity primary key,
+  name text not null unique,
+  people int default 0,
+  price numeric default 3.5,
+  sort int default 0,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+create table if not exists public.group_meals (
+  group_id bigint not null references public.meal_groups (id) on delete cascade,
+  meal_date date not null,
+  people numeric,
+  amount numeric not null default 0,
+  primary key (group_id, meal_date)
+);
+alter table public.meal_groups enable row level security;
+alter table public.group_meals enable row level security;
+do $$
+declare t text;
+begin
+  foreach t in array array['meal_groups', 'group_meals'] loop
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t) then
+      if to_regprocedure('public.app_can(text)') is not null then
+        -- الأمان متشغّل: القراءة لأي حد شغال، والتعديل لصفحة الوجبات
+        execute format('create policy rls_read on public.%I for select to authenticated using (app_active())', t);
+        execute format('create policy rls_write on public.%I for all to authenticated using (app_can(''meals'')) with check (app_can(''meals''))', t);
+      else
+        execute format('create policy "logged in users" on public.%I for all to authenticated using (true) with check (true)', t);
+      end if;
+    end if;
+  end loop;
+end $$;
+revoke all on public.meal_groups, public.group_meals from anon;
+

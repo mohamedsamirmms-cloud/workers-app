@@ -4,6 +4,87 @@
   <meta charset="UTF-8">
   <title>سجل العمالة</title>
     <style>
+          /* فطار المجموعات */
+    .meal-tabs { margin-bottom: 12px; }
+    .meal-tabs .chip { font-size: 15px; padding: 8px 16px; }
+    #mealsGroups[hidden], #mealsPersons[hidden], #gmDay[hidden], #gmGrid[hidden] { display: none !important; }
+    .gm-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
+    .gm-bar .ts-day b { color: #1e3a5f; min-width: 110px; text-align: center; }
+    .gm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-inline-start: auto; }
+    .gm-actions button { font-size: 14px; padding: 8px 12px; }
+    #gmStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #gmStats .stat { border-top: 4px solid #1e3a5f; }
+    #gmStats .stat small { display: block; color: #64748b; margin-top: 2px; }
+    .gm-views { margin-bottom: 10px; }
+    .gm-card { background: white; border-radius: 12px; padding: 12px 15px; }
+    .gm-dayhead { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .gm-dayhead .ts-day b { color: #1e3a5f; min-width: 90px; text-align: center; }
+    .gm-dayhead .gm-fill { margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .gm-dayhead .gm-fill button { font-size: 13px; padding: 8px 12px; }
+    .gm-friday { background: #fff7ed; color: #9a3412; border-radius: 8px; padding: 6px 10px; font-size: 13px; margin-bottom: 8px; }
+    .gm-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px; }
+    .gm-row { display: flex; align-items: center; gap: 8px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; background: #f8fafc; }
+    .gm-row.on { background: #f0fdf4; border-color: #86efac; }
+    .gm-row .gn { flex: 1; min-width: 0; }
+    .gm-row .gn b { display: block; color: #1e3a5f; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gm-row .gn small { color: #64748b; font-size: 12px; }
+    .gm-count { display: flex; align-items: center; gap: 3px; }
+    .gm-count button { width: 30px; height: 32px; padding: 0; background: #eef1f5; color: #1e3a5f; font-size: 18px; line-height: 1; }
+    .gm-count input { width: 52px; text-align: center; padding: 6px 2px; font-size: 15px; font-weight: bold; }
+    .gm-amt { min-width: 64px; text-align: center; font-weight: bold; color: #1e3a5f; font-size: 13px; white-space: nowrap; }
+    .gm-row:not(.on) .gm-amt { color: #94a3b8; font-weight: normal; }
+    .gm-grid-wrap { overflow-x: auto; max-width: 100%; }
+    .gm-grid { border-collapse: collapse; font-size: 12px; width: max-content; min-width: 100%; }
+    .gm-grid th, .gm-grid td { border: 1px solid #e2e8f0; padding: 4px 5px; text-align: center; white-space: nowrap; }
+    .gm-grid th { background: #1e3a5f; color: white; position: sticky; top: 0; }
+    .gm-grid .gname { position: sticky; right: 0; background: white; text-align: right; font-weight: bold; color: #1e3a5f; z-index: 1; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+    .gm-grid th.gname { background: #1e3a5f; color: white; z-index: 2; }
+    .gm-grid th.fri { background: #9a3412; }
+    .gm-grid td.fri { background: #fff7ed; }
+    .gm-grid td.cell { cursor: pointer; min-width: 30px; }
+    .gm-grid td.cell:hover { background: #fde68a; }
+    .gm-grid td.odd { color: #7c3aed; font-weight: bold; }
+    .gm-grid tr.inactive td { color: #94a3b8; }
+    .gm-grid td.tot, .gm-grid tr.tot td { font-weight: bold; background: #eef1f5; }
+    .gm-grid tr.tot td.gname { background: #eef1f5; }
+    .gm-hint { font-size: 12px; color: #64748b; margin: 6px 0 0; }
+    #gmGroupsBox, #gmImportBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #gmGroupsBox[hidden], #gmImportBox[hidden] { display: none; }
+    #gmGroupsBox > div, #gmImportBox > div { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; box-sizing: border-box; display: grid; gap: 10px; }
+    #gmGroupsBox h3, #gmImportBox h3 { margin: 0; color: #1e3a5f; }
+    .gg-row { display: grid; grid-template-columns: 1fr 70px 80px auto auto; gap: 6px; align-items: center; border-bottom: 1px solid #eef1f5; padding: 6px 0; }
+    .gg-row input { box-sizing: border-box; width: 100%; padding: 6px 8px; }
+    .gg-row label { display: flex; align-items: center; gap: 3px; font-size: 12px; color: #475569; white-space: nowrap; }
+    .gg-row label input { width: auto; }
+    .gg-row button { padding: 6px 9px; background: #eef1f5; color: #c0392b; }
+    .gg-head { font-size: 12px; color: #64748b; font-weight: bold; border-bottom: 2px solid #e2e8f0; }
+    .gg-row.off input[type=text] { color: #94a3b8; text-decoration: line-through; }
+    .gm-imp { background: #f8fafc; border-radius: 10px; padding: 10px; font-size: 14px; line-height: 1.8; }
+    @media (max-width: 700px) {
+      .gm-bar { padding: 10px; }
+      .gm-bar .ts-day { width: 100%; }
+      .gm-bar .ts-day input { flex: 1; min-width: 0; }
+      .gm-actions { width: 100%; margin: 0; }
+      .gm-actions button { flex: 1 1 45%; }
+      .gm-dayhead .ts-day { width: 100%; }
+      .gm-dayhead .ts-day input { flex: 1; min-width: 0; }
+      .gm-dayhead .gm-fill { width: 100%; margin: 0; }
+      .gm-dayhead .gm-fill button { flex: 1; }
+      .gm-list { grid-template-columns: 1fr; }
+      .gm-card { padding: 10px; }
+      .gg-row { grid-template-columns: 1fr 58px 64px; }
+      .gg-row label, .gg-row button { grid-row: 2; }
+      .gg-head { display: none; }
+    }
+    @media print {
+      body.print-gm * { visibility: hidden; }
+      body.print-gm #gmPrint, body.print-gm #gmPrint * { visibility: visible; }
+      body.print-gm #gmPrint { position: absolute; top: 0; right: 0; left: 0; }
+      body.print-gm .gm-grid-wrap { overflow: visible; }
+      body.print-gm .gm-grid { font-size: 8px; }
+      body.print-gm .gm-grid .gname { position: static; }
+      body.print-gm #sidebar { display: none !important; }
+    }
           /* الوجبات */
     #page-meals input, #page-meals button { box-sizing: border-box; }
     #mealBar, #mealMonthBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
@@ -1215,6 +1296,33 @@
   </section>
   <section id="page-meals" class="page" hidden>
     <h2>🍽️ الوجبات</h2>
+    <div class="ts-chips meal-tabs" id="mealTabs">
+      <button class="chip" data-tab="groups" onclick="setMealTab('groups')">🍳 فطار المجموعات</button>
+      <button class="chip" data-tab="persons" onclick="setMealTab('persons')">👷 وجبات الأفراد</button>
+    </div>
+    <div id="mealsGroups" hidden>
+      <div id="gmNotice"></div>
+      <div class="gm-bar">
+        <div class="ts-day">
+          <button onclick="shiftGmMonth(-1)" title="الشهر اللي قبله">→</button>
+          <input type="month" id="gmMonth" onchange="gmMonthChanged()">
+          <button onclick="shiftGmMonth(1)" title="الشهر اللي بعده">←</button>
+          <b id="gmMonthName"></b>
+        </div>
+        <div class="gm-actions">
+          <button onclick="openGroups()" style="background:#1e3a5f">👥 المجموعات</button>
+          <button onclick="document.getElementById('gmImportFile').click()" style="background:#7c3aed">📥 استيراد من Excel</button>
+          <button onclick="exportGroupMeals()" style="background:#16a34a">📊 Excel</button>
+          <button onclick="printGroupMeals()" style="background:#64748b">🖨️ طباعة</button>
+        </div>
+        <input type="file" id="gmImportFile" accept=".xlsx,.xls" hidden onchange="readGmImport(this)">
+      </div>
+      <div id="gmStats"></div>
+      <div class="ts-chips gm-views" id="gmViews"></div>
+      <div id="gmDay" class="gm-card"></div>
+      <div id="gmGrid" class="gm-card" hidden><div id="gmPrint"></div></div>
+    </div>
+    <div id="mealsPersons">
     <div class="meal-prices">
       <span>🍳 الفطار: <b id="priceB">3.5 ريال</b> للفرد</span>
       <span>🍛 الغداء: <b id="priceL">9 ريال</b> للفرد</span>
@@ -1243,6 +1351,7 @@
     </div>
     <div id="mealMonthTotals"></div>
     <div id="mealMonthList"></div>
+    </div>
   </section>
   <section id="page-archive" class="page" hidden>
     <div class="res-head">
@@ -1375,6 +1484,29 @@
       </div>
       <p id="usrMsg" style="margin:0"></p>
     </form>
+  </div>
+  <div id="gmGroupsBox" hidden onclick="if (event.target === this) closeGroups()">
+    <div>
+      <h3>👥 مجموعات الفطار</h3>
+      <small style="color:#64748b">العدد هو العدد الأساسي اللي بيتسجّل كل يوم، والسعر للفرد. أي تغيير بيتحفظ على طول. التغيير في السعر أو العدد بيأثر على الأيام اللي هتتسجّل بعد كده بس.</small>
+      <div id="gmGroupsList"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button onclick="addGroup()" style="background:#16a34a">➕ مجموعة جديدة</button>
+        <button onclick="closeGroups()" style="background:#64748b">إغلاق</button>
+      </div>
+      <span id="gmGroupsMsg" style="font-size:13px"></span>
+    </div>
+  </div>
+  <div id="gmImportBox" hidden onclick="if (event.target === this && !gmImporting) this.hidden = true">
+    <div>
+      <h3>📥 استيراد فطار المجموعات من Excel</h3>
+      <div id="gmImportBody"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="gmImportBtn" onclick="doGmImport()" style="background:#7c3aed">📥 استيراد</button>
+        <button onclick="if (!gmImporting) document.getElementById('gmImportBox').hidden = true" style="background:#64748b">إلغاء</button>
+      </div>
+      <span id="gmImportMsg" style="font-size:13px"></span>
+    </div>
   </div>
   <div id="mergeBox" hidden onclick="if (event.target === this && !mergeBusy) this.hidden = true">
     <form id="mergeForm" onsubmit="event.preventDefault(); doMerge()">
@@ -2026,7 +2158,8 @@
       msg.textContent = "⏳ جاري تجميع البيانات...";
       // ترتيب ثابت عشان الصفحات (كل 1000 صف) متكررش ولا تفوّت صفوف
       const tables = [["workers", "الساكنين", ["id"]], ["timesheet", "التايم شيت", ["worker_id", "work_date"]], ["meals", "الوجبات", ["worker_id", "meal_date"]],
-        ["cars", "السيارات", ["id"]], ["equipment", "المعدات", ["id"]], ["rooms", "الغرف", ["building", "room"]]];
+        ["cars", "السيارات", ["id"]], ["equipment", "المعدات", ["id"]], ["rooms", "الغرف", ["building", "room"]],
+        ["meal_groups", "مجموعات الفطار", ["id"]], ["group_meals", "فطار المجموعات", ["group_id", "meal_date"]]];
       const book = XLSX.utils.book_new();
       book.Workbook = { Views: [{ RTL: true }] };
       const skipped = [];
@@ -3450,6 +3583,7 @@
       document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
       if (name === "dashboard") refreshDashboard();
       if (name === "settings") fillSettingsForm();
+      if (name === "meals") setMealTab(currentMealTab());
       if (name === "reports" && !document.getElementById("repMonth").value) {
         document.getElementById("repMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
         repMonthChanged();
@@ -4822,6 +4956,441 @@
     let mPage = 0;
     let mealMonthRows = [];
 
+    // ===== فطار المجموعات =====
+    // كل مجموعة ليها اسم وعدد أساسي وسعر للفرد، وكل يوم بيتسجّل عدد الأفراد والتكلفة
+    let mealGroups = [];      // المجموعات
+    let gmRows = {};          // "رقم المجموعة|التاريخ" ← { people, amount }
+    let gmReady = true;       // الجداول موجودة في Supabase؟
+    let gmView = "day";       // day: تسجيل يوم — month: كشف الشهر
+    let gmShow = "amount";    // في كشف الشهر: amount التكلفة — people العدد
+    let gmDate = "";          // اليوم المختار في تسجيل اليوم
+    // أسعار خاصة للمجموعات اللي بتتعمل من الاستيراد (الباقي بسعر الفطار العادي)
+    const GM_PRICES = { dinner: 9, omran: 12.5, abdelrahman: 12.5 };
+    const gmKey = (gid, d) => gid + "|" + d;
+    const gmEsc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    const isFriday = d => new Date(d + "T12:00:00").getDay() === 5;
+    const todayIso = () => new Date().toLocaleDateString("en-CA");
+    const num = n => (Math.round(n * 100) / 100).toLocaleString("en-US");
+    const r2 = n => Math.round(n * 100) / 100;
+    function monthDays(ym) {
+      const [y, m] = ym.split("-").map(Number);
+      return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => ym + "-" + String(i + 1).padStart(2, "0"));
+    }
+    const monthLabel = ym => { const [y, m] = ym.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" }); };
+    // عدد الأفراد من السجل (ولو مسجّل مبلغ بس، مفيش عدد)
+    const gmPeople = rec => rec && rec.people != null ? Number(rec.people) : null;
+
+    function currentMealTab() { try { return localStorage.getItem("mealTab") || "groups"; } catch (e) { return "groups"; } }
+    function setMealTab(tab) {
+      try { localStorage.setItem("mealTab", tab); } catch (e) {}
+      document.querySelectorAll("#mealTabs .chip").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+      document.getElementById("mealsGroups").hidden = tab !== "groups";
+      document.getElementById("mealsPersons").hidden = tab !== "persons";
+      if (tab === "groups") loadGroupMeals();
+    }
+
+    async function loadGroupMeals() {
+      const mi = document.getElementById("gmMonth");
+      if (!mi.value) mi.value = todayIso().slice(0, 7);
+      const ym = mi.value, days = monthDays(ym);
+      if (!gmDate || gmDate.slice(0, 7) !== ym) gmDate = ym === todayIso().slice(0, 7) ? todayIso() : days[0];
+      const [g, r] = await Promise.all([
+        db.from("meal_groups").select("*").order("sort").order("id"),
+        fetchAll(() => db.from("group_meals").select("group_id,meal_date,people,amount").gte("meal_date", days[0]).lte("meal_date", days[days.length - 1]).order("group_id").order("meal_date"))
+      ]);
+      if (mi.value !== ym) return;   // الشهر اتغيّر واحنا بنحمّل
+      gmReady = !g.error && !r.error;
+      document.getElementById("gmNotice").innerHTML = gmReady ? "" :
+        '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>فطار المجموعات محتاج جدولين جداد في Supabase. شغّل كود فطار المجموعات في SQL Editor وبعدين اعمل refresh.</div>';
+      mealGroups = gmReady ? g.data : [];
+      gmRows = {};
+      if (gmReady) r.data.forEach(x => gmRows[gmKey(x.group_id, x.meal_date)] = { people: x.people == null ? null : Number(x.people), amount: Number(x.amount) || 0 });
+      renderGm();
+    }
+
+    function shiftGmMonth(n) {
+      const mi = document.getElementById("gmMonth");
+      const [y, m] = (mi.value || todayIso().slice(0, 7)).split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      mi.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      gmMonthChanged();
+    }
+    function gmMonthChanged() { gmDate = ""; loadGroupMeals(); }
+
+    function gmSetDate(d) {
+      if (!d) return;
+      gmDate = d;
+      const mi = document.getElementById("gmMonth");
+      if (d.slice(0, 7) !== mi.value) { mi.value = d.slice(0, 7); loadGroupMeals(); } else renderGm();
+    }
+    function gmShiftDay(n) {
+      if (n === 0) { gmSetDate(todayIso()); return; }
+      const d = new Date(gmDate + "T12:00:00");
+      d.setDate(d.getDate() + n);
+      gmSetDate(d.toLocaleDateString("en-CA"));
+    }
+    function gmSetView(v) { gmView = v; renderGm(); }
+    function gmOpenDay(d) { gmView = "day"; gmSetDate(d); document.getElementById("gmViews").scrollIntoView({ behavior: "smooth" }); }
+
+    // المجموعات اللي تظهر: الشغالة + أي مجموعة متوقفة ليها أيام متسجّلة
+    function gmVisibleGroups(days) {
+      return mealGroups.filter(g => g.active !== false || days.some(d => gmRows[gmKey(g.id, d)]));
+    }
+
+    function renderGm() {
+      const ym = document.getElementById("gmMonth").value;
+      const days = monthDays(ym);
+      document.getElementById("gmMonthName").textContent = monthLabel(ym);
+      let monthAmt = 0, monthPeople = 0;
+      const recDays = new Set();
+      Object.entries(gmRows).forEach(([k, rec]) => {
+        monthAmt += rec.amount; monthPeople += gmPeople(rec) || 0; recDays.add(k.split("|")[1]);
+      });
+      let dayAmt = 0, dayPeople = 0;
+      mealGroups.forEach(g => { const rec = gmRows[gmKey(g.id, gmDate)]; if (rec) { dayAmt += rec.amount; dayPeople += gmPeople(rec) || 0; } });
+      const active = mealGroups.filter(g => g.active !== false);
+      const dayLbl = new Date(gmDate + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" });
+      document.getElementById("gmStats").innerHTML = gmReady ? `
+        <div class="stat"><b>${active.length}</b>👥 مجموعة شغالة<small>${active.reduce((s, g) => s + (Number(g.people) || 0), 0).toLocaleString("en-US")} فرد</small></div>
+        <div class="stat"><b>${money(dayAmt)}</b>📅 ${dayLbl}<small>${dayPeople.toLocaleString("en-US")} وجبة</small></div>
+        <div class="stat"><b style="color:#e08a1e">${money(monthAmt)}</b>💰 إجمالي ${monthLabel(ym)}<small>${recDays.size} يوم متسجّل</small></div>
+        <div class="stat"><b>${monthPeople.toLocaleString("en-US")}</b>🍳 وجبة في الشهر<small>متوسط اليوم ${money(recDays.size ? monthAmt / recDays.size : 0)}</small></div>` : "";
+      document.getElementById("gmViews").innerHTML = gmReady ? `
+        <button class="chip ${gmView === "day" ? "on" : ""}" onclick="gmSetView('day')">📝 تسجيل يوم</button>
+        <button class="chip ${gmView === "month" ? "on" : ""}" onclick="gmSetView('month')">📅 كشف الشهر</button>` : "";
+      document.getElementById("gmDay").hidden = !gmReady || gmView !== "day";
+      document.getElementById("gmGrid").hidden = !gmReady || gmView !== "month";
+      if (!gmReady) return;
+      if (gmView === "day") renderGmDay(); else renderGmMonth(days);
+    }
+
+    const gmEmpty = '<p style="color:#64748b; margin:6px 0">مفيش مجموعات لسه. دوس <b>👥 المجموعات</b> وضيف، أو <b>📥 استيراد من Excel</b> من الشيت بتاعك.</p>';
+
+    function renderGmDay() {
+      const d = gmDate;
+      const list = mealGroups.filter(g => g.active !== false || gmRows[gmKey(g.id, d)]);
+      const missing = list.filter(g => !gmRows[gmKey(g.id, d)] && g.active !== false && Number(g.people) > 0);
+      const anyRec = list.some(g => gmRows[gmKey(g.id, d)]);
+      const dayName = new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long" });
+      document.getElementById("gmDay").innerHTML = `
+        <div class="gm-dayhead">
+          <div class="ts-day">
+            <button onclick="gmShiftDay(-1)" title="اليوم اللي قبله">→</button>
+            <input type="date" value="${d}" onchange="gmSetDate(this.value)">
+            <button onclick="gmShiftDay(1)" title="اليوم اللي بعده">←</button>
+            <button onclick="gmShiftDay(0)">النهارده</button>
+            <b>${dayName}</b>
+          </div>
+          <div class="gm-fill">
+            ${missing.length ? `<button onclick="gmFillDay()" style="background:#16a34a">✅ سجّل ${anyRec ? "الباقي" : "الكل"} بالعدد الأساسي (${missing.length})</button>` : ""}
+            ${anyRec ? `<button onclick="gmClearDay()" style="background:#c0392b">🗑️ امسح اليوم</button>` : ""}
+          </div>
+        </div>
+        ${isFriday(d) ? '<div class="gm-friday">🕌 النهارده جمعة، وعادةً مفيش فطار. لو فيه مجموعة فطرت، سجّلها عادي.</div>' : ""}
+        ${list.length ? `<div class="gm-list">${list.map(g => {
+          const rec = gmRows[gmKey(g.id, d)], p = gmPeople(rec);
+          return `<div class="gm-row ${rec ? "on" : ""}">
+            <span class="gn"><b title="${gmEsc(g.name)}">${gmEsc(g.name)}</b><small>${Number(g.people) || 0} فرد · ${num(Number(g.price))} ريال للفرد</small></span>
+            <span class="gm-count">
+              <button type="button" onclick="gmStep(${g.id}, -1)" title="أقل">−</button>
+              <input type="number" min="0" inputmode="numeric" value="${p != null ? p : ""}" placeholder="${rec ? "—" : "-"}" onchange="gmSet(${g.id}, this.value)">
+              <button type="button" onclick="gmStep(${g.id}, 1)" title="أكتر">+</button>
+            </span>
+            <span class="gm-amt">${rec ? money(rec.amount) : "مش متسجّل"}</span>
+          </div>`; }).join("")}</div>
+          <p class="gm-hint">💡 اكتب عدد اللي فطروا في كل مجموعة، أو استخدم − و +. ولو مسحت الرقم، اليوم بيتشال من المجموعة دي.</p>` : gmEmpty}`;
+    }
+
+    function renderGmMonth(days) {
+      const ym = days[0].slice(0, 7), today = todayIso();
+      const groups = gmVisibleGroups(days);
+      const emptyDays = days.filter(d => d <= today && !isFriday(d) && !mealGroups.some(g => gmRows[gmKey(g.id, d)]));
+      const val = rec => !rec ? "" : gmShow === "amount" ? num(rec.amount) : (gmPeople(rec) != null ? gmPeople(rec) : "—");
+      const daySum = d => groups.reduce((s, g) => { const rec = gmRows[gmKey(g.id, d)]; return s + (!rec ? 0 : gmShow === "amount" ? rec.amount : (gmPeople(rec) || 0)); }, 0);
+      const rowSum = g => days.reduce((s, d) => { const rec = gmRows[gmKey(g.id, d)]; return s + (!rec ? 0 : gmShow === "amount" ? rec.amount : (gmPeople(rec) || 0)); }, 0);
+      const odd = (g, rec) => rec && (gmPeople(rec) == null || Math.abs(gmPeople(rec) * Number(g.price) - rec.amount) > 0.001);
+      const table = groups.length ? `<div class="gm-grid-wrap"><table class="gm-grid">
+        <tr><th class="gname">المجموعة</th><th>العدد</th><th>السعر</th>${days.map(d => `<th class="${isFriday(d) ? "fri" : ""}" title="${new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long" })}">${Number(d.slice(8))}</th>`).join("")}<th>الإجمالي</th></tr>
+        ${groups.map(g => `<tr class="${g.active === false ? "inactive" : ""}"><td class="gname" title="${gmEsc(g.name)}">${gmEsc(g.name)}</td><td>${Number(g.people) || 0}</td><td>${num(Number(g.price))}</td>${days.map(d => {
+          const rec = gmRows[gmKey(g.id, d)];
+          return `<td class="cell ${isFriday(d) ? "fri" : ""} ${odd(g, rec) ? "odd" : ""}" onclick="gmOpenDay('${d}')">${val(rec)}</td>`; }).join("")}<td class="tot">${num(rowSum(g))}</td></tr>`).join("")}
+        <tr class="tot"><td class="gname">الإجمالي</td><td>${groups.reduce((s, g) => s + (Number(g.people) || 0), 0)}</td><td></td>${days.map(d => `<td class="${isFriday(d) ? "fri" : ""}">${daySum(d) ? num(daySum(d)) : ""}</td>`).join("")}<td>${num(days.reduce((s, d) => s + daySum(d), 0))}</td></tr>
+      </table></div>` : gmEmpty;
+      document.getElementById("gmPrint").innerHTML = `
+        <div class="gm-dayhead">
+          <h3 style="margin:0; color:#1e3a5f">🍳 فطار المجموعات — ${monthLabel(ym)} ${gmShow === "amount" ? "(بالريال)" : "(بالعدد)"}</h3>
+          <div class="gm-fill no-print">
+            <button class="chip ${gmShow === "amount" ? "on" : ""}" onclick="gmShow = 'amount'; renderGm()">💰 التكلفة</button>
+            <button class="chip ${gmShow === "people" ? "on" : ""}" onclick="gmShow = 'people'; renderGm()">👥 العدد</button>
+            ${emptyDays.length && mealGroups.length ? `<button onclick="gmFillMonth()" style="background:#16a34a">📋 سجّل الأيام الفاضية لحد النهارده (${emptyDays.length})</button>` : ""}
+          </div>
+        </div>
+        ${table}
+        <p class="gm-hint no-print">💡 دوس على أي خانة عشان تفتح اليوم ده وتعدّله. الجمعة بالبرتقالي. الأرقام البنفسجي مبلغ مختلف عن العدد × السعر (غالبًا جاي من الاستيراد).</p>`;
+    }
+
+    // حفظ يوم مجموعة: people = null يمسح اليوم
+    async function gmSave(gid, d, people) {
+      const g = mealGroups.find(x => x.id === gid);
+      if (!g) return;
+      const k = gmKey(gid, d), old = gmRows[k];
+      let res;
+      if (people === null) {
+        delete gmRows[k];
+        renderGm();
+        res = await db.from("group_meals").delete().eq("group_id", gid).eq("meal_date", d);
+      } else {
+        const row = { group_id: gid, meal_date: d, people, amount: r2(people * Number(g.price)) };
+        gmRows[k] = { people, amount: row.amount };
+        renderGm();
+        res = await db.from("group_meals").upsert(row, { onConflict: "group_id,meal_date" });
+      }
+      if (res.error) {
+        if (old) gmRows[k] = old; else delete gmRows[k];
+        renderGm();
+        alert("❌ محصلش حفظ: " + res.error.message);
+      }
+    }
+    function gmSet(gid, v) {
+      if (String(v).trim() === "") { gmSave(gid, gmDate, null); return; }
+      const n = Math.max(0, Math.round(Number(v)));
+      if (!isFinite(n)) return;
+      gmSave(gid, gmDate, n);
+    }
+    function gmStep(gid, delta) {
+      const g = mealGroups.find(x => x.id === gid);
+      const rec = gmRows[gmKey(gid, gmDate)];
+      let cur = gmPeople(rec);
+      if (cur == null && rec) cur = Math.round(rec.amount / (Number(g.price) || 1));
+      if (cur == null) { if (delta < 0) return; gmSave(gid, gmDate, Math.max(1, Number(g.people) || 1)); return; }
+      gmSave(gid, gmDate, Math.max(0, cur + delta));
+    }
+
+    async function gmUpsertMany(rows, msgEl) {
+      for (let i = 0; i < rows.length; i += 500) {
+        if (msgEl) msgEl.textContent = "⏳ جاري الحفظ... " + Math.min(i + 500, rows.length) + " من " + rows.length;
+        const { error } = await db.from("group_meals").upsert(rows.slice(i, i + 500), { onConflict: "group_id,meal_date" });
+        if (error) return error;
+      }
+      return null;
+    }
+    const gmDefaultRows = (d, onlyMissing) => mealGroups
+      .filter(g => g.active !== false && Number(g.people) > 0 && (!onlyMissing || !gmRows[gmKey(g.id, d)]))
+      .map(g => ({ group_id: g.id, meal_date: d, people: Number(g.people), amount: r2(Number(g.people) * Number(g.price)) }));
+
+    async function gmFillDay() {
+      const rows = gmDefaultRows(gmDate, true);
+      if (!rows.length) return;
+      const err = await gmUpsertMany(rows);
+      if (err) { alert("❌ محصلش حفظ: " + err.message); return; }
+      loadGroupMeals();
+    }
+    async function gmClearDay() {
+      if (!confirm("تمسح فطار كل المجموعات يوم " + gmDate + "؟")) return;
+      const { error } = await db.from("group_meals").delete().eq("meal_date", gmDate);
+      if (error) { alert("❌ محصلش مسح: " + error.message); return; }
+      loadGroupMeals();
+    }
+    async function gmFillMonth() {
+      const today = todayIso(), days = monthDays(document.getElementById("gmMonth").value);
+      const empty = days.filter(d => d <= today && !isFriday(d) && !mealGroups.some(g => gmRows[gmKey(g.id, d)]));
+      if (!empty.length) return;
+      if (!confirm(`هسجّل ${empty.length} يوم (من غير الجمعة) لكل المجموعات الشغالة بالعدد الأساسي. الأيام اللي فيها حاجة متسجّلة مش هتتلمس. تكمل؟`)) return;
+      const err = await gmUpsertMany(empty.flatMap(d => gmDefaultRows(d, false)));
+      if (err) { alert("❌ محصلش حفظ: " + err.message); return; }
+      loadGroupMeals();
+    }
+
+    // ----- إدارة المجموعات -----
+    function openGroups() {
+      if (!gmReady) { alert("شغّل كود فطار المجموعات في Supabase الأول."); return; }
+      document.getElementById("gmGroupsMsg").textContent = "";
+      renderGroups();
+      document.getElementById("gmGroupsBox").hidden = false;
+    }
+    function closeGroups() { document.getElementById("gmGroupsBox").hidden = true; renderGm(); }
+    function renderGroups() {
+      document.getElementById("gmGroupsList").innerHTML = mealGroups.length
+        ? `<div class="gg-row gg-head"><span>الاسم</span><span>العدد</span><span>سعر الفرد</span><span></span><span></span></div>` +
+          mealGroups.map(g => `<div class="gg-row ${g.active === false ? "off" : ""}">
+            <input type="text" value="${gmEsc(g.name)}" onchange="updGroup(${g.id}, 'name', this.value)" title="اسم المجموعة">
+            <input type="number" min="0" inputmode="numeric" value="${Number(g.people) || 0}" onchange="updGroup(${g.id}, 'people', this.value)" title="العدد الأساسي">
+            <input type="number" min="0" step="0.25" inputmode="decimal" value="${Number(g.price)}" onchange="updGroup(${g.id}, 'price', this.value)" title="سعر الفرد">
+            <label><input type="checkbox" ${g.active !== false ? "checked" : ""} onchange="updGroup(${g.id}, 'active', this.checked)">شغالة</label>
+            <button type="button" onclick="delGroup(${g.id})" title="حذف">🗑️</button>
+          </div>`).join("")
+        : '<p style="color:#64748b">مفيش مجموعات لسه.</p>';
+    }
+    async function updGroup(id, field, v) {
+      const g = mealGroups.find(x => x.id === id);
+      const msg = document.getElementById("gmGroupsMsg");
+      let val = v;
+      if (field === "name") { val = String(v).trim(); if (!val) { msg.textContent = "⚠️ الاسم مينفعش يبقى فاضي"; renderGroups(); return; } }
+      if (field === "people") { val = Math.max(0, Math.round(Number(v) || 0)); }
+      if (field === "price") { val = Number(v); if (!(val >= 0)) { msg.textContent = "⚠️ السعر لازم يكون رقم"; renderGroups(); return; } }
+      const { error } = await db.from("meal_groups").update({ [field]: val }).eq("id", id);
+      if (error) { msg.textContent = isUniqueErr(error) ? "⚠️ فيه مجموعة تانية بنفس الاسم" : "❌ " + error.message; renderGroups(); return; }
+      g[field] = val;
+      msg.textContent = "✅ اتحفظ";
+      if (field === "active") renderGroups();
+    }
+    async function addGroup() {
+      const name = (prompt("اسم المجموعة الجديدة:") || "").trim();
+      if (!name) return;
+      const msg = document.getElementById("gmGroupsMsg");
+      const sort = mealGroups.reduce((m, g) => Math.max(m, Number(g.sort) || 0), 0) + 1;
+      const { data, error } = await db.from("meal_groups").insert({ name, people: 0, price: BREAKFAST_PRICE, sort, active: true }).select();
+      if (error) { msg.textContent = isUniqueErr(error) ? "⚠️ فيه مجموعة بنفس الاسم" : "❌ " + error.message; return; }
+      mealGroups.push(data[0]);
+      renderGroups();
+      msg.textContent = "✅ اتضافت — اكتب عددها";
+    }
+    async function delGroup(id) {
+      const g = mealGroups.find(x => x.id === id);
+      if (!confirm(`تمسح مجموعة ${g.name} وكل أيامها المتسجّلة (في كل الشهور)؟\nلو عايز توقفها بس، شيل علامة "شغالة".`)) return;
+      const { error } = await db.from("meal_groups").delete().eq("id", id);
+      if (error) { document.getElementById("gmGroupsMsg").textContent = "❌ " + error.message; return; }
+      mealGroups = mealGroups.filter(x => x.id !== id);
+      Object.keys(gmRows).forEach(k => { if (k.startsWith(id + "|")) delete gmRows[k]; });
+      renderGroups();
+    }
+
+    // ----- Excel -----
+    function exportGroupMeals() {
+      const ym = document.getElementById("gmMonth").value, days = monthDays(ym);
+      const groups = gmVisibleGroups(days);
+      if (!groups.length) { alert("مفيش بيانات للتصدير"); return; }
+      const sheet = kind => {
+        const v = rec => !rec ? "" : kind === "amount" ? rec.amount : (gmPeople(rec) != null ? gmPeople(rec) : "");
+        const aoa = [["فطار المجموعات — " + monthLabel(ym) + (kind === "amount" ? " (ريال)" : " (عدد)")], [],
+          ["المجموعة", "العدد", "سعر الفرد"].concat(days.map(d => Number(d.slice(8)) + "/" + Number(d.slice(5, 7))), ["الإجمالي"])];
+        const tot = days.map(() => 0);
+        groups.forEach(g => {
+          const cells = days.map((d, i) => { const x = v(gmRows[gmKey(g.id, d)]); if (x !== "") tot[i] += x; return x; });
+          aoa.push([g.name, Number(g.people) || 0, Number(g.price)].concat(cells, [r2(cells.reduce((s, x) => s + (x || 0), 0))]));
+        });
+        aoa.push(["الإجمالي", "", ""].concat(tot.map(x => x ? r2(x) : ""), [r2(tot.reduce((s, x) => s + x, 0))]));
+        return XLSX.utils.aoa_to_sheet(aoa);
+      };
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, sheet("amount"), "التكلفة");
+      XLSX.utils.book_append_sheet(book, sheet("people"), "العدد");
+      XLSX.writeFile(book, "فطار-المجموعات-" + ym + ".xlsx");
+    }
+    function printGroupMeals() {
+      if (gmView !== "month") { gmView = "month"; renderGm(); }
+      printWith("print-gm");
+    }
+
+    // ----- استيراد من شيت الفطار (NAME / COUNT / أيام الشهر / TOTAL) -----
+    let gmImport = null, gmImporting = false;
+    function xlDate(v) {
+      if (v instanceof Date && !isNaN(v)) return v.toLocaleDateString("en-CA");
+      if (typeof v === "number" && v > 30000 && v < 80000) return new Date(Math.round((v - 25569) * 86400000)).toISOString().slice(0, 10);
+      if (typeof v === "string") { const t = v.trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t; return toIsoDate(t) || ""; }
+      return "";
+    }
+    async function readGmImport(input) {
+      const file = input.files[0];
+      input.value = "";
+      if (!file) return;
+      if (!gmReady) { alert("شغّل كود فطار المجموعات في Supabase الأول."); return; }
+      let wb;
+      try { wb = XLSX.read(await file.arrayBuffer(), { type: "array" }); }
+      catch (e) { alert("❌ الملف ده مش Excel أو بايظ"); return; }
+      const sheets = [];
+      wb.SheetNames.forEach(sn => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null });
+        const hi = rows.findIndex(r => r && String(r[0] == null ? "" : r[0]).trim().toUpperCase() === "NAME");
+        if (hi < 0) return;
+        const cols = [];
+        (rows[hi] || []).forEach((v, c) => { const d = c >= 2 && xlDate(v); if (d) cols.push([c, d]); });
+        if (!cols.length) return;
+        const groups = [];
+        let total = null;
+        for (let i = hi + 1; i < rows.length; i++) {
+          const r = rows[i] || [];
+          const name = String(r[0] == null ? "" : r[0]).trim();
+          if (!name) continue;
+          if (name.toUpperCase() === "TOTAL") { const nums = r.filter(x => typeof x === "number"); total = nums.length ? nums[nums.length - 1] : null; break; }
+          const cells = [];
+          cols.forEach(([c, d]) => { const v = r[c]; if (typeof v === "number" && v > 0) cells.push([d, v]); });
+          groups.push({ name, count: typeof r[1] === "number" ? r[1] : null, cells });
+        }
+        if (!groups.length) return;
+        const months = {};
+        cols.forEach(([, d]) => months[d.slice(0, 7)] = (months[d.slice(0, 7)] || 0) + 1);
+        const month = Object.entries(months).sort((a, b) => b[1] - a[1])[0][0];
+        const sum = groups.reduce((s, g) => s + g.cells.reduce((t, c) => t + c[1], 0), 0);
+        sheets.push({ sheet: sn, title: String((rows[0] || [])[0] || sn), month, groups, total, sum });
+      });
+      if (!sheets.length) { alert("مالقيتش في الملف شيت فطار بالشكل المعروف (NAME و COUNT وأيام الشهر)."); return; }
+      sheets.sort((a, b) => a.month.localeCompare(b.month));
+      const known = new Set(mealGroups.map(g => g.name.trim().toLowerCase()));
+      const newNames = [...new Set(sheets.flatMap(s => s.groups.map(g => g.name)).filter(n => !known.has(n.toLowerCase())).map(n => n))];
+      gmImport = sheets;
+      const special = newNames.filter(n => GM_PRICES[n.toLowerCase()] != null);
+      document.getElementById("gmImportBody").innerHTML = `<div class="gm-imp">
+        ${sheets.map(s => `📄 <b>${gmEsc(s.title)}</b> — ${monthLabel(s.month)}: ${s.groups.length} مجموعة، ${s.groups.reduce((t, g) => t + g.cells.length, 0)} خانة، إجمالي <b>${money(s.sum)}</b>
+          ${s.total == null ? "" : Math.abs(s.total - s.sum) < 0.01 ? '<span class="badge ok">✅ زي إجمالي الشيت</span>' : `<span class="badge warn">⚠️ إجمالي الشيت ${money(s.total)}</span>`}`).join("<br>")}
+        <br>👥 مجموعات جديدة هتتعمل: <b>${newNames.length}</b>${newNames.length ? ` (السعر ${num(BREAKFAST_PRICE)} للفرد${special.length ? "، ما عدا " + special.map(n => gmEsc(n) + " " + num(GM_PRICES[n.toLowerCase()])).join(" و ") : ""})` : ""}
+      </div>
+      <small style="color:#92400e">⚠️ لو فيه أيام متسجّلة قبل كده في الشهور دي لنفس المجموعات، هتتبدّل بأرقام الملف. ولو المبلغ مش مظبوط على العدد × السعر، بيتحفظ المبلغ زي ما هو.</small>`;
+      document.getElementById("gmImportMsg").textContent = "";
+      document.getElementById("gmImportBtn").disabled = false;
+      document.getElementById("gmImportBox").hidden = false;
+    }
+
+    async function doGmImport() {
+      if (!gmImport || gmImporting) return;
+      const msg = document.getElementById("gmImportMsg"), btn = document.getElementById("gmImportBtn");
+      gmImporting = true; btn.disabled = true;
+      const done = text => { gmImporting = false; btn.disabled = false; msg.textContent = text; };
+      try {
+        // المجموعات الجديدة: الترتيب والعدد من آخر شهر
+        const latest = gmImport[gmImport.length - 1];
+        const byName = {};
+        mealGroups.forEach(g => byName[g.name.trim().toLowerCase()] = g);
+        const order = [];
+        [latest].concat(gmImport.slice(0, -1).reverse()).forEach(s => s.groups.forEach(g => { if (!order.some(o => o.name.toLowerCase() === g.name.toLowerCase())) order.push(g); }));
+        let sort = mealGroups.reduce((m, g) => Math.max(m, Number(g.sort) || 0), 0);
+        const toAdd = order.filter(g => !byName[g.name.toLowerCase()]).map(g => {
+          const price = GM_PRICES[g.name.toLowerCase()] != null ? GM_PRICES[g.name.toLowerCase()] : BREAKFAST_PRICE;
+          let people = g.count;
+          if (people == null && g.cells.length) { const x = g.cells[g.cells.length - 1][1] / price; if (Math.abs(x - Math.round(x)) < 0.001) people = Math.round(x); }
+          // مجموعة مش موجودة في آخر شهر بتتعمل متوقفة (تظهر في شهورها القديمة بس)
+          const inLatest = latest.groups.some(x => x.name.toLowerCase() === g.name.toLowerCase());
+          return { name: g.name, people: Math.round(people || 0), price, sort: ++sort, active: inLatest };
+        });
+        if (toAdd.length) {
+          msg.textContent = "⏳ بعمل " + toAdd.length + " مجموعة...";
+          const { data, error } = await db.from("meal_groups").insert(toAdd).select();
+          if (error) { done("❌ المجموعات ماتعملتش: " + error.message); return; }
+          data.forEach(g => { mealGroups.push(g); byName[g.name.trim().toLowerCase()] = g; });
+        }
+        // الأيام
+        const rows = {};
+        gmImport.forEach(s => s.groups.forEach(gr => {
+          const g = byName[gr.name.toLowerCase()];
+          if (!g) return;
+          gr.cells.forEach(([d, amount]) => {
+            const x = amount / (Number(g.price) || 1);
+            const people = Math.abs(x - Math.round(x)) < 0.001 ? Math.round(x) : null;
+            rows[gmKey(g.id, d)] = { group_id: g.id, meal_date: d, people, amount: r2(amount) };
+          });
+        }));
+        const err = await gmUpsertMany(Object.values(rows), msg);
+        if (err) { done("❌ الأيام ماتحفظتش كلها: " + err.message + " — جرّب تاني، مش هيتكرر حاجة."); return; }
+      } catch (e) { done("❌ " + e.message); return; }
+      done("");
+      document.getElementById("gmImportBox").hidden = true;
+      document.getElementById("gmMonth").value = gmImport[gmImport.length - 1].month;
+      gmDate = "";
+      gmView = "month";
+      loadGroupMeals();
+    }
+
     function money(n) {
       return (Math.round(n * 100) / 100).toLocaleString("en-US") + " ريال";
     }
@@ -5031,6 +5600,7 @@
 
     function dashOpenMeals() {
       showPage("meals");
+      setMealTab("persons");
       document.getElementById("mealMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
       showMealMonth();
       document.getElementById("mealMonthBar").scrollIntoView({ behavior: "smooth" });
@@ -5144,14 +5714,20 @@
 
       const tb = data.filter(r => r.breakfast).length;
       const tl = data.filter(r => r.lunch).length;
+      // فطار المجموعات (لو الجداول موجودة)
+      const gq = await fetchAll(() => db.from("group_meals").select("amount,people").gte("meal_date", ym + "-01").lte("meal_date", last).order("group_id").order("meal_date"));
+      const gRows = gq.error ? [] : gq.data;
+      const ga = gRows.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+      const gp = gRows.reduce((s, x) => s + (Number(x.people) || 0), 0);
       const monthName = new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
       document.getElementById("dashMealsTitle").textContent = "🍽️ الوجبات - " + monthName;
-      document.getElementById("tileMealsNum").textContent = money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE);
+      document.getElementById("tileMealsNum").textContent = money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE + ga);
       document.getElementById("tileMealsSub").textContent = "تكلفة " + monthName;
-      box.innerHTML = `
+      box.innerHTML = (gRows.length ? `
+        <div class="stat click" onclick="showPage('meals'); setMealTab('groups')"><b>${money(ga)}</b>👥 فطار المجموعات<br><small>${gp.toLocaleString("en-US")} وجبة</small></div>` : "") + `
         <div class="stat click" onclick="dashOpenMeals()"><b>${money(tb * BREAKFAST_PRICE)}</b>🍳 إجمالي الفطار<br><small>${tb.toLocaleString("en-US")} وجبة</small></div>
         <div class="stat click" onclick="dashOpenMeals()"><b>${money(tl * LUNCH_PRICE)}</b>🍛 إجمالي الغداء<br><small>${tl.toLocaleString("en-US")} وجبة</small></div>
-        <div class="stat click" onclick="dashOpenMeals()"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</b>💰 إجمالي الوجبات</div>
+        <div class="stat click" onclick="dashOpenMeals()"><b style="color:#e08a1e">${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE + ga)}</b>💰 إجمالي الوجبات</div>
       `;
     }
 
