@@ -77,6 +77,12 @@
     .gd-mem button.x { color: #c0392b; }
     .gd-add { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
     .gd-add input { flex: 1; min-width: 160px; box-sizing: border-box; }
+    .gd-chart { position: relative; max-width: 620px; margin: 0 auto; }
+    .gd-chart svg { width: 100%; height: auto; display: block; overflow: visible; direction: ltr; touch-action: pan-y; }
+    .gd-tip { position: absolute; pointer-events: none; background: #1f2937; color: white; font-size: 12px; border-radius: 8px; padding: 6px 9px; white-space: nowrap; transform: translate(-50%, -100%); display: none; line-height: 1.5; z-index: 2; }
+    .gd-tip b { color: #fbbf24; }
+    .gd-note { font-size: 12px; color: #64748b; margin-top: 6px; line-height: 1.7; }
+    .gd-note b { color: #1e3a5f; }
     .gd-days { display: flex; flex-wrap: wrap; gap: 5px; }
     .gd-days span { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 3px 8px; font-size: 12px; color: #166534; white-space: nowrap; }
     .gd-days span.fri { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
@@ -5216,7 +5222,7 @@
           </div>
           <div class="pf-card">
             <h4>📅 أيام ${monthLabel(ym)}</h4>
-            ${recs.length ? `<div class="gd-days">${recs.map(([d, r]) => `<span class="${isFriday(d) ? "fri" : ""}" title="${new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" })}"><b>يوم ${Number(d.slice(8))}</b> · ${gmPeople(r) != null ? gmPeople(r) + " فرد · " : ""}${num(r.amount)} ريال</span>`).join("")}</div>` : '<p style="color:#64748b; margin:0">مفيش أيام متسجّلة في الشهر ده.</p>'}
+            ${recs.length ? `<div class="gd-chart" id="gdChart"></div><div class="gd-note" id="gdNote"></div>` : '<p style="color:#64748b; margin:0">مفيش أيام متسجّلة في الشهر ده.</p>'}
           </div>
           <div class="pf-actions no-print">
             ${edit ? `<button onclick="closeProfile(); openGroups()" style="background:#e08a1e">✏️ تعديل الاسم والعدد والسعر</button>` : ""}
@@ -5224,6 +5230,78 @@
             <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
           </div>
         </div>`);
+      if (recs.length) gmStepChart(document.getElementById("gdChart"), document.getElementById("gdNote"), g, days, recs);
+    }
+
+    // خط "سلّمة" لأيام الشهر: بيطلع وينزل في اليوم اللي العدد اتغيّر فيه، ومعاه المبلغ
+    function gmStepChart(el, noteEl, g, days, recs) {
+      const price = Number(g.price) || 0;
+      const byCount = recs.every(([, r]) => gmPeople(r) != null);   // لو فيه أيام مبلغ بس، بنرسم بالمبلغ
+      const pts = recs.map(([d, r]) => ({ d, day: Number(d.slice(8)), v: byCount ? gmPeople(r) : r.amount, ppl: gmPeople(r), amt: r.amount }));
+      const W = 360, H = 200, P = { l: 34, r: 14, t: 26, b: 26 };
+      const vals = pts.map(p => p.v);
+      const max = Math.max(...vals), min = Math.min(...vals);
+      const pad = (max - min) * 0.35 || Math.max(1, max * 0.25);
+      const y0 = Math.max(0, min - pad), y1 = max + pad;
+      const N = days.length;
+      const X = day => P.l + (day - 1) / (N - 1) * (W - P.l - P.r);
+      const Y = v => P.t + (1 - (v - y0) / (y1 - y0)) * (H - P.t - P.b);
+      const unit = byCount ? "فرد" : "ريال";
+      const lbl = p => byCount ? `${p.ppl} فرد · ${num(p.amt)} ريال` : `${num(p.amt)} ريال`;
+      const changes = pts.filter((p, i) => i && p.v !== pts[i - 1].v);
+      const ticks = [...new Set([y0, (y0 + y1) / 2, y1].map(v => byCount ? Math.round(v) : Math.round(v)))];
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="أيام الشهر">`;
+      days.forEach(d => { if (isFriday(d)) s += `<rect x="${X(Number(d.slice(8))) - 4.5}" y="${P.t}" width="9" height="${H - P.t - P.b}" fill="#fff7ed"/>`; });
+      ticks.forEach(v => s += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e8edf3"/><text x="${P.l - 6}" y="${Y(v) + 4}" font-size="10" fill="#94a3b8" text-anchor="end">${v}</text>`);
+      [1, 5, 10, 15, 20, 25, N].forEach(dd => s += `<text x="${X(dd)}" y="${H - 8}" font-size="10" fill="#94a3b8" text-anchor="middle">${dd}</text>`);
+      let path = "";
+      pts.forEach((p, i) => path += i === 0 ? `M${X(p.day)},${Y(p.v)}` : `H${X(p.day)}V${Y(p.v)}`);
+      s += `<path d="${path}" fill="none" stroke="#1e3a5f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      // البداية
+      const f = pts[0];
+      s += `<circle cx="${X(f.day)}" cy="${Y(f.v)}" r="4.5" fill="#1e3a5f" stroke="#fff" stroke-width="2"/>`;
+      // الكلام عربي (من اليمين)، ومتوسّط على النقطة من غير ما يخرج برا الرسمة
+      const tl = (p, arrow) => `${arrow}${byCount ? p.ppl + " فرد · " : ""}<tspan font-weight="normal">${num(p.amt)} ريال</tspan>`;
+      const lx = (x, txt) => { const half = txt.length * 2.9 + 6; return Math.min(W - P.r - half, Math.max(P.l + half, x)); };
+      const plain = (p, arrow) => arrow + (byCount ? p.ppl + " فرد · " : "") + num(p.amt) + " ريال";
+      s += `<text direction="rtl" x="${lx(X(f.day), plain(f, ""))}" y="${Math.max(12, Y(f.v) - 9)}" font-size="10.5" fill="#1e3a5f" font-weight="bold" text-anchor="middle">${tl(f, "")}</text>`;
+      // التغييرات (الكلام بيظهر لو التغييرات قليلة، وإلا النقط بس والتفاصيل بالمرور عليها)
+      const showText = changes.length <= 6;
+      changes.forEach(p => {
+        const prev = pts[pts.indexOf(p) - 1], up = p.v > prev.v, c = up ? "#16a34a" : "#c0392b";
+        s += `<circle cx="${X(p.day)}" cy="${Y(p.v)}" r="5" fill="${c}" stroke="#fff" stroke-width="2"/>`;
+        if (showText) {
+          const ty = up ? Math.max(11, Y(p.v) - 9) : Math.min(H - P.b - 3, Y(p.v) + 16);
+          s += `<text direction="rtl" x="${lx(X(p.day), plain(p, "▲ "))}" y="${ty}" font-size="10.5" font-weight="bold" fill="${c}" text-anchor="middle">${tl(p, up ? "▲ " : "▼ ")}</text>`;
+        }
+      });
+      s += `<line class="cross" x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="#94a3b8" stroke-dasharray="3 3" visibility="hidden"/><circle class="hdot" r="6" fill="#e08a1e" stroke="#fff" stroke-width="2" visibility="hidden"/>`;
+      s += `<rect x="${P.l - 6}" y="0" width="${W - P.l - P.r + 12}" height="${H}" fill="transparent"/></svg><div class="gd-tip"></div>`;
+      el.innerHTML = s;
+      const svg = el.querySelector("svg"), tip = el.querySelector(".gd-tip"), cross = el.querySelector(".cross"), hd = el.querySelector(".hdot");
+      const recMap = {};
+      recs.forEach(([d, r]) => recMap[Number(d.slice(8))] = r);
+      const move = ev => {
+        const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W;
+        const day = Math.min(N, Math.max(1, Math.round((x - P.l) / (W - P.l - P.r) * (N - 1)) + 1));
+        const d = days[day - 1], rec = recMap[day];
+        cross.setAttribute("x1", X(day)); cross.setAttribute("x2", X(day)); cross.setAttribute("visibility", "visible");
+        const v = rec ? (byCount ? gmPeople(rec) : rec.amount) : null;
+        if (v != null) { hd.setAttribute("cx", X(day)); hd.setAttribute("cy", Y(v)); hd.setAttribute("visibility", "visible"); } else hd.setAttribute("visibility", "hidden");
+        tip.innerHTML = new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" }) + "<br>" +
+          (rec ? (gmPeople(rec) != null ? "👥 " + gmPeople(rec) + " فرد · " : "") + "<b>" + num(rec.amount) + " ريال</b>" : isFriday(d) ? "🕌 جمعة — مفيش فطار" : "مش متسجّل");
+        tip.style.display = "block";
+        tip.style.left = Math.min(r.width - 70, Math.max(70, X(day) / W * r.width)) + "px";
+        tip.style.top = ((v != null ? Y(v) : P.t) / H * r.height - 8) + "px";
+      };
+      svg.addEventListener("pointermove", move);
+      svg.addEventListener("pointerdown", move);
+      svg.addEventListener("pointerleave", () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); hd.setAttribute("visibility", "hidden"); });
+      const l = pts[pts.length - 1];
+      const tot = recs.reduce((t, [, r]) => t + r.amount, 0);
+      noteEl.innerHTML = `📌 بدأ الشهر بـ <b>${lbl(f)}</b>، وآخر يوم متسجّل <b>${lbl(l)}</b> · ${changes.length ? changes.length + " تغيير" : "من غير تغيير"} · سعر الفرد ${num(price)} ريال · الإجمالي <b>${money(tot)}</b>` +
+        (byCount ? "" : `<br>💡 الرسمة بالمبلغ لأن فيه أيام متسجّلة بمبلغ من غير عدد.`) +
+        `<br><span class="no-print">👆 حرّك صباعك أو الماوس على الخط تشوف أي يوم.</span>`;
     }
 
     async function gmAddMember(gid) {
