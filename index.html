@@ -47,6 +47,31 @@
     .gm-grid tr.inactive td { color: #94a3b8; }
     .gm-grid td.tot, .gm-grid tr.tot td { font-weight: bold; background: #eef1f5; }
     .gm-grid tr.tot td.gname { background: #eef1f5; }
+    #gmCards[hidden] { display: none !important; }
+    .gm-search { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+    .gm-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    .gm-gcard { background: #f8fafc; border: 1px solid #e2e8f0; border-top: 4px solid #e08a1e; border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; }
+    .gm-gcard:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(30,58,95,0.12); background: white; }
+    .gm-gcard.off { border-top-color: #94a3b8; opacity: 0.75; }
+    .gm-gcard b { display: block; color: #1e3a5f; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gm-gcard .big { font-size: 20px; font-weight: bold; color: #e08a1e; margin: 4px 0 2px; }
+    .gm-gcard small { display: block; color: #64748b; font-size: 12px; line-height: 1.6; }
+    .gm-link { cursor: pointer; }
+    .gm-link:hover { text-decoration: underline; color: #e08a1e !important; }
+    .pf-stats .stat small { display: block; color: #64748b; font-size: 12px; margin-top: 2px; }
+    .gd-members { display: grid; gap: 4px; }
+    .gd-mem { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: #f8fafc; }
+    .gd-mem .n { width: 26px; height: 26px; flex: none; border-radius: 50%; background: #1e3a5f; color: white; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    .gd-mem .t { flex: 1; min-width: 0; }
+    .gd-mem .t b { display: block; color: #1e3a5f; font-size: 14px; }
+    .gd-mem .t small { color: #64748b; font-size: 12px; }
+    .gd-mem button { padding: 4px 9px; font-size: 13px; background: #eef1f5; color: #1e3a5f; }
+    .gd-mem button.x { color: #c0392b; }
+    .gd-add { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .gd-add input { flex: 1; min-width: 160px; box-sizing: border-box; }
+    .gd-days { display: flex; flex-wrap: wrap; gap: 5px; }
+    .gd-days span { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 3px 8px; font-size: 12px; color: #166534; white-space: nowrap; }
+    .gd-days span.fri { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
     .gm-hint { font-size: 12px; color: #64748b; margin: 6px 0 0; }
     #gmGroupsBox, #gmImportBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #gmGroupsBox[hidden], #gmImportBox[hidden] { display: none; }
@@ -71,6 +96,10 @@
       .gm-dayhead .gm-fill { width: 100%; margin: 0; }
       .gm-dayhead .gm-fill button { flex: 1; }
       .gm-list { grid-template-columns: 1fr; }
+      .gm-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .gm-gcard { padding: 8px 10px; }
+      .gm-gcard .big { font-size: 17px; }
+      .gm-gcard small { font-size: 11px; }
       .gm-card { padding: 10px; }
       .gg-row { grid-template-columns: 1fr 58px 64px; }
       .gg-row label, .gg-row button { grid-row: 2; }
@@ -1319,7 +1348,9 @@
       </div>
       <div id="gmStats"></div>
       <div class="ts-chips gm-views" id="gmViews"></div>
+      <div id="gmCards" class="gm-card" hidden></div>
       <div id="gmDay" class="gm-card"></div>
+      <datalist id="gmWorkerList"></datalist>
       <div id="gmGrid" class="gm-card" hidden><div id="gmPrint"></div></div>
     </div>
     <div id="mealsPersons">
@@ -1789,6 +1820,14 @@
           ["country", "job", "sponsor", "building", "room", "bed_no", "arrival", "iqama_img"].forEach(f => { if (!keep[f] && d[f]) fill[f] = d[f]; });
           if (d.iqama_expiry && (!keep.iqama_expiry || d.iqama_expiry > keep.iqama_expiry)) fill.iqama_expiry = d.iqama_expiry;
           if (d.blanket === "نعم" && keep.blanket !== "نعم") fill.blanket = "نعم";
+          // مجموعة الفطار: لو السجل المتكرر في مجموعة والسجل الأساسي لأ، بننقلها له
+          const mg = await db.from("meal_group_members").select("id,worker_id").in("worker_id", [keep.id, d.id]);
+          if (!mg.error && mg.data.some(x => x.worker_id === d.id)) {
+            r = mg.data.some(x => x.worker_id === keep.id)
+              ? await db.from("meal_group_members").delete().eq("worker_id", d.id)
+              : await db.from("meal_group_members").update({ worker_id: keep.id, name: keep.name }).eq("worker_id", d.id);
+            if (r.error) throw r.error.message;
+          }
           msg.textContent = "⏳ بمسح السجل المتكرر...";
           // نمسح الأول (عشان رقم الإقامة)، وبعدين نكمّل البيانات
           r = await db.from("workers").delete().eq("id", d.id);
@@ -2868,6 +2907,7 @@
                 ${info("السكن", w.building)}
                 ${info("الغرفة / السرير", (w.room || "-") + (w.bed_no ? " · سرير " + w.bed_no : ""))}
                 ${info("تاريخ القدوم", w.arrival)}
+                ${(() => { const m = gmMembers.find(x => x.worker_id === w.id), g = m && mealGroups.find(x => x.id === m.group_id); return g ? info("مجموعة الفطار", `<a class="pf-driver" onclick="showGroup(${g.id})">👥 ${gmEsc(g.name)}</a>`) : ""; })()}
                 ${info("البطانية", w.blanket === "نعم" ? '<span class="badge ok">استلم</span>' : '<span class="badge bad">لم يستلم</span>')}
               </div>
             </div>
@@ -3194,6 +3234,7 @@
 
     function closeProfile() {
       profileId = null;
+      gmDetailId = null;
       document.getElementById("profileBox").hidden = true;
     }
      
@@ -4961,7 +5002,11 @@
     let mealGroups = [];      // المجموعات
     let gmRows = {};          // "رقم المجموعة|التاريخ" ← { people, amount }
     let gmReady = true;       // الجداول موجودة في Supabase؟
-    let gmView = "day";       // day: تسجيل يوم — month: كشف الشهر
+    let gmView = "cards";     // cards: المجموعات — day: تسجيل يوم — month: كشف الشهر
+    let gmMembers = [];       // أسماء الأفراد جوه كل مجموعة
+    let gmMembersReady = true;
+    let gmSearch = "";
+    let gmDetailId = null;    // المجموعة المفتوحة
     let gmShow = "amount";    // في كشف الشهر: amount التكلفة — people العدد
     let gmDate = "";          // اليوم المختار في تسجيل اليوم
     // أسعار خاصة للمجموعات اللي بتتعمل من الاستيراد (الباقي بسعر الفطار العادي)
@@ -4994,8 +5039,9 @@
       if (!mi.value) mi.value = todayIso().slice(0, 7);
       const ym = mi.value, days = monthDays(ym);
       if (!gmDate || gmDate.slice(0, 7) !== ym) gmDate = ym === todayIso().slice(0, 7) ? todayIso() : days[0];
-      const [g, r] = await Promise.all([
+      const [g, mm, r] = await Promise.all([
         db.from("meal_groups").select("*").order("sort").order("id"),
+        fetchAll(() => db.from("meal_group_members").select("*").order("id")),
         fetchAll(() => db.from("group_meals").select("group_id,meal_date,people,amount").gte("meal_date", days[0]).lte("meal_date", days[days.length - 1]).order("group_id").order("meal_date"))
       ]);
       if (mi.value !== ym) return;   // الشهر اتغيّر واحنا بنحمّل
@@ -5003,9 +5049,12 @@
       document.getElementById("gmNotice").innerHTML = gmReady ? "" :
         '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>فطار المجموعات محتاج جدولين جداد في Supabase. شغّل كود فطار المجموعات في SQL Editor وبعدين اعمل refresh.</div>';
       mealGroups = gmReady ? g.data : [];
+      gmMembersReady = !mm.error;
+      gmMembers = mm.error ? [] : mm.data;
       gmRows = {};
       if (gmReady) r.data.forEach(x => gmRows[gmKey(x.group_id, x.meal_date)] = { people: x.people == null ? null : Number(x.people), amount: Number(x.amount) || 0 });
       renderGm();
+      if (gmDetailId && !document.getElementById("profileBox").hidden) showGroup(gmDetailId);
     }
 
     function shiftGmMonth(n) {
@@ -5056,12 +5105,138 @@
         <div class="stat"><b style="color:#e08a1e">${money(monthAmt)}</b>💰 إجمالي ${monthLabel(ym)}<small>${recDays.size} يوم متسجّل</small></div>
         <div class="stat"><b>${monthPeople.toLocaleString("en-US")}</b>🍳 وجبة في الشهر<small>متوسط اليوم ${money(recDays.size ? monthAmt / recDays.size : 0)}</small></div>` : "";
       document.getElementById("gmViews").innerHTML = gmReady ? `
+        <button class="chip ${gmView === "cards" ? "on" : ""}" onclick="gmSetView('cards')">🗂️ المجموعات</button>
         <button class="chip ${gmView === "day" ? "on" : ""}" onclick="gmSetView('day')">📝 تسجيل يوم</button>
         <button class="chip ${gmView === "month" ? "on" : ""}" onclick="gmSetView('month')">📅 كشف الشهر</button>` : "";
+      document.getElementById("gmCards").hidden = !gmReady || gmView !== "cards";
       document.getElementById("gmDay").hidden = !gmReady || gmView !== "day";
       document.getElementById("gmGrid").hidden = !gmReady || gmView !== "month";
       if (!gmReady) return;
-      if (gmView === "day") renderGmDay(); else renderGmMonth(days);
+      if (gmView === "cards") renderGmCards(days); else if (gmView === "day") renderGmDay(); else renderGmMonth(days);
+    }
+
+    // كروت المجموعات: دوس على أي مجموعة تشوف أسماءها وعددها وحسابها
+    function renderGmCards(days) {
+      const today = todayIso();
+      const q = gmSearch.trim().toLowerCase();
+      const memName = m => (m.worker_id && findWorker(m.worker_id) ? findWorker(m.worker_id).name : m.name || "");
+      const list = gmVisibleGroups(days).filter(g => !q || g.name.toLowerCase().includes(q) ||
+        gmMembers.some(m => m.group_id === g.id && memName(m).toLowerCase().includes(q)));
+      const box = document.getElementById("gmCards");
+      const focused = document.activeElement && document.activeElement.id === "gmSearchIn";
+      box.innerHTML = `<input id="gmSearchIn" class="gm-search" placeholder="🔍 ابحث باسم المجموعة أو اسم شخص جواها" value="${gmEsc(gmSearch)}" oninput="gmSearch = this.value; renderGm()">` +
+        (list.length ? `<div class="gm-cards">${list.map(g => {
+          const mAmt = days.reduce((s, d) => s + (gmRows[gmKey(g.id, d)] ? gmRows[gmKey(g.id, d)].amount : 0), 0);
+          const tr = gmRows[gmKey(g.id, today)];
+          const mc = gmMembers.filter(m => m.group_id === g.id).length;
+          return `<div class="gm-gcard ${g.active === false ? "off" : ""}" onclick="showGroup(${g.id})">
+            <b title="${gmEsc(g.name)}">${gmEsc(g.name)}</b>
+            <div class="big">${money(mAmt)}</div>
+            <small>👥 ${Number(g.people) || 0} فرد · ${num(Number(g.price))} ريال للفرد</small>
+            <small>📅 النهارده: ${tr ? money(tr.amount) : "مش متسجّل"}</small>
+            <small>📝 ${mc ? mc + " اسم" : "مفيش أسماء لسه"}${g.active === false ? " · ⏸️ متوقفة" : ""}</small>
+          </div>`; }).join("")}</div>` : (mealGroups.length ? '<p style="color:#64748b">مفيش نتايج</p>' : gmEmpty));
+      if (focused) { const el = document.getElementById("gmSearchIn"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    }
+
+    // ----- صفحة المجموعة: العدد والأسماء والحساب -----
+    function showGroup(id) {
+      const g = mealGroups.find(x => x.id === id);
+      if (!g) return;
+      gmDetailId = id;
+      const ym = document.getElementById("gmMonth").value, days = monthDays(ym), today = todayIso();
+      const recs = days.map(d => [d, gmRows[gmKey(id, d)]]).filter(x => x[1]);
+      const mAmt = recs.reduce((s, [, r]) => s + r.amount, 0);
+      const mMeals = recs.reduce((s, [, r]) => s + (gmPeople(r) || 0), 0);
+      const tr = gmRows[gmKey(id, today)];
+      const mem = gmMembers.filter(m => m.group_id === id).map(m => ({ ...m, w: m.worker_id ? findWorker(m.worker_id) : null }));
+      mem.sort((a, b) => (a.w ? a.w.name : a.name || "").localeCompare(b.w ? b.w.name : b.name || ""));
+      const edit = canOpen("meals");
+      document.getElementById("gmWorkerList").innerHTML = workers.map(w => `<option value="${gmEsc(w.name)}">${gmEsc([w.idNo, w.room ? "غرفة " + w.room : ""].filter(Boolean).join(" · "))}</option>`).join("");
+      openPfBox(`
+        <div class="tsm-head">
+          <span class="tsm-avatar" style="font-size:24px">👥</span>
+          <div><h3>${gmEsc(g.name)}</h3><small>${num(Number(g.price))} ريال للفرد${g.active === false ? " · ⏸️ متوقفة" : ""}</small></div>
+          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+        </div>
+        <div class="pf-body">
+          <div class="pf-stats">
+            <div class="stat"><b>${Number(g.people) || 0}</b>👥 العدد الأساسي<small>${money((Number(g.people) || 0) * Number(g.price))} في اليوم</small></div>
+            <div class="stat"><b>${mem.length}</b>📝 اسم متسجّل</div>
+            <div class="stat"><b>${tr ? money(tr.amount) : "-"}</b>📅 النهارده<small>${tr ? (gmPeople(tr) != null ? gmPeople(tr) + " وجبة" : "") : "مش متسجّل"}</small></div>
+            <div class="stat"><b style="color:#e08a1e">${money(mAmt)}</b>💰 إجمالي ${monthLabel(ym)}<small>${recs.length} يوم · ${mMeals.toLocaleString("en-US")} وجبة</small></div>
+          </div>
+          <div class="pf-card">
+            <h4>📝 الأسماء (${mem.length})
+              ${edit && gmMembersReady && mem.length && mem.length !== (Number(g.people) || 0) ? `<button class="no-print" onclick="gmPeopleFromMembers(${id}, ${mem.length})" style="background:#16a34a">خلّي العدد الأساسي ${mem.length}</button>` : ""}</h4>
+            ${!gmMembersReady ? '<p class="warn-note" style="margin:0">⚠️ عشان تحط أسماء جوه المجموعات، شغّل سطر الـ SQL بتاع أسماء المجموعات في Supabase.</p>' :
+              mem.length ? `<div class="gd-members">${mem.map((m, i) => `<div class="gd-mem">
+                <span class="n">${i + 1}</span>
+                <span class="t"><b>${gmEsc(m.w ? m.w.name : m.name)}</b><small>${m.w ? [m.w.idNo ? "🪪 " + m.w.idNo : "", m.w.room ? "🚪 " + m.w.room + " · " + (m.w.building || "") : "", m.w.archived ? "🗂️ في الأرشيف" : ""].filter(Boolean).join(" · ") : "مش ساكن"}</small></span>
+                ${m.w ? `<button class="no-print" onclick="showProfile(${m.w.id})" title="ملفه">🪪</button>` : ""}
+                ${edit ? `<button class="x no-print" onclick="gmRemoveMember(${m.id})" title="شيله من المجموعة">✖</button>` : ""}
+              </div>`).join("")}</div>` : '<p style="color:#64748b; margin:0">مفيش أسماء متسجّلة في المجموعة دي لسه.</p>'}
+            ${edit && gmMembersReady ? `<div class="gd-add no-print">
+              <input id="gdAddIn" list="gmWorkerList" placeholder="اكتب اسم ساكن أو رقم إقامته، أو أي اسم" onkeydown="if (event.key === 'Enter') { event.preventDefault(); gmAddMember(${id}); }">
+              <button onclick="gmAddMember(${id})" style="background:#16a34a">➕ ضيف</button>
+            </div><span id="gdMsg" style="font-size:13px"></span>` : ""}
+          </div>
+          <div class="pf-card">
+            <h4>📅 أيام ${monthLabel(ym)}</h4>
+            ${recs.length ? `<div class="gd-days">${recs.map(([d, r]) => `<span class="${isFriday(d) ? "fri" : ""}" title="${new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" })}"><b>يوم ${Number(d.slice(8))}</b> · ${gmPeople(r) != null ? gmPeople(r) + " فرد · " : ""}${num(r.amount)} ريال</span>`).join("")}</div>` : '<p style="color:#64748b; margin:0">مفيش أيام متسجّلة في الشهر ده.</p>'}
+          </div>
+          <div class="pf-actions no-print">
+            ${edit ? `<button onclick="closeProfile(); openGroups()" style="background:#e08a1e">✏️ تعديل الاسم والعدد والسعر</button>` : ""}
+            <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة</button>
+            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+          </div>
+        </div>`);
+    }
+
+    async function gmAddMember(gid) {
+      const input = document.getElementById("gdAddIn"), msg = document.getElementById("gdMsg");
+      const text = input.value.trim();
+      if (!text) return;
+      const n = text.toLowerCase();
+      const all = workers.concat(archivedWorkers);
+      const w = all.find(x => normIqama(x.idNo) && normIqama(x.idNo) === normIqama(text)) || workers.find(x => x.name.trim().toLowerCase() === text.toLowerCase()) || all.find(x => x.name.trim().toLowerCase() === text.toLowerCase());
+      if (w) {
+        const ex = gmMembers.find(m => m.worker_id === w.id);
+        if (ex && ex.group_id === gid) { msg.textContent = "⚠️ " + w.name + " موجود في المجموعة دي أصلًا"; return; }
+        if (ex) {
+          const og = mealGroups.find(x => x.id === ex.group_id);
+          if (!confirm(w.name + " موجود في مجموعة " + (og ? og.name : "تانية") + ". تنقله للمجموعة دي؟")) return;
+          const { error } = await db.from("meal_group_members").update({ group_id: gid }).eq("id", ex.id);
+          if (error) { msg.textContent = "❌ " + error.message; return; }
+          ex.group_id = gid;
+          renderGm(); showGroup(gid); document.getElementById("gdAddIn").focus();
+          return;
+        }
+      } else if (gmMembers.some(m => m.group_id === gid && !m.worker_id && (m.name || "").trim().toLowerCase() === n)) {
+        msg.textContent = "⚠️ الاسم ده موجود في المجموعة أصلًا"; return;
+      }
+      const row = { group_id: gid, worker_id: w ? w.id : null, name: w ? w.name : text };
+      const { data, error } = await db.from("meal_group_members").insert(row).select();
+      if (error) { msg.textContent = "❌ " + error.message; return; }
+      gmMembers.push(data[0]);
+      renderGm(); showGroup(gid);
+      document.getElementById("gdAddIn").focus();
+    }
+    async function gmRemoveMember(mid) {
+      const m = gmMembers.find(x => x.id === mid);
+      if (!m) return;
+      const w = m.worker_id ? findWorker(m.worker_id) : null;
+      if (!confirm("تشيل " + (w ? w.name : m.name) + " من المجموعة؟")) return;
+      const { error } = await db.from("meal_group_members").delete().eq("id", mid);
+      if (error) { alert("❌ " + error.message); return; }
+      gmMembers = gmMembers.filter(x => x.id !== mid);
+      renderGm(); showGroup(m.group_id);
+    }
+    async function gmPeopleFromMembers(gid, n) {
+      const { error } = await db.from("meal_groups").update({ people: n }).eq("id", gid);
+      if (error) { alert("❌ " + error.message); return; }
+      mealGroups.find(x => x.id === gid).people = n;
+      renderGm(); showGroup(gid);
     }
 
     const gmEmpty = '<p style="color:#64748b; margin:6px 0">مفيش مجموعات لسه. دوس <b>👥 المجموعات</b> وضيف، أو <b>📥 استيراد من Excel</b> من الشيت بتاعك.</p>';
@@ -5090,7 +5265,7 @@
         ${list.length ? `<div class="gm-list">${list.map(g => {
           const rec = gmRows[gmKey(g.id, d)], p = gmPeople(rec);
           return `<div class="gm-row ${rec ? "on" : ""}">
-            <span class="gn"><b title="${gmEsc(g.name)}">${gmEsc(g.name)}</b><small>${Number(g.people) || 0} فرد · ${num(Number(g.price))} ريال للفرد</small></span>
+            <span class="gn"><b class="gm-link" title="افتح المجموعة" onclick="showGroup(${g.id})">${gmEsc(g.name)}</b><small>${Number(g.people) || 0} فرد · ${num(Number(g.price))} ريال للفرد</small></span>
             <span class="gm-count">
               <button type="button" onclick="gmStep(${g.id}, -1)" title="أقل">−</button>
               <input type="number" min="0" inputmode="numeric" value="${p != null ? p : ""}" placeholder="${rec ? "—" : "-"}" onchange="gmSet(${g.id}, this.value)">
@@ -5111,7 +5286,7 @@
       const odd = (g, rec) => rec && (gmPeople(rec) == null || Math.abs(gmPeople(rec) * Number(g.price) - rec.amount) > 0.001);
       const table = groups.length ? `<div class="gm-grid-wrap"><table class="gm-grid">
         <tr><th class="gname">المجموعة</th><th>العدد</th><th>السعر</th>${days.map(d => `<th class="${isFriday(d) ? "fri" : ""}" title="${new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long" })}">${Number(d.slice(8))}</th>`).join("")}<th>الإجمالي</th></tr>
-        ${groups.map(g => `<tr class="${g.active === false ? "inactive" : ""}"><td class="gname" title="${gmEsc(g.name)}">${gmEsc(g.name)}</td><td>${Number(g.people) || 0}</td><td>${num(Number(g.price))}</td>${days.map(d => {
+        ${groups.map(g => `<tr class="${g.active === false ? "inactive" : ""}"><td class="gname gm-link" title="${gmEsc(g.name)}" onclick="showGroup(${g.id})">${gmEsc(g.name)}</td><td>${Number(g.people) || 0}</td><td>${num(Number(g.price))}</td>${days.map(d => {
           const rec = gmRows[gmKey(g.id, d)];
           return `<td class="cell ${isFriday(d) ? "fri" : ""} ${odd(g, rec) ? "odd" : ""}" onclick="gmOpenDay('${d}')">${val(rec)}</td>`; }).join("")}<td class="tot">${num(rowSum(g))}</td></tr>`).join("")}
         <tr class="tot"><td class="gname">الإجمالي</td><td>${groups.reduce((s, g) => s + (Number(g.people) || 0), 0)}</td><td></td>${days.map(d => `<td class="${isFriday(d) ? "fri" : ""}">${daySum(d) ? num(daySum(d)) : ""}</td>`).join("")}<td>${num(days.reduce((s, d) => s + daySum(d), 0))}</td></tr>

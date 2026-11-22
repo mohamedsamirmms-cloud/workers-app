@@ -158,3 +158,24 @@ begin
 end $$;
 revoke all on public.meal_groups, public.group_meals from anon;
 
+-- 7) أسماء الأفراد جوه كل مجموعة فطار (ساكن أو أي اسم)
+create table if not exists public.meal_group_members (
+  id bigint generated always as identity primary key,
+  group_id bigint not null references public.meal_groups (id) on delete cascade,
+  worker_id bigint unique references public.workers (id) on delete set null,
+  name text,
+  created_at timestamptz default now()
+);
+alter table public.meal_group_members enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'meal_group_members') then
+    if to_regprocedure('public.app_can(text)') is not null then
+      create policy rls_read  on public.meal_group_members for select to authenticated using (app_active());
+      create policy rls_write on public.meal_group_members for all    to authenticated using (app_can('meals')) with check (app_can('meals'));
+    else
+      create policy "logged in users" on public.meal_group_members for all to authenticated using (true) with check (true);
+    end if;
+  end if;
+end $$;
+revoke all on public.meal_group_members from anon;
+

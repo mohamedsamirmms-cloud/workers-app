@@ -29,6 +29,7 @@ select item as "البند", case when ok then '✅' else '❌' end as "الحا
                                             or exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'rls_equip_write' and with_check like '%cars%')),
   (18, 'منع تكرار رقم الإقامة',              exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'workers_id_no_unique')),
   (19, 'فطار المجموعات (جدولين)',            to_regclass('public.meal_groups') is not null and to_regclass('public.group_meals') is not null),
-  (20, 'فطار المجموعات: الأمان',             (select count(*) from pg_policies where schemaname = 'public' and tablename in ('meal_groups', 'group_meals') and policyname like 'rls\_%') = 4)
+  (20, 'فطار المجموعات: الأمان',             (select count(*) from pg_policies where schemaname = 'public' and tablename in ('meal_groups', 'group_meals') and policyname like 'rls\_%') = 4),
+  (21, 'أسماء مجموعات الفطار',              to_regclass('public.meal_group_members') is not null)
 ) as t(n, item, ok)
 order by n;

@@ -28,7 +28,7 @@
 |---|---|---|
 | `dashboard` | لوحة التحكم: 5 مربعات بتفتح تفاصيل (ساكنين، حضور النهارده، وجبات، معدات، سيارات) + تنبيهات المستندات | `refreshDashboard`, `renderDashDocs`, `loadDashAtt`, `loadDashMeals`, `toggleDash` |
 | `residents` | الساكنين: كروت بتفلتر، تابات المساكن، مربعات الغرف، **بيانات الوحدة** (غرف/حمامات/مطبخ/غاز/سلندر/غسالة/تلاجة)، جدول، إضافة/تعديل/أرشفة/حذف | `showWorkers`, `showRooms`, `showRoomInfo`, `saveRoomInfo`, `openBuilding`, `dashOpen` |
-| `meals` | الوجبات: تابين (`setMealTab`). **🍳 فطار المجموعات** (الأساسي): المجموعات بعددها وسعر الفرد، تسجيل يوم (− +)، كشف الشهر زي شيت صاحب المشروع، استيراد من شيت BREAKFAST، وExcel وطباعة. **👷 وجبات الأفراد**: يومي (فطار/غداء لكل عامل) + حساب شهري | `loadGroupMeals`, `renderGmDay`, `renderGmMonth`, `gmSave`, `readGmImport`, `doGmImport`, `exportGroupMeals`, `GM_PRICES` · `showMeals`, `toggleMeal`, `showMealMonth` |
+| `meals` | الوجبات: تابين (`setMealTab`). **🍳 فطار المجموعات** (الأساسي): 3 عروض. **🗂️ المجموعات** (كروت، والافتراضي): لما تدوس على أي كرت تفتح صفحة المجموعة (`showGroup`) فيها العدد والأسماء والإجمالي والأيام، وتضيف أسماء (ساكن بالاسم أو رقم الإقامة، أو أي اسم) أو تشيلها. والعرضين التانيين: المجموعات بعددها وسعر الفرد، تسجيل يوم (− +)، كشف الشهر زي شيت صاحب المشروع، استيراد من شيت BREAKFAST، وExcel وطباعة. **👷 وجبات الأفراد**: يومي (فطار/غداء لكل عامل) + حساب شهري | `loadGroupMeals`, `renderGmDay`, `renderGmMonth`, `gmSave`, `readGmImport`, `doGmImport`, `exportGroupMeals`, `GM_PRICES` · `showMeals`, `toggleMeal`, `showMealMonth` |
 | `timesheet` | التايم شيت: يومي + **كشف شهري لكل عامل** (تقويم/جدول) + **كشف شهري لكل العمال** (ملخص/بالأيام) | `showTimesheet`, `markPresent`, `saveTime`, `openTsMonth`, `showTsMonth`, `openTsAll`, `loadTsAll`, `exportTsAll` |
 | `moves` | **معدات المشروع** (الاسم القديم في الكود `moves`): مستندات بأرقام وتواريخ ومرفقات، صورة لكل معدة، **رسومات لأنواع المعدات** (16 نوع بتتعرف من الاسم)، قراءة PDF/صورة تلقائيًا | `showEquipment`, `openEq`, `readEqFile`, `parseEqText`, `EQ_DOCS`, `EQ_KINDS`, `detectKind` |
 | `cars` | سيارات المشروع: استمارة وتأمين وصيانة وعداد | `showCars`, `openCar`, `exportCars` |
@@ -61,6 +61,7 @@
 | `cars` | `id, plate, car_type, model, driver, reg_expiry, ins_expiry, last_service, km, notes, iqama_file, license_file` |
 | `equipment` | `id, name, driver, kind, photo, iqama_no, license_no, operator_no, reg_expiry, ins_expiry, inspection_expiry, *_file, other_files (jsonb)` |
 | `meal_groups` | `id, name (unique), people (العدد الأساسي), price (سعر الفرد), sort, active` |
+| `meal_group_members` | `id, group_id (cascade), worker_id (unique، ساكن أو null، on delete set null), name` — الأسماء جوه كل مجموعة |
 | `group_meals` | المفتاح `(group_id, meal_date)`: `people` (ممكن null لو مبلغ بس)، `amount`. بيتمسحوا مع المجموعة (cascade) |
 | `app_users` | `id, email, name, role, pages (text[]), active, last_login, created_at` |
 | `app_settings` | `key='main'`, `value` jsonb: `name, sub, breakfast, lunch, hours, timeIn, warnDays, countries[], sponsors[]` |
@@ -71,7 +72,7 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (20 بند) يأكد إن كله متجهز.
+- `check.sql`: جدول ✅/❌ (21 بند) يأكد إن كله متجهز.
 - **الحالة الحالية:** صاحب المشروع شغّل كل الأكواد، وكل البنود لحد 17 ✅. بند 18 (منع التكرار) محتاج: يصلّح الأرقام المتكررة لو فيه، وبعدين يشغّل سطر الـ index.
 
 ## 5. الصلاحيات والأمان
