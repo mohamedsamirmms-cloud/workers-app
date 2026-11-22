@@ -49,13 +49,21 @@
     .gm-grid tr.tot td.gname { background: #eef1f5; }
     #gmCards[hidden] { display: none !important; }
     .gm-search { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-    .gm-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
-    .gm-gcard { background: #f8fafc; border: 1px solid #e2e8f0; border-top: 4px solid #e08a1e; border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; }
-    .gm-gcard:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(30,58,95,0.12); background: white; }
-    .gm-gcard.off { border-top-color: #94a3b8; opacity: 0.75; }
-    .gm-gcard b { display: block; color: #1e3a5f; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .gm-gcard .big { font-size: 20px; font-weight: bold; color: #e08a1e; margin: 4px 0 2px; }
-    .gm-gcard small { display: block; color: #64748b; font-size: 12px; line-height: 1.6; }
+    .gm-sum { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; background: #1e3a5f; color: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; }
+    .gm-sum small { display: block; opacity: 0.8; font-size: 12px; }
+    .gm-sum b { font-size: 18px; }
+    .gm-sum div:first-child b { color: #fbbf24; font-size: 21px; }
+    .gm-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; }
+    .gm-gcard { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px 8px; text-align: center; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; min-width: 0; }
+    .gm-gcard:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30,58,95,0.13); }
+    .gm-gcard.off { opacity: 0.65; }
+    .gm-gcard .ring { width: 70px; height: 70px; margin: 0 auto 6px; position: relative; }
+    .gm-gcard .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .gm-gcard .ring b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 20px; color: #1e3a5f; line-height: 1.1; }
+    .gm-gcard .ring b small { font-size: 10px; color: #64748b; font-weight: normal; }
+    .gm-gcard .nm { font-weight: bold; color: #1e3a5f; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gm-gcard .am { color: #e08a1e; font-weight: bold; font-size: 16px; margin-top: 2px; }
+    .gm-gcard .td { font-size: 11px; color: #64748b; line-height: 1.6; }
     .gm-link { cursor: pointer; }
     .gm-link:hover { text-decoration: underline; color: #e08a1e !important; }
     .pf-stats .stat small { display: block; color: #64748b; font-size: 12px; margin-top: 2px; }
@@ -97,9 +105,10 @@
       .gm-dayhead .gm-fill button { flex: 1; }
       .gm-list { grid-template-columns: 1fr; }
       .gm-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .gm-gcard { padding: 8px 10px; }
-      .gm-gcard .big { font-size: 17px; }
-      .gm-gcard small { font-size: 11px; }
+      .gm-gcard { padding: 10px 6px; }
+      .gm-gcard .am { font-size: 15px; }
+      .gm-sum b { font-size: 15px; }
+      .gm-sum div:first-child { flex-basis: 100%; }
       .gm-card { padding: 10px; }
       .gg-row { grid-template-columns: 1fr 58px 64px; }
       .gg-row label, .gg-row button { grid-row: 2; }
@@ -5125,18 +5134,42 @@
       const box = document.getElementById("gmCards");
       const focused = document.activeElement && document.activeElement.id === "gmSearchIn";
       box.innerHTML = `<input id="gmSearchIn" class="gm-search" placeholder="🔍 ابحث باسم المجموعة أو اسم شخص جواها" value="${gmEsc(gmSearch)}" oninput="gmSearch = this.value; renderGm()">` +
-        (list.length ? `<div class="gm-cards">${list.map(g => {
-          const mAmt = days.reduce((s, d) => s + (gmRows[gmKey(g.id, d)] ? gmRows[gmKey(g.id, d)].amount : 0), 0);
+        (list.length ? gmCardsHtml(list, days, today) : (mealGroups.length ? '<p style="color:#64748b">مفيش نتايج</p>' : gmEmpty));
+      if (focused) { const el = document.getElementById("gmSearchIn"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    }
+
+    // شكل الكروت: العدد في دايرة (بتكمل على قد مبلغ المجموعة من أكبر مجموعة)
+    const GM_COLORS = ["#2563eb", "#16a34a", "#e08a1e", "#7c3aed", "#c0392b", "#0891b2", "#db2777", "#65a30d"];
+    function gmCardsHtml(list, days, today) {
+      const amt = g => days.reduce((s, d) => s + (gmRows[gmKey(g.id, d)] ? gmRows[gmKey(g.id, d)].amount : 0), 0);
+      const amts = {};
+      mealGroups.forEach(g => amts[g.id] = amt(g));
+      const max = Math.max(1, ...Object.values(amts));
+      const total = list.reduce((s, g) => s + amts[g.id], 0);
+      const people = list.filter(g => g.active !== false).reduce((s, g) => s + (Number(g.people) || 0), 0);
+      const todayAmt = list.reduce((s, g) => s + (gmRows[gmKey(g.id, today)] ? gmRows[gmKey(g.id, today)].amount : 0), 0);
+      const R = 28, L = 2 * Math.PI * R;
+      return `<div class="gm-sum">
+          <div><small>إجمالي ${monthLabel(days[0].slice(0, 7))} (${list.length} مجموعة)</small><b>${money(total)}</b></div>
+          <div><small>النهارده</small><b>${money(todayAmt)}</b></div>
+          <div><small>الأفراد</small><b>${people.toLocaleString("en-US")}</b></div>
+        </div>
+        <div class="gm-cards">${list.map(g => {
+          const i = mealGroups.indexOf(g);
+          const color = g.active === false ? "#94a3b8" : GM_COLORS[i % GM_COLORS.length];
           const tr = gmRows[gmKey(g.id, today)];
           const mc = gmMembers.filter(m => m.group_id === g.id).length;
-          return `<div class="gm-gcard ${g.active === false ? "off" : ""}" onclick="showGroup(${g.id})">
-            <b title="${gmEsc(g.name)}">${gmEsc(g.name)}</b>
-            <div class="big">${money(mAmt)}</div>
-            <small>👥 ${Number(g.people) || 0} فرد · ${num(Number(g.price))} ريال للفرد</small>
-            <small>📅 النهارده: ${tr ? money(tr.amount) : "مش متسجّل"}</small>
-            <small>📝 ${mc ? mc + " اسم" : "مفيش أسماء لسه"}${g.active === false ? " · ⏸️ متوقفة" : ""}</small>
-          </div>`; }).join("")}</div>` : (mealGroups.length ? '<p style="color:#64748b">مفيش نتايج</p>' : gmEmpty));
-      if (focused) { const el = document.getElementById("gmSearchIn"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+          const frac = amts[g.id] ? Math.max(0.06, amts[g.id] / max) : 0;
+          return `<div class="gm-gcard ${g.active === false ? "off" : ""}" onclick="showGroup(${g.id})" title="افتح المجموعة">
+            <div class="ring">
+              <svg viewBox="0 0 66 66"><circle cx="33" cy="33" r="${R}" fill="none" stroke="#eef1f5" stroke-width="6"/>${frac ? `<circle cx="33" cy="33" r="${R}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${L * frac} ${L}"/>` : ""}</svg>
+              <b>${Number(g.people) || 0}<small>فرد</small></b>
+            </div>
+            <div class="nm" title="${gmEsc(g.name)}">${gmEsc(g.name)}</div>
+            <div class="am">${money(amts[g.id])}</div>
+            <div class="td">${tr ? "النهارده " + num(tr.amount) : "النهارده مش متسجّل"} · ${num(Number(g.price))} للفرد</div>
+            ${mc || g.active === false ? `<div class="td">${mc ? "📝 " + mc + " اسم" : ""}${mc && g.active === false ? " · " : ""}${g.active === false ? "⏸️ متوقفة" : ""}</div>` : ""}
+          </div>`; }).join("")}</div>`;
     }
 
     // ----- صفحة المجموعة: العدد والأسماء والحساب -----
