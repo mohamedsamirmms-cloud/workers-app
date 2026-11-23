@@ -6111,6 +6111,7 @@
     }
 
     // حساب الشهر لكل عامل
+    let mealMonthNames = false;
     async function showMealMonth() {
       const ym = document.getElementById("mealMonth").value;
       if (!ym) return;
@@ -6148,7 +6149,12 @@
         document.getElementById("mealMonthList").innerHTML = "<div><p>مفيش وجبات متسجّلة الشهر ده</p></div>";
         return;
       }
-      let html = `<div><table>
+      // كشف الأسماء مستخبي إلا لو اتطلب (الإجماليات فوق كفاية، والـ Excel فيه الأسماء)
+      if (!mealMonthNames) {
+        document.getElementById("mealMonthList").innerHTML = `<div style="text-align:center"><button onclick="mealMonthNames = true; showMealMonth()" style="background:#eef1f5; color:#1e3a5f">📋 عرض كشف الأسماء (${mealMonthRows.length} ساكن)</button></div>`;
+        return;
+      }
+      let html = `<div><div style="text-align:left; margin-bottom:8px"><button onclick="mealMonthNames = false; showMealMonth()" style="background:#eef1f5; color:#1e3a5f; font-size:13px; padding:6px 12px">✖ إخفاء الأسماء</button></div><table>
         <tr><th>#</th><th>الاسم</th><th>الغرفة</th><th>عدد الفطار</th><th>سعر الفطار</th><th>عدد الغداء</th><th>سعر الغداء</th><th>الإجمالي</th></tr>`;
       const sumRow = `<tr class="meal-sum"><td colspan="3">إجمالي الشهر</td><td>${tb}</td><td>${money(tb * BREAKFAST_PRICE)}</td><td>${tl}</td><td>${money(tl * LUNCH_PRICE)}</td><td>${money(tb * BREAKFAST_PRICE + tl * LUNCH_PRICE)}</td></tr>`;
       html += sumRow;
