@@ -129,6 +129,31 @@
       body.print-gm .gm-grid .gname { position: static; }
       body.print-gm #sidebar { display: none !important; }
     }
+          /* الوجبات بالوحدات */
+    #mealRooms:empty { display: none; }
+    #mealRooms[hidden], #mealChips[hidden], #mealList[hidden], .ml-only[hidden] { display: none !important; }
+    .mr-big { width: 100%; background: #16a34a; color: white; border-radius: 12px; padding: 13px; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+    .mr-big.off { background: #64748b; }
+    .mr-bld { font-size: 14px; font-weight: bold; color: #1e3a5f; margin: 12px 2px 6px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .mr-bld small { color: #64748b; font-weight: normal; }
+    .mr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 7px; }
+    .mr-tile { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 8px 4px 6px; text-align: center; cursor: pointer; user-select: none; transition: transform 0.1s; }
+    .mr-tile:active { transform: scale(0.96); }
+    .mr-tile b { display: block; font-size: 17px; color: #1e3a5f; }
+    .mr-tile .c { font-size: 13px; font-weight: bold; color: #94a3b8; }
+    .mr-tile.all { border-color: #86efac; background: #f0fdf4; } .mr-tile.all .c { color: #16a34a; }
+    .mr-tile.some { border-color: #fcd34d; background: #fffbeb; } .mr-tile.some .c { color: #b45309; }
+    .mr-tile.open { box-shadow: 0 0 0 3px #e08a1e; }
+    .mr-tile .nm-btn { display: inline-block; margin-top: 4px; font-size: 11px; color: #1e3a5f; background: #eef1f5; border-radius: 6px; padding: 1px 8px; }
+    .mr-sheet { background: white; border-radius: 12px; padding: 10px; margin-top: 8px; border-top: 4px solid #e08a1e; }
+    .mr-sheet h4 { margin: 0 0 8px; color: #1e3a5f; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .mr-sheet h4 button { font-size: 12px; padding: 4px 10px; background: #eef1f5; color: #1e3a5f; }
+    .mr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .mr-nm { background: #f1f5f9; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 18px; padding: 6px 11px; font-size: 13px; }
+    .mr-nm.on { background: #dcfce7; border-color: #22c55e; color: #14532d; font-weight: bold; }
+    .mr-nm.on::before { content: "✔ "; }
+    .mr-nm small { color: #64748b; font-weight: normal; }
+    .mr-hint { font-size: 12px; color: #64748b; margin: 8px 2px 0; }
           /* الوجبات */
     #page-meals input, #page-meals button { box-sizing: border-box; }
     #mealBar, #mealMonthBar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: white; padding: 12px 15px; border-radius: 12px; margin-bottom: 12px; }
@@ -1413,10 +1438,12 @@
         <span id="mealDayName"></span>
       </div>
       <input id="mealSearch" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="mPage = 0; showMeals()">
-      <button onclick="mealAll('breakfast')" style="background:#16a34a">🍳 فطار للكل</button>
-      <button onclick="mealAll('lunch')" style="background:#16a34a">🍛 غداء للكل</button>
+      <button class="ml-only" onclick="mealAll('breakfast')" style="background:#16a34a">🍳 فطار للكل</button>
+      <button class="ml-only" onclick="mealAll('lunch')" style="background:#16a34a">🍛 غداء للكل</button>
     </div>
     <div id="mealTotals"></div>
+    <div class="ts-chips" id="mealViewChips"></div>
+    <div id="mealRooms"></div>
     <div class="ts-chips" id="mealChips"></div>
     <div id="mealList"></div>
 
@@ -5916,6 +5943,18 @@
         <div class="stat orange"><b>${money(b * BREAKFAST_PRICE + l * LUNCH_PRICE)}</b>💰 إجمالي اليوم</div>
         <div class="stat gray"><b>${none}</b>🚫 بدون وجبات</div>`;
 
+      const rooms = mealView === "rooms";
+      document.getElementById("mealViewChips").innerHTML =
+        `<button class="chip ${rooms ? "on" : ""}" onclick="setMealView('rooms')">🚪 بالوحدات</button>` +
+        `<button class="chip ${!rooms ? "on" : ""}" onclick="setMealView('list')">📋 القايمة</button>` +
+        (rooms ? `<span style="width:12px"></span><button class="chip ${mealKind === "lunch" ? "on" : ""}" onclick="setMealKind('lunch')">🍛 الغداء</button>` +
+          `<button class="chip ${mealKind === "breakfast" ? "on" : ""}" onclick="setMealKind('breakfast')">🍳 الفطار</button>` : "");
+      document.getElementById("mealRooms").hidden = !rooms;
+      document.getElementById("mealChips").hidden = rooms;
+      document.getElementById("mealList").hidden = rooms;
+      document.querySelectorAll("#mealBar .ml-only").forEach(b => b.hidden = rooms);
+      if (rooms) { renderMealRooms(); return; }
+
       const chip = (f, label) => `<button class="chip ${mealFilter === f ? "on" : ""}" onclick="setMealFilter('${f}')">${label} (${searched.filter(tests[f]).length})</button>`;
       document.getElementById("mealChips").innerHTML =
         chip("all", "الكل") + chip("breakfast", "🍳 أخد فطار") + chip("lunch", "🍛 أخد غداء") + chip("none", "🚫 بدون وجبات");
@@ -5947,6 +5986,92 @@
       mPage = p;
       showMeals();
       document.getElementById("mealList").scrollIntoView({ behavior: "smooth" });
+    }
+
+    // ===== تسجيل الوجبات بالوحدات =====
+    let mealView = (() => { try { return localStorage.getItem("mealView") || "rooms"; } catch (e) { return "rooms"; } })();
+    let mealKind = "lunch";      // lunch | breakfast
+    let mealOpenRoom = "";       // "السكن|الغرفة" المفتوحة أسماءها
+    function setMealView(v) { mealView = v; try { localStorage.setItem("mealView", v); } catch (e) {} showMeals(); }
+    function setMealKind(k) { mealKind = k; showMeals(); }
+    const mealDay = () => document.getElementById("mealDate").value;
+    const mealPeople = () => workers.filter(w => onDuty(w, mealDay()));
+    const hasMeal = w => !!(mealRecords[w.id] || {})[mealKind];
+
+    function renderMealRooms() {
+      const box = document.getElementById("mealRooms");
+      const kindLbl = mealKind === "lunch" ? "غداء" : "فطار", icon = mealKind === "lunch" ? "🍛" : "🍳";
+      const ppl = mealPeople();
+      const q = document.getElementById("mealSearch").value.trim().toLowerCase();
+      const n = ppl.filter(hasMeal).length;
+      const allOn = ppl.length && n === ppl.length;
+      let h = `<button class="mr-big ${allOn ? "off" : ""}" onclick="mealAllRooms(${allOn ? "false" : "true"})">${allOn ? `↩️ امسح ${kindLbl} الكل` : `✅ سجّل ${kindLbl} للكل (${ppl.length - n} باقي)`}</button>`;
+      const chip = w => `<button class="mr-nm ${hasMeal(w) ? "on" : ""}" onclick="mealSet([${w.id}], ${!hasMeal(w)})">${gmEsc(w.name)}${q ? ` <small>· ${gmEsc(w.room || "-")}</small>` : ""}</button>`;
+      if (q) {
+        const found = ppl.filter(w => (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q)).slice(0, 40);
+        h += `<div class="mr-sheet"><h4>🔍 نتايج البحث (${found.length})</h4>${found.length ? `<div class="mr-chips">${found.map(chip).join("")}</div>` : '<p style="margin:0;color:#64748b">مفيش</p>'}</div>`;
+      }
+      ["السكن الأول", "السكن الثاني"].concat([...new Set(ppl.map(w => w.building).filter(b => b && b !== "السكن الأول" && b !== "السكن الثاني"))]).forEach(b => {
+        const inB = ppl.filter(w => w.building === b);
+        if (!inB.length) return;
+        const rooms = {};
+        inB.forEach(w => { const k = roomKey("", w.room).slice(1) || "-"; (rooms[k] = rooms[k] || []).push(w); });
+        const names = Object.keys(rooms).sort((a, c) => a.localeCompare(c, "en", { numeric: true }));
+        const bn = inB.filter(hasMeal).length;
+        h += `<div class="mr-bld"><span>🏢 ${b} <small>· ${icon} ${bn}/${inB.length}</small></span></div><div class="mr-grid">` + names.map(r => {
+          const ws = rooms[r], c = ws.filter(hasMeal).length, key = b + "|" + r;
+          const cls = c === ws.length ? "all" : c ? "some" : "";
+          return `<div class="mr-tile ${cls} ${mealOpenRoom === key ? "open" : ""}" onclick="mealRoomToggle('${gmEsc(b)}', '${gmEsc(r)}')" title="دوس عشان الوحدة كلها">
+            <b>${gmEsc(r)}</b><span class="c">${icon} ${c}/${ws.length}</span><br>
+            <span class="nm-btn" onclick="event.stopPropagation(); mealOpenRoom = mealOpenRoom === '${gmEsc(key)}' ? '' : '${gmEsc(key)}'; showMeals()">أسماء ▾</span></div>`; }).join("") + `</div>`;
+        if (mealOpenRoom.startsWith(b + "|")) {
+          const r = mealOpenRoom.slice(b.length + 1), ws = rooms[r] || [];
+          if (ws.length) h += `<div class="mr-sheet"><h4>🚪 وحدة ${gmEsc(r)} · ${icon} ${ws.filter(hasMeal).length}/${ws.length} <button onclick="mealOpenRoom = ''; showMeals()">✖ قفل</button></h4><div class="mr-chips">${ws.map(chip).join("")}</div></div>`;
+        }
+      });
+      h += `<p class="mr-hint">💡 دوسة على الوحدة = كلها تاخد ${kindLbl} أو تتشال. "أسماء ▾" = تعدّل واحد واحد. 🟩 الكل · 🟨 بعضهم.</p>`;
+      box.innerHTML = ppl.length ? h : '<p style="background:white;border-radius:12px;padding:12px;margin:0">مفيش ساكنين في اليوم ده</p>';
+    }
+
+    function mealRoomToggle(b, r) {
+      const ws = mealPeople().filter(w => w.building === b && (roomKey("", w.room).slice(1) || "-") === r);
+      mealSet(ws.map(w => w.id), !ws.every(hasMeal));
+    }
+    async function mealAllRooms(on) {
+      const ppl = mealPeople();
+      if (!on && !confirm("تمسح " + (mealKind === "lunch" ? "غداء" : "فطار") + " كل الساكنين (" + ppl.length + ") في اليوم ده؟")) return;
+      mealSet(ppl.map(w => w.id), on);
+    }
+    // تسجيل أو شيل الوجبة المختارة لمجموعة ساكنين مرة واحدة
+    async function mealSet(ids, on) {
+      const date = mealDay();
+      const ups = [], dels = [];
+      ids.forEach(id => {
+        const r = mealRecords[id] || {};
+        const next = { worker_id: id, meal_date: date, breakfast: !!r.breakfast, lunch: !!r.lunch };
+        if (next[mealKind] === on) return;
+        next[mealKind] = on;
+        if (next.breakfast || next.lunch) ups.push(next); else dels.push(id);
+      });
+      if (!ups.length && !dels.length) return;
+      const old = {};
+      ups.concat(dels.map(id => ({ worker_id: id }))).forEach(x => old[x.worker_id] = mealRecords[x.worker_id]);
+      ups.forEach(x => mealRecords[x.worker_id] = x);
+      dels.forEach(id => delete mealRecords[id]);
+      showMeals();
+      let error = null;
+      for (let i = 0; i < ups.length && !error; i += 500)
+        error = (await db.from("meals").upsert(ups.slice(i, i + 500), { onConflict: "worker_id,meal_date" })).error;
+      for (let i = 0; i < dels.length && !error; i += 200)
+        error = (await db.from("meals").delete().eq("meal_date", date).in("worker_id", dels.slice(i, i + 200))).error;
+      if (error) {
+        Object.entries(old).forEach(([id, r]) => { if (r) mealRecords[id] = r; else delete mealRecords[id]; });
+        showMeals();
+        alert("❌ محصلش حفظ: " + error.message);
+        return;
+      }
+      showMealMonth();
+      loadDashMeals();
     }
 
     async function toggleMeal(workerId) {
