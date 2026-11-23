@@ -91,6 +91,10 @@ alter table if exists public.rooms
   add column if not exists washers int default 0,
   add column if not exists fridges int default 0;
 
+-- 3ب1) عدد الأسرّة في كل وحدة (عشان نعرف الفاضي)
+alter table if exists public.rooms
+  add column if not exists beds int;
+
 -- 4) المستخدمين
 create table if not exists public.app_users (
   id bigint generated always as identity primary key,

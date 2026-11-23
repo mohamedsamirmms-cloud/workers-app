@@ -883,6 +883,35 @@
     .room b { display: block; font-size: 18px; color: #1e3a5f; }
     .room small { color: #64748b; }
     .room:hover, .room.active { border-color: #e08a1e; background: #fff7ed; }
+    .room .occ { display: block; font-size: 12px; font-weight: bold; margin-top: 3px; border-radius: 8px; padding: 1px 4px; }
+    .room .occ.free { background: #dcfce7; color: #166534; }
+    .room .occ.full { background: #e2e8f0; color: #475569; }
+    .room .occ.over { background: #fee2e2; color: #991b1b; }
+    .room .occ.unk { background: #f1f5f9; color: #94a3b8; font-weight: normal; }
+    .room.empty b { color: #16a34a; }
+    .beds-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 10px; font-size: 13px; color: #475569; }
+    .beds-bar button { font-size: 13px; padding: 6px 12px; background: #eef1f5; color: #1e3a5f; }
+    .beds-bar button:hover { background: #e08a1e; color: white; }
+    .bed-dots { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+    .bed-dot { min-width: 34px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; padding: 0 6px; box-sizing: border-box; }
+    .bed-dot.taken { background: #1e3a5f; color: white; }
+    .bed-dot.free { background: #dcfce7; color: #166534; border: 2px dashed #16a34a; }
+    .bed-dot.dup, .bed-dot.out { background: #fee2e2; color: #991b1b; }
+    .bed-note { font-size: 12px; color: #64748b; margin-bottom: 8px; line-height: 1.7; }
+    .bed-note b.bad { color: #c0392b; }
+    #freeBedsPanel { background: white; border-radius: 12px; padding: 12px 15px; margin-bottom: 12px; border-top: 4px solid #16a34a; }
+    #freeBedsPanel:empty { display: none; }
+    #freeBedsPanel h4 { margin: 0 0 8px; color: #166534; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .fb-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+    .fb-item { display: flex; align-items: center; gap: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 8px 10px; cursor: pointer; }
+    .fb-item:hover { border-color: #16a34a; }
+    .fb-item .n { width: 36px; height: 36px; border-radius: 10px; background: #16a34a; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; flex: none; font-size: 16px; }
+    .fb-item .t { flex: 1; min-width: 0; font-size: 13px; color: #475569; }
+    .fb-item .t b { display: block; color: #1e3a5f; font-size: 14px; }
+    .bed-hint { font-size: 13px; border-radius: 8px; padding: 6px 10px; }
+    .bed-hint:empty { display: none; }
+    .bed-hint.ok { background: #f0fdf4; color: #166534; }
+    .bed-hint.bad { background: #fef2f2; color: #991b1b; }
           /* كروت الأرقام */
     #stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
     .stat { background: white; padding: 15px; border-radius: 12px; text-align: center; }
@@ -1097,12 +1126,13 @@
     </select>
 
     
-    <input id="room" placeholder="رقم الغرفة">
-        <select id="building">
+    <input id="room" placeholder="رقم الغرفة" oninput="addBedHint(true)">
+        <select id="building" onchange="addBedHint(true)">
       <option>السكن الأول</option>
       <option>السكن الثاني</option>
     </select>
-    <input id="bedNo" type="number" placeholder="رقم السرير">
+    <input id="bedNo" type="number" placeholder="رقم السرير" oninput="addBedHint()">
+    <span id="addBedHint" class="bed-hint"></span>
     <input id="job" placeholder="المهنة">
     <input id="sponsor" list="sponsorList" placeholder="الكفيل">
     <label>تاريخ القدوم <input id="arrival" type="date"></label>
@@ -1121,6 +1151,7 @@
     <h4 id="roomsTitle"></h4>
     <div id="roomsGrid"></div>
   </div>
+  <div id="freeBedsPanel"></div>
   <div id="roomInfo"></div>
   <div id="filterBox" class="res-panel">
     <input id="search" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="currentRoom = ''; wPage = 0; showRooms(); showWorkers()">
@@ -1926,19 +1957,20 @@
       const grid = document.getElementById("roomsGrid");
       if (!currentBuilding) { grid.innerHTML = ""; return; }
 
-      // نعدّ الساكنين في كل غرفة
-      const rooms = {};
-      workers.filter(w => w.building === currentBuilding).forEach(function (w) {
-        rooms[w.room] = (rooms[w.room] || 0) + 1;
-      });
+      // كل الوحدات (حتى الفاضية لو ليها بيانات)، مرتبة: 101، 102، ... 101A، 102A
+      const names = buildingRooms(currentBuilding);
+      const sts = names.map(r => bedState(currentBuilding, r));
+      const free = sts.reduce((s, x) => s + Math.max(0, x.free || 0), 0);
+      const unknown = sts.filter(x => x.beds == null).length;
+      const over = sts.filter(x => x.free < 0).length;
+      document.getElementById("roomsTitle").innerHTML = "🚪 غرف " + currentBuilding + " <small>(" + names.length + " غرفة — دوس على غرفة تشوف ساكنيها)</small>" +
+        `<div class="beds-bar">🛏️ <b style="color:#166534">${free}</b> سرير فاضي${over ? ` · <b style="color:#c0392b">${over}</b> وحدة فيها زيادة` : ""}${unknown ? ` · ${unknown} وحدة مش متسجّل أسرّتها` : ""}
+          ${canOpen("residents") ? `<button onclick="setBedsForBuilding()">🛏️ حدد عدد الأسرّة${unknown ? " للوحدات الناقصة" : " لكل الوحدات"}</button>` : ""}</div>`;
 
-      // نرتّب الغرف: 101، 102، ... 101A، 102A
-      const names = Object.keys(rooms).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
-      document.getElementById("roomsTitle").innerHTML = "🚪 غرف " + currentBuilding + " <small>(" + names.length + " غرفة — دوس على غرفة تشوف ساكنيها)</small>";
-
-      grid.innerHTML = names.map(r => `
-        <div class="room ${r === activeRoom ? "active" : ""}" onclick="openRoom('${r}')">
-          <b>${r}</b><small>${rooms[r]} ساكن</small>
+      grid.innerHTML = names.map((r, i) => `
+        <div class="room ${roomKey(currentBuilding, r) === roomKey(currentBuilding, activeRoom) ? "active" : ""} ${sts[i].ppl.length ? "" : "empty"}" onclick="openRoom('${r}')">
+          <b>${r}</b><small>${sts[i].ppl.length} ساكن</small>
+          ${occBadge(sts[i])}
           <small class="tags">${roomTags(r)}</small>
           </div>`).join("");
     }
@@ -1975,6 +2007,7 @@
         card("amber", cnt(w => w.blanket !== "نعم"), "🛏️ لم يستلم بطانية", "dashOpen('', 'noblanket')", specialFilter === "noblanket") +
         card("red", cnt(w => !w.iqamaImg), "🪪 بدون صورة إقامة", "dashOpen('', 'noimg')", specialFilter === "noimg") +
         card("red", cnt(iqamaAlert), "⏳ إقامة منتهية أو قربت", "dashOpen('', 'iqama')", specialFilter === "iqama") +
+        card("green", freeBedsAll().reduce((s, x) => s + x.free, 0), "🛏️ سرير فاضي", "toggleFreeBeds()", showFreeBeds) +
         (dupGroups.length ? card("red", dupGroups.length, "⛔ رقم إقامة متكرر", "dashOpen('', 'dup')", specialFilter === "dup") : "");
 
       // تابات المساكن
@@ -1985,7 +2018,7 @@
       // نختار العمال اللي مطابقين البحث والسكن
       const result = workers.filter(function (w) {
         if (b && w.building !== b) return false;
-                if (currentRoom && w.room !== currentRoom) return false;
+                if (currentRoom && roomKey("", w.room) !== roomKey("", currentRoom)) return false;
         if (specialFilter === "blanket" && w.blanket !== "نعم") return false;
         if (specialFilter === "noblanket" && w.blanket === "نعم") return false;
         if (specialFilter === "noimg" && w.iqamaImg) return false;
@@ -2079,6 +2112,7 @@
 
       form.reset();
       showDupMsg("idNo", "idNoMsg", null);
+      addBedHint();
             closeAdd();
       lastIqamaImage = "";
       document.getElementById("iqamaPreview").hidden = true;
@@ -3515,6 +3549,7 @@
       document.getElementById("addBox").hidden = false;
       if (currentBuilding) document.getElementById("building").value = currentBuilding;
       if (currentRoom) document.getElementById("room").value = currentRoom;
+      addBedHint(true);
     }
 
     function closeAdd() {
@@ -3555,6 +3590,8 @@
       roomsInfo = {};
       data.forEach(r => roomsInfo[r.building + "|" + r.room] = r);
       showRooms(currentRoom);
+      showWorkers();
+      renderFreeBeds();
     }
 
     // تجهيزات الوحدة (الأجهزة)
@@ -3564,18 +3601,141 @@
       { key: "fridges", icon: "🧊", label: "تلاجة" }
     ];
 
+    // ===== الأسرّة الفاضية =====
+    // عدد الأسرّة متسجّل في بيانات الوحدة (rooms.beds). الساكن بياخد سرير برقمه (bed_no)
+    const roomKey = (b, r) => b + "|" + String(r || "").trim().toUpperCase();
+    const roomInfoOf = (building, room) => roomsInfo[building + "|" + room] || Object.values(roomsInfo).find(x => roomKey(x.building, x.room) === roomKey(building, room));
+    function roomBeds(building, room) {
+      const info = roomInfoOf(building, room);
+      return info && Number(info.beds) > 0 ? Number(info.beds) : null;
+    }
+    // حالة الوحدة: الساكنين، الأسرّة، الفاضي، أرقام الأسرّة الفاضية، المكرر
+    function bedState(building, room) {
+      const ppl = workers.filter(w => roomKey(w.building, w.room) === roomKey(building, room));
+      const beds = roomBeds(building, room);
+      const nums = ppl.map(w => Number(w.bed_no)).filter(n => n > 0);
+      const dups = [...new Set(nums.filter((n, i) => nums.indexOf(n) !== i))];
+      const freeNums = beds ? Array.from({ length: beds }, (_, i) => i + 1).filter(n => !nums.includes(n)) : [];
+      const free = beds == null ? null : beds - ppl.length;
+      return { ppl, beds, free, freeNums, dups, outside: beds ? nums.filter(n => n > beds) : [] };
+    }
+    // كل الوحدات (اللي فيها ناس أو ليها بيانات) في سكن
+    function buildingRooms(building) {
+      const names = new Set();
+      workers.filter(w => w.building === building && w.room).forEach(w => names.add(String(w.room).trim().toUpperCase()));
+      Object.values(roomsInfo).filter(x => x.building === building && x.room).forEach(x => names.add(String(x.room).trim().toUpperCase()));
+      return [...names].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+    }
+    function freeBedsAll() {
+      const out = [];
+      ["السكن الأول", "السكن الثاني"].forEach(b => buildingRooms(b).forEach(r => {
+        const st = bedState(b, r);
+        if (st.free > 0) out.push({ building: b, room: r, ...st });
+      }));
+      return out;
+    }
+    function occBadge(st) {
+      if (st.beds == null) return `<span class="occ unk">${st.ppl.length} · ؟ سرير</span>`;
+      if (st.free > 0) return `<span class="occ free">🟢 ${st.free} فاضي</span>`;
+      if (st.free === 0) return `<span class="occ full">مليانة ${st.beds}/${st.beds}</span>`;
+      return `<span class="occ over">⚠️ زيادة ${-st.free}</span>`;
+    }
+
+    // لوحة الأسرّة الفاضية في كل المساكن
+    let showFreeBeds = false;
+    function toggleFreeBeds(on) {
+      showFreeBeds = on == null ? !showFreeBeds : on;
+      renderFreeBeds();
+      showWorkers();
+      if (showFreeBeds) document.getElementById("freeBedsPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    function renderFreeBeds() {
+      const box = document.getElementById("freeBedsPanel");
+      if (!showFreeBeds) { box.innerHTML = ""; return; }
+      const list = freeBedsAll();
+      const total = list.reduce((s, x) => s + x.free, 0);
+      const unknown = ["السكن الأول", "السكن الثاني"].reduce((s, b) => s + buildingRooms(b).filter(r => roomBeds(b, r) == null).length, 0);
+      box.innerHTML = `<h4>🛏️ الأسرّة الفاضية (${total}) <button onclick="toggleFreeBeds(false)" style="background:#eef1f5; color:#1e3a5f; padding:4px 10px">✖</button></h4>
+        ${list.length ? `<div class="fb-list">${list.map(x => `<div class="fb-item" onclick="openFreeRoom('${x.building}', '${x.room}')">
+          <span class="n">${x.free}</span>
+          <span class="t"><b>🚪 ${x.room} · ${x.building}</b>${x.ppl.length} ساكن من ${x.beds}${x.freeNums.length ? " · فاضي سرير " + x.freeNums.slice(0, 6).join("، ") + (x.freeNums.length > 6 ? "…" : "") : ""}</span>
+        </div>`).join("")}</div>` : '<p style="margin:0; color:#64748b">مفيش أسرّة فاضية في الوحدات اللي متسجّل عدد أسرّتها.</p>'}
+        ${unknown ? `<p class="bed-note" style="margin:8px 0 0">💡 فيه <b>${unknown}</b> وحدة لسه مش متسجّل عدد أسرّتها، فمش محسوبة. افتح السكن ودوس "🛏️ حدد عدد الأسرّة".</p>` : ""}`;
+    }
+    function openFreeRoom(b, r) {
+      showFreeBeds = false;
+      renderFreeBeds();
+      currentBuilding = b;
+      document.getElementById("filterBuilding").value = b;
+      openRoom(r);
+    }
+
+    // تحديد عدد الأسرّة لكل وحدات السكن مرة واحدة
+    async function setBedsForBuilding() {
+      const b = currentBuilding;
+      const rooms = buildingRooms(b);
+      const missing = rooms.filter(r => roomBeds(b, r) == null);
+      const n = Math.round(Number(prompt(`كام سرير في كل وحدة في ${b}؟\nهيتسجّل لـ ${missing.length ? missing.length + " وحدة لسه مالهاش عدد" : "كل الـ " + rooms.length + " وحدة"}. وأي وحدة مختلفة تقدر تعدّلها لوحدها بعد كده.`, "6")));
+      if (!(n > 0 && n <= 50)) return;
+      const target = missing.length ? missing : rooms;
+      const rows = target.map(r => {
+        const old = Object.values(roomsInfo).find(x => roomKey(x.building, x.room) === roomKey(b, r));
+        return old ? { ...old, beds: n } : { building: b, room: r, bedrooms: 1, bathrooms: 1, kitchen: false, beds: n };
+      });
+      const { error } = await db.from("rooms").upsert(rows);
+      if (error) { alert(/beds/.test(error.message) ? "⚠️ محتاج تشغّل سطر الأسرّة في Supabase الأول" : "❌ محصلش حفظ: " + error.message); return; }
+      rows.forEach(r => roomsInfo[r.building + "|" + r.room] = r);
+      showRooms(currentRoom);
+      showRoomInfo(currentRoom);
+      showWorkers();
+    }
+
+    // تلميح في فورم الإضافة: الأسرّة الفاضية في الوحدة المختارة
+    function addBedHint(fill) {
+      const b = document.getElementById("building").value, r = document.getElementById("room").value.trim();
+      const hint = document.getElementById("addBedHint"), bedIn = document.getElementById("bedNo");
+      if (!r) { hint.textContent = ""; hint.className = "bed-hint"; return; }
+      const st = bedState(b, r);
+      if (st.beds == null) { hint.className = "bed-hint"; hint.textContent = ""; return; }
+      if (fill && !bedIn.value && st.freeNums.length) bedIn.value = st.freeNums[0];
+      const n = Number(bedIn.value);
+      const taken = n > 0 && st.ppl.find(w => Number(w.bed_no) === n);
+      if (taken) { hint.className = "bed-hint bad"; hint.innerHTML = `⚠️ سرير ${n} عليه <b>${gmEsc(taken.name)}</b>. الفاضي: ${st.freeNums.join("، ") || "مفيش"}`; return; }
+      if (st.free <= 0) { hint.className = "bed-hint bad"; hint.textContent = `⚠️ الوحدة ${r} مليانة (${st.ppl.length} من ${st.beds} سرير)`; return; }
+      hint.className = "bed-hint ok";
+      hint.textContent = `🟢 في الوحدة ${r}: ${st.free} سرير فاضي (${st.freeNums.join("، ")})`;
+    }
+
     function roomTags(room) {
-      const info = roomsInfo[currentBuilding + "|" + room];
+      const info = roomInfoOf(currentBuilding, room);
       if (!info) return "";
-      return "🛏️" + info.bedrooms + " 🚿" + info.bathrooms + (info.kitchen ? " 🍳" : "") + (info.gas ? " 🔥" : "") +
+      return "🚪" + info.bedrooms + " 🚿" + info.bathrooms + (info.kitchen ? " 🍳" : "") + (info.gas ? " 🔥" : "") +
         ROOM_ITEMS.map(it => Number(info[it.key]) ? " " + it.icon + (info[it.key] > 1 ? info[it.key] : "") : "").join("");
     }
 
     function showRoomInfo(room) {
       const box = document.getElementById("roomInfo");
       if (!room) { box.innerHTML = ""; return; }
-      const info = roomsInfo[currentBuilding + "|" + room] || { bedrooms: 1, bathrooms: 1, kitchen: false };
-      const people = workers.filter(w => w.building === currentBuilding && w.room === room).length;
+      const info = roomInfoOf(currentBuilding, room) || { bedrooms: 1, bathrooms: 1, kitchen: false };
+      const st = bedState(currentBuilding, room);
+      const people = st.ppl.length;
+      const byBed = {};
+      st.ppl.forEach(w => { const n = Number(w.bed_no); if (n > 0) (byBed[n] = byBed[n] || []).push(w); });
+      const maxN = Math.max(st.beds || 0, ...Object.keys(byBed).map(Number));
+      const noBed = st.ppl.filter(w => !(Number(w.bed_no) > 0));
+      const dots = Array.from({ length: maxN }, (_, i) => i + 1).map(n => {
+        const ws = byBed[n] || [];
+        const cls = ws.length > 1 ? "dup" : ws.length ? (st.beds && n > st.beds ? "out" : "taken") : "free";
+        const tip = ws.length ? ws.map(w => w.name).join(" + ") : "فاضي";
+        return `<span class="bed-dot ${cls}" title="سرير ${n}: ${gmEsc(tip)}">${n}</span>`;
+      }).join("");
+      const bedsBlock = `<div class="bed-note">
+          ${st.beds == null ? "🛏️ عدد الأسرّة مش متسجّل. اكتبه تحت ودوس حفظ عشان تعرف الفاضي." :
+            st.free > 0 ? `🟢 <b style="color:#166534">${st.free} سرير فاضي</b> من ${st.beds}${st.freeNums.length ? " · أرقامهم: " + st.freeNums.join("، ") : ""}` :
+            st.free === 0 ? `⚪ الوحدة مليانة (${st.beds} من ${st.beds})` : `<b class="bad">⚠️ فيها ${-st.free} ساكن زيادة عن عدد الأسرّة (${st.beds})</b>`}
+          ${st.dups.length ? `<br><b class="bad">⚠️ سرير ${st.dups.join("، ")} عليه أكتر من ساكن</b>` : ""}
+          ${noBed.length ? `<br>📝 ${noBed.length} ساكن من غير رقم سرير` : ""}
+        </div>${maxN ? `<div class="bed-dots">${dots}</div><div class="bed-note">🟦 عليه ساكن · 🟩 فاضي${st.dups.length || st.outside.length ? " · 🟥 مكرر أو برا العدد" : ""}</div>` : ""}`;
       const step = (id, val, label, icon) => `<div class="ri-item"><span>${icon} ${label}</span>
         <div class="ri-step">
           <button type="button" onclick="stepRoom('${id}', -1)">−</button>
@@ -3586,9 +3746,11 @@
         onchange="this.parentElement.classList.toggle('on', this.checked)"> ${label}</label>`;
 
       box.innerHTML = `
-        <div class="ri-head"><b>🚪 وحدة ${room}</b><small>${currentBuilding} · 👷 ${people} ساكن</small></div>
+        <div class="ri-head"><b>🚪 وحدة ${room}</b><small>${currentBuilding} · 👷 ${people} ساكن${st.beds ? " من " + st.beds + " سرير" : ""}</small></div>
+        ${bedsBlock}
         <div class="ri-grid">
-          <div class="ri-item"><span>🛏️ الغرف</span>
+          ${step("r_beds", st.beds || "", "عدد الأسرّة", "🛏️")}
+          <div class="ri-item"><span>🚪 الغرف</span>
             <select id="r_bed">${[1, 2, 3, 4].map(n => `<option ${n == info.bedrooms ? "selected" : ""}>${n}</option>`).join("")}</select></div>
           <div class="ri-item"><span>🚿 الحمامات</span>
             <select id="r_bath">${[1, 2, 3].map(n => `<option ${n == info.bathrooms ? "selected" : ""}>${n}</option>`).join("")}</select></div>
@@ -3610,26 +3772,31 @@
 
     async function saveRoomInfo(room) {
       const msg = document.getElementById("roomMsg");
+      const old = roomInfoOf(currentBuilding, room);
       const row = {
         building: currentBuilding,
-        room: room,
+        room: old ? old.room : room,
         bedrooms: Number(document.getElementById("r_bed").value),
         bathrooms: Number(document.getElementById("r_bath").value),
         kitchen: document.getElementById("r_kitchen").checked,
         gas: document.getElementById("r_gas").checked
       };
       ROOM_ITEMS.forEach(it => row[it.key] = Math.max(0, Number(document.getElementById("r_" + it.key).value) || 0));
+      row.beds = Math.max(0, Math.round(Number(document.getElementById("r_beds").value) || 0)) || null;
       msg.textContent = "⏳ جاري الحفظ...";
       const { error } = await db.from("rooms").upsert(row);
       if (error) {
-        msg.textContent = /gas|cylinders|washers|fridges/.test(error.message)
+        msg.textContent = /beds/.test(error.message) ? "⚠️ محتاج تشغّل سطر الأسرّة في Supabase الأول"
+          : /gas|cylinders|washers|fridges/.test(error.message)
           ? "⚠️ محتاج تشغّل كود الغاز والأجهزة في Supabase الأول (الكود في setup.sql)"
           : "❌ محصلش حفظ: " + error.message;
         return;
       }
-      roomsInfo[currentBuilding + "|" + room] = row;
+      roomsInfo[currentBuilding + "|" + row.room] = row;
       showRooms(room);
-      msg.textContent = "✅ اتحفظ";
+      showRoomInfo(room);
+      showWorkers();
+      document.getElementById("roomMsg").textContent = "✅ اتحفظ";
     }
        // 15. التنقل بين الصفحات
     function showPage(name) {
