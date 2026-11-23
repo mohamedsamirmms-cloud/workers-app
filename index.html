@@ -475,6 +475,30 @@
     .eq-thumb svg, .eq-photo-prev svg { width: 100%; height: 100%; }
     .eq-thumb.kind, .eq-photo-prev.kind { background: linear-gradient(#f8fbff, #e3ebf4); padding: 2px; box-sizing: border-box; }
     .eq-kind-tag { display: inline-block; background: #fef3c7; color: #92400e; border-radius: 6px; padding: 0 6px; font-size: 11px; margin-left: 4px; }
+    /* أقسام المعدات */
+    .eq-tabs { margin-bottom: 10px; }
+    .eq-tabs .chip { font-size: 15px; padding: 8px 16px; }
+    #eqDepts[hidden], #eqAllView[hidden] { display: none !important; }
+    .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+    .dept-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 10px 12px; text-align: center; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; border-top: 5px solid var(--dc, #1e3a5f); }
+    .dept-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30,58,95,0.13); }
+    .dept-card .di { width: 58px; height: 58px; margin: 0 auto 6px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 30px; background: color-mix(in srgb, var(--dc, #1e3a5f) 14%, white); }
+    .dept-card b { display: block; color: #1e3a5f; font-size: 17px; }
+    .dept-card .dn { font-size: 26px; font-weight: bold; color: var(--dc, #1e3a5f); line-height: 1.2; }
+    .dept-card small { display: block; color: #64748b; font-size: 12px; }
+    .dept-card .db { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 6px; min-height: 20px; }
+    .dept-card.none { --dc: #94a3b8; opacity: 0.85; }
+    .dept-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; border-right: 5px solid var(--dc, #1e3a5f); }
+    .dept-banner b { font-size: 17px; color: #1e3a5f; flex: 1; }
+    .dept-banner button { font-size: 13px; padding: 7px 12px; }
+    #deptPickBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #deptPickBox[hidden] { display: none; }
+    #deptPickBox > div { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-sizing: border-box; display: grid; gap: 10px; }
+    #deptPickBox h3 { margin: 0; color: #1e3a5f; }
+    .dp-row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; background: #f8fafc; cursor: pointer; }
+    .dp-row input { width: 20px; height: 20px; flex: none; }
+    .dp-row span { flex: 1; min-width: 0; font-size: 14px; }
+    .dp-row small { color: #64748b; font-size: 12px; }
     .kind-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
     .kind-chips .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px 3px 6px; }
     .kind-chips .chip svg { width: 30px; height: 20px; }
@@ -1247,6 +1271,10 @@
       <h2>🏗️ معدات المشروع</h2>
       <button onclick="openEq()" style="background:#16a34a">➕ إضافة معدة</button>
     </div>
+    <div class="ts-chips eq-tabs" id="eqTabs"></div>
+    <div id="eqDepts" hidden></div>
+    <div id="eqAllView">
+    <div id="eqDeptBanner"></div>
     <div id="eqStats"></div>
     <div class="kind-chips" id="eqKindChips"></div>
     <div id="eqBar" class="res-panel">
@@ -1255,6 +1283,20 @@
       <button onclick="exportEquipment()" style="background:#16a34a">📊 تصدير Excel</button>
     </div>
     <div id="eqList"></div>
+    </div>
+    <div id="deptPickBox" hidden onclick="if (event.target === this) this.hidden = true">
+      <div>
+        <h3 id="deptPickTitle"></h3>
+        <small style="color:#64748b">علّم على المعدات اللي تبع القسم ده ودوس حفظ. المعدة اللي في قسم تاني هتتنقل.</small>
+        <input id="deptPickSearch" placeholder="🔍 ابحث" oninput="renderDeptPick()" style="box-sizing:border-box; width:100%">
+        <div id="deptPickList" style="display:grid; gap:5px"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button onclick="saveDeptPick()" style="background:#16a34a">💾 حفظ</button>
+          <button onclick="document.getElementById('deptPickBox').hidden = true" style="background:#64748b">إلغاء</button>
+        </div>
+        <span id="deptPickMsg" style="font-size:13px"></span>
+      </div>
+    </div>
     <div id="eqPhotoView" hidden onclick="this.hidden = true"><img id="eqPhotoBig"></div>
 
     <div id="eqBox" hidden onclick="if (event.target === this) closeEq()">
@@ -1283,6 +1325,7 @@
           <span style="font-size:14px; color:#475569">نوع المعدة <small id="eqKindHint" style="color:#64748b"></small></span>
           <div class="kind-pick" id="eqKindPick"></div>
         </div>
+        <label>القسم <select id="eq_dept"></select></label>
         <label>السائق <input id="eq_driver" list="eqDriverList" placeholder="اسم السائق"></label>
         <datalist id="eqDriverList"></datalist>
         <p style="margin:5px 0 0; color:#475569">📄 المستندات: تاريخ الانتهاء + صورة أو PDF</p>
@@ -3241,6 +3284,7 @@
               <div class="pf-info">
                 ${pfInfo("اسم المعدة", e.name)}
                 ${pfInfo("النوع", k.label)}
+                ${pfInfo("القسم", e.department ? `<a class="pf-driver" onclick="closeProfile(); showPage('moves'); openDept('${gmEsc(e.department)}')">${deptOf(e.department).icon} ${gmEsc(e.department)}</a>` : "")}
                 ${pfInfo("السائق", driverHtml(e.driver, e.iqama_no))}
                 ${nums.map(d => pfInfo("رقم " + d.label, e[eqField(d)] ? `<span class="eq-num">${e[eqField(d)]}</span>` : "")).join("")}
                 ${pfInfo("المرفقات", files ? files + " ملف" : "مفيش")}
@@ -4805,6 +4849,102 @@
       if (k !== eqKindSel) { eqKindSel = k; drawKindPick(); }
     }
 
+    // ===== أقسام المعدات =====
+    const EQ_DEPTS = [
+      { name: "مدني", icon: "🏗️", color: "#e08a1e" },
+      { name: "معماري", icon: "🏛️", color: "#7c3aed" },
+      { name: "ميكانيكا", icon: "⚙️", color: "#2563eb" },
+      { name: "كهرباء", icon: "⚡", color: "#ca8a04" },
+      { name: "محطة", icon: "🏭", color: "#16a34a" }
+    ];
+    let eqTab = (() => { try { return localStorage.getItem("eqTab") || "depts"; } catch (e) { return "depts"; } })();
+    let eqDeptFilter = "";      // "" الكل — "-" بدون قسم — أو اسم القسم
+    let deptPickName = "", deptPickSel = new Set();
+    const hasDeptCol = () => !equipment.length || "department" in equipment[0];
+    // الأقسام: الثابتة + أي قسم متسجّل على معدة
+    function deptList() {
+      const extra = [...new Set(equipment.map(e => (e.department || "").trim()).filter(d => d && !EQ_DEPTS.some(x => x.name === d)))];
+      return EQ_DEPTS.concat(extra.map(name => ({ name, icon: "📁", color: "#64748b" })));
+    }
+    const deptOf = name => deptList().find(d => d.name === name) || { name, icon: "📁", color: "#64748b" };
+    function setEqTab(t) {
+      eqTab = t;
+      try { localStorage.setItem("eqTab", t); } catch (e) {}
+      if (t === "depts") eqDeptFilter = "";
+      showEquipment();
+    }
+    function openDept(name) { eqDeptFilter = name; eqTab = "all"; showEquipment(); document.getElementById("eqTabs").scrollIntoView({ behavior: "smooth" }); }
+
+    function renderEqTabs() {
+      document.getElementById("eqTabs").innerHTML =
+        `<button class="chip ${eqTab === "depts" ? "on" : ""}" onclick="setEqTab('depts')">🗂️ الأقسام</button>` +
+        `<button class="chip ${eqTab === "all" && !eqDeptFilter ? "on" : ""}" onclick="eqDeptFilter = ''; setEqTab('all')">🏗️ كل المعدات (${equipment.length})</button>`;
+      document.getElementById("eqDepts").hidden = eqTab !== "depts";
+      document.getElementById("eqAllView").hidden = eqTab === "depts";
+      const ban = document.getElementById("eqDeptBanner");
+      if (eqTab === "all" && eqDeptFilter) {
+        const d = eqDeptFilter === "-" ? { name: "بدون قسم", icon: "❔", color: "#94a3b8" } : deptOf(eqDeptFilter);
+        const n = equipment.filter(e => eqDeptFilter === "-" ? !(e.department || "").trim() : e.department === eqDeptFilter).length;
+        ban.innerHTML = `<div class="dept-banner" style="--dc:${d.color}"><span style="font-size:26px">${d.icon}</span><b>قسم ${gmEsc(d.name)} <small style="color:#64748b; font-weight:normal">· ${n} معدة</small></b>
+          ${eqDeptFilter !== "-" && canOpen("moves") ? `<button onclick="openDeptPick('${gmEsc(eqDeptFilter)}')" style="background:#16a34a">➕ ضيف معدات للقسم</button>` : ""}
+          <button onclick="setEqTab('depts')" style="background:#eef1f5; color:#1e3a5f">↩️ كل الأقسام</button></div>`;
+      } else ban.innerHTML = "";
+      if (eqTab === "depts") renderDepts();
+    }
+
+    function renderDepts() {
+      const box = document.getElementById("eqDepts");
+      const card = (d, list, key) => {
+        const bad = list.filter(e => eqState(e) === "bad").length, warn = list.filter(e => eqState(e) === "warn").length;
+        const drivers = new Set(list.map(e => (e.driver || "").trim()).filter(Boolean)).size;
+        return `<div class="dept-card ${key === "-" ? "none" : ""}" style="--dc:${d.color}" onclick="openDept('${gmEsc(key)}')">
+          <div class="di">${d.icon}</div>
+          <b>${gmEsc(d.name)}</b>
+          <div class="dn">${list.length}</div>
+          <small>معدة${drivers ? " · 👤 " + drivers + " سائق" : ""}</small>
+          <div class="db">${bad ? `<span class="badge bad">⛔ ${bad} منتهي</span>` : ""}${warn ? `<span class="badge warn">⏳ ${warn} قرب</span>` : ""}${list.length && !bad && !warn ? '<span class="badge ok">✅ الورق سليم</span>' : ""}</div>
+        </div>`;
+      };
+      const none = equipment.filter(e => !(e.department || "").trim());
+      box.innerHTML = (hasDeptCol() ? "" : '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>الأقسام محتاجة سطر SQL صغير في Supabase عشان تتحفظ. شغّله وبعدين اعمل refresh.</div>') +
+        `<div class="dept-grid">${deptList().map(d => card(d, equipment.filter(e => e.department === d.name), d.name)).join("")}
+        ${none.length ? card({ name: "بدون قسم", icon: "❔", color: "#94a3b8" }, none, "-") : ""}</div>
+        <p class="gm-hint">💡 دوس على أي قسم تشوف معداته. تحدد قسم المعدة من ✏️ تعديل، أو من جوه القسم بزرار "➕ ضيف معدات للقسم".</p>`;
+    }
+
+    function openDeptPick(name) {
+      deptPickName = name;
+      deptPickSel = new Set(equipment.filter(e => e.department === name).map(e => e.id));
+      document.getElementById("deptPickTitle").textContent = deptOf(name).icon + " معدات قسم " + name;
+      document.getElementById("deptPickSearch").value = "";
+      document.getElementById("deptPickMsg").textContent = "";
+      renderDeptPick();
+      document.getElementById("deptPickBox").hidden = false;
+    }
+    function renderDeptPick() {
+      const q = document.getElementById("deptPickSearch").value.trim().toLowerCase();
+      const list = equipment.filter(e => !q || [e.name, e.driver].join(" ").toLowerCase().includes(q))
+        .sort((a, b) => (deptPickSel.has(b.id) - deptPickSel.has(a.id)) || a.name.localeCompare(b.name));
+      document.getElementById("deptPickList").innerHTML = list.map(e => `<label class="dp-row">
+        <input type="checkbox" ${deptPickSel.has(e.id) ? "checked" : ""} onchange="this.checked ? deptPickSel.add(${e.id}) : deptPickSel.delete(${e.id})">
+        <span>${kindSvg(eqKind(e), "")} <b>${gmEsc(e.name)}</b><br><small>${e.driver ? "👤 " + gmEsc(e.driver) : "بدون سائق"}${e.department && e.department !== deptPickName ? " · 🗂️ " + gmEsc(e.department) : ""}</small></span>
+      </label>`).join("") || '<p style="color:#64748b">مفيش معدات</p>';
+      document.querySelectorAll("#deptPickList svg").forEach(s => { s.style.width = "34px"; s.style.height = "22px"; s.style.verticalAlign = "middle"; });
+    }
+    async function saveDeptPick() {
+      const msg = document.getElementById("deptPickMsg");
+      const add = equipment.filter(e => deptPickSel.has(e.id) && e.department !== deptPickName).map(e => e.id);
+      const rem = equipment.filter(e => !deptPickSel.has(e.id) && e.department === deptPickName).map(e => e.id);
+      if (!add.length && !rem.length) { document.getElementById("deptPickBox").hidden = true; return; }
+      msg.textContent = "⏳ جاري الحفظ...";
+      let r = add.length ? await db.from("equipment").update({ department: deptPickName }).in("id", add) : { error: null };
+      if (!r.error && rem.length) r = await db.from("equipment").update({ department: null }).in("id", rem);
+      if (r.error) { msg.textContent = /department/.test(r.error.message) ? "⚠️ شغّل سطر الأقسام في Supabase الأول" : "❌ " + r.error.message; return; }
+      equipment.forEach(e => { if (add.includes(e.id)) e.department = deptPickName; if (rem.includes(e.id)) e.department = null; });
+      document.getElementById("deptPickBox").hidden = true;
+      showEquipment();
+    }
+
     let eqFilter = "all";
 
     function setEqFilter(f) {
@@ -4819,27 +4959,30 @@
     }
 
     function showEquipment() {
+      renderEqTabs();
       const list = document.getElementById("eqList");
-      const cnt = f => equipment.filter(e => eqState(e) === f).length;
+      // جوه قسم: كل الأرقام والأنواع بتاعة القسم بس
+      const base = equipment.filter(e => !eqDeptFilter || (eqDeptFilter === "-" ? !(e.department || "").trim() : e.department === eqDeptFilter));
+      const cnt = f => base.filter(e => eqState(e) === f).length;
       const card = (f, cls, n, label) => `<div class="stat click ${cls} ${eqFilter === f ? "on" : ""}" onclick="setEqFilter('${f}')"><b>${n}</b>${label}</div>`;
       document.getElementById("eqStats").innerHTML =
-        card("all", "", equipment.length, "🏗️ إجمالي المعدات") +
+        card("all", "", base.length, eqDeptFilter ? "🏗️ معدات القسم" : "🏗️ إجمالي المعدات") +
         card("bad", "red", cnt("bad"), "⛔ فيها مستند منتهي") +
         card("warn", "amber", cnt("warn"), "⏳ مستند قرب يخلص") +
         card("ok", "green", cnt("ok"), "✅ ورقها سليم");
 
       // شرايح الأنواع (اللي موجود منها بس)
       const kindCount = {};
-      equipment.forEach(e => kindCount[eqKind(e).key] = (kindCount[eqKind(e).key] || 0) + 1);
+      base.forEach(e => kindCount[eqKind(e).key] = (kindCount[eqKind(e).key] || 0) + 1);
       const present = EQ_KINDS.filter(k => kindCount[k.key]);
       if (eqKindFilter !== "all" && !kindCount[eqKindFilter]) eqKindFilter = "all";
       document.getElementById("eqKindChips").innerHTML = present.length > 1
-        ? `<button class="chip ${eqKindFilter === "all" ? "on" : ""}" onclick="setEqKindFilter('all')">كل الأنواع (${equipment.length})</button>` +
+        ? `<button class="chip ${eqKindFilter === "all" ? "on" : ""}" onclick="setEqKindFilter('all')">كل الأنواع (${base.length})</button>` +
           present.map(k => `<button class="chip ${eqKindFilter === k.key ? "on" : ""}" onclick="setEqKindFilter('${k.key}')">${kindSvg(k)}${k.label} (${kindCount[k.key]})</button>`).join("")
         : "";
 
       const q = document.getElementById("eqSearch").value.trim().toLowerCase();
-      const result = equipment
+      const result = base
         .filter(e => eqKindFilter === "all" || eqKind(e).key === eqKindFilter)
         .filter(e => eqFilter === "all" || eqState(e) === eqFilter)
         .filter(e => !q || [e.name, e.driver, e.iqama_no, e.license_no, e.operator_no].join(" ").toLowerCase().includes(q));
@@ -4889,6 +5032,9 @@
       eqRemoved = [];
       document.getElementById("eq_name").value = e.name || "";
       document.getElementById("eq_driver").value = e.driver || "";
+      const dsel = document.getElementById("eq_dept");
+      dsel.innerHTML = '<option value="">— بدون قسم —</option>' + deptList().map(d => `<option value="${gmEsc(d.name)}">${d.icon} ${gmEsc(d.name)}</option>`).join("");
+      dsel.value = e.department || (editingEqId ? "" : (eqDeptFilter && eqDeptFilter !== "-" ? eqDeptFilter : ""));
       document.getElementById("eqDriverList").innerHTML = workers.map(w => `<option value="${w.name}">`).join("");
       document.getElementById("eqDocs").innerHTML = EQ_DOCS.map(d => `
         <div class="eq-doc">
@@ -5121,6 +5267,7 @@
         driver: document.getElementById("eq_driver").value.trim(),
         kind: eqKindSel
       };
+      if (hasDeptCol()) row.department = document.getElementById("eq_dept").value || null;
       const toRemove = eqRemoved.slice();
 
       try {
@@ -5189,6 +5336,7 @@
         EQ_DOCS.forEach(d => r[d.label] = e[eqField(d)] || "");
         r["مرفقات أخرى"] = (e.other_files || []).length;
         r["النوع"] = eqKind(e).label;
+        r["القسم"] = e.department || "";
         return r;
       });
       const sheet = XLSX.utils.json_to_sheet(rows);

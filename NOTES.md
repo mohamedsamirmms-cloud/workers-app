@@ -45,6 +45,7 @@
 - **دمج السجلات المتكررة** (`openMerge`, `doMerge`): في فلتر `dup` فيه لوحة `#dupPanel` بكل الأرقام المتكررة (حتى اللي في الأرشيف) وزرار "🔗 دمج". الزرار بيظهر بس للي عنده residents وtimesheet وmeals. الدمج بينقل التايم شيت (لو نفس اليوم في الاتنين، بيفضل اللي ساعاته أكتر) والوجبات (لو نفس اليوم، بيجمعهم)، ويكمّل البيانات الناقصة، وبعدين يمسح السجل المتكرر. لما صاحب المشروع شغّل الفحص، طلع عنده 13 رقم متكرر وكلهم نفس الشخص متسجّل مرتين.
 - **فطار المجموعات:** صاحب المشروع بيحسب الفطار بالمجموعات (حوالي 36 مجموعة) في شيت Excel شكله: NAME، COUNT، أيام الشهر، THE COST، وفي الآخر TOTAL. سعر الفرد 3.5، ما عدا Dinner 9 و OMRAN 12.5 و abdelrahman 12.5 (`GM_PRICES`). SAMIR مبلغه 22.5 لفردين، ولسه مش معروف سعره. الجمعة مفيش فطار (بس Meals و Dinner ليهم أرقام). ملفه (أكتوبر ونوفمبر 2026) جاهز يتعمله import من زرار "📥 استيراد من Excel"، والإجماليات طالعة زي الشيت بالظبط.
 - **الأسرّة الفاضية** (`bedState`, `buildingRooms`, `freeBedsAll`, `renderFreeBeds`, `setBedsForBuilding`, `addBedHint`): عدد الأسرّة متسجّل في `rooms.beds`، والفاضي = الأسرّة − الساكنين، وأرقام الأسرّة الفاضية من `bed_no`. مربع "🛏️ سرير فاضي" في الساكنين بيفتح لوحة بكل الوحدات اللي فيها فاضي. كل غرفة عليها 🟢 فاضي، أو مليانة، أو ⚠️ زيادة. صفحة الوحدة فيها مربعات بأرقام الأسرّة. فورم الإضافة بيقترح أول سرير فاضي. ومقارنة الغرف مش حساسة لحروف كبيرة وصغيرة (`roomKey`).
+- **أقسام المعدات** (`EQ_DEPTS`, `renderDepts`, `openDept`, `openDeptPick`, `saveDeptPick`, `eqDeptFilter`): الأقسام هي مدني ومعماري وميكانيكا وكهرباء ومحطة، وأي قسم تاني متسجّل بيظهر لوحده. تاب **🗂️ الأقسام** (الافتراضي) فيه كروت، وكل كرت فيه عدد المعدات والسواقين وحالة الورق. لما تدوس على قسم، بتظهر معداته بأرقامها وأنواعها، وفيه زرار "ضيف معدات للقسم" بيعلّم على كذا معدة مرة واحدة. والقسم كمان في فورم المعدة، والـ Excel، وملف المعدة.
 - **حسابي** (`openAccount`, `saveMyAccount`): زرار "👤 حسابي" تحت في القائمة (ودوس على الاسم كمان) — نافذة لأي مستخدم مهما كانت صلاحياته يغيّر اسمه وباسورده.
 - **انتهاء الإقامة** (`iqama_expiry`): في الإضافة والتعديل، علامة ملوّنة جنب رقم الإقامة، مربع "⏳ إقامة منتهية أو قربت" (فلتر `iqama`)، في تنبيهات لوحة التحكم (لو ليه صفحة الساكنين) وتقرير المستندات والملف الشامل. `hasIqamaExp` بيتأكد إن العمود موجود قبل ما يبعته.
 - **القائمة الجانبية** بتتضم لأيقونات (`toggleSidebar`، بتتحفظ في `localStorage`)، والصفحة تاخد عرض الشاشة.
@@ -60,7 +61,7 @@
 | `timesheet` | `worker_id, work_date, time_in, time_out, hours, overtime` (unique على `worker_id, work_date`) |
 | `meals` | `id, worker_id, meal_date, breakfast, lunch` (unique على `worker_id, meal_date`) |
 | `cars` | `id, plate, car_type, model, driver, reg_expiry, ins_expiry, last_service, km, notes, iqama_file, license_file` |
-| `equipment` | `id, name, driver, kind, photo, iqama_no, license_no, operator_no, reg_expiry, ins_expiry, inspection_expiry, *_file, other_files (jsonb)` |
+| `equipment` | `id, name, driver, kind, department (القسم), photo, iqama_no, license_no, operator_no, reg_expiry, ins_expiry, inspection_expiry, *_file, other_files (jsonb)` |
 | `meal_groups` | `id, name (unique), people (العدد الأساسي), price (سعر الفرد), sort, active` |
 | `meal_group_members` | `id, group_id (cascade), worker_id (unique، ساكن أو null، on delete set null), name` — الأسماء جوه كل مجموعة |
 | `group_meals` | المفتاح `(group_id, meal_date)`: `people` (ممكن null لو مبلغ بس)، `amount`. بيتمسحوا مع المجموعة (cascade) |
@@ -73,7 +74,7 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (22 بند) يأكد إن كله متجهز.
+- `check.sql`: جدول ✅/❌ (23 بند) يأكد إن كله متجهز.
 - **الحالة الحالية:** صاحب المشروع شغّل كل الأكواد، وكل البنود لحد 17 ✅. بند 18 (منع التكرار) محتاج: يصلّح الأرقام المتكررة لو فيه، وبعدين يشغّل سطر الـ index.
 
 ## 5. الصلاحيات والأمان

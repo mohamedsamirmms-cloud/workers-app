@@ -31,6 +31,7 @@ select item as "البند", case when ok then '✅' else '❌' end as "الحا
   (19, 'فطار المجموعات (جدولين)',            to_regclass('public.meal_groups') is not null and to_regclass('public.group_meals') is not null),
   (20, 'فطار المجموعات: الأمان',             (select count(*) from pg_policies where schemaname = 'public' and tablename in ('meal_groups', 'group_meals') and policyname like 'rls\_%') = 4),
   (21, 'أسماء مجموعات الفطار',              to_regclass('public.meal_group_members') is not null),
-  (22, 'عدد الأسرّة في الوحدات',             exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'rooms' and column_name = 'beds'))
+  (22, 'عدد الأسرّة في الوحدات',             exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'rooms' and column_name = 'beds')),
+  (23, 'أقسام المعدات',                      exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'equipment' and column_name = 'department'))
 ) as t(n, item, ok)
 order by n;

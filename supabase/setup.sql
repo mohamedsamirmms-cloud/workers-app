@@ -38,7 +38,8 @@ alter table public.equipment
   add column if not exists inspection_expiry date,  add column if not exists inspection_file text,
   add column if not exists operator_no text,        add column if not exists operator_file text,
   add column if not exists photo text,
-  add column if not exists kind text;
+  add column if not exists kind text,
+  add column if not exists department text;   -- القسم: مدني، معماري، ميكانيكا، كهرباء، محطة
 alter table public.equipment enable row level security;
 do $$ begin
   -- القاعدة المفتوحة بس لو قواعد الأمان (security.sql) لسه متشغلتش
