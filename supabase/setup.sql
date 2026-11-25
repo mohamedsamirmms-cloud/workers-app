@@ -184,3 +184,29 @@ do $$ begin
 end $$;
 revoke all on public.meal_group_members from anon;
 
+-- 8) المشتريات والعهدة: مصروف لكل قسم (out) وفلوس مستلمة من المكتب الرئيسي (in)، برقم PV
+create table if not exists public.purchases (
+  id bigint generated always as identity primary key,
+  entry_date date not null,
+  kind text not null default 'out' check (kind in ('out', 'in')),
+  department text,
+  amount numeric not null check (amount >= 0),
+  description text,
+  pv_no text,
+  created_by text,
+  created_at timestamptz default now()
+);
+alter table public.purchases enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'purchases') then
+    if to_regprocedure('public.app_can(text)') is not null then
+      -- فلوس: القراية والتعديل لصفحة المشتريات بس
+      create policy rls_read  on public.purchases for select to authenticated using (app_can('purchases'));
+      create policy rls_write on public.purchases for all    to authenticated using (app_can('purchases')) with check (app_can('purchases'));
+    else
+      create policy "logged in users" on public.purchases for all to authenticated using (true) with check (true);
+    end if;
+  end if;
+end $$;
+revoke all on public.purchases from anon;
+

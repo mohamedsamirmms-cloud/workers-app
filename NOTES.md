@@ -33,6 +33,7 @@
 | `timesheet` | التايم شيت: يومي + **كشف شهري لكل عامل** (تقويم/جدول) + **كشف شهري لكل العمال** (ملخص/بالأيام) | `showTimesheet`, `markPresent`, `saveTime`, `openTsMonth`, `showTsMonth`, `openTsAll`, `loadTsAll`, `exportTsAll` |
 | `moves` | **معدات المشروع** (الاسم القديم في الكود `moves`): مستندات بأرقام وتواريخ ومرفقات، صورة لكل معدة، **رسومات لأنواع المعدات** (22 نوع بتتعرف من الاسم. الجديدة: تلي هاندلر، مان لفت، مضخة خرسانة، فرادة أسفلت، تانكر ديزل (`test`: ديزل/وقود + تانكر/وايت/truck)، تريلا. ولو النوع متسجّل "other" بيتعرف من الاسم تاني)، قراءة PDF/صورة تلقائيًا | `showEquipment`, `openEq`, `readEqFile`, `parseEqText`, `EQ_DOCS`, `EQ_KINDS`, `detectKind` |
 | `cars` | سيارات المشروع: استمارة وتأمين وصيانة وعداد | `showCars`, `openCar`, `exportCars` |
+| `purchases` | **المشتريات والعهدة**: مصروف (out) بقسم (كهرباء، ميكانيكا، طرق، مدني، سيفتي، صيانة سيارات، متنوع، وأي قسم جديد)، واستلام فلوس من المكتب الرئيسي (in)، وكل حركة برقم PV (زي B-95). ملخص الشهر: المستلم، والمصروف، والرصيد (من أول ما بدأوا)، وتابات: الأقسام، والمصروفات، والمستلم، والـ PV. ومعاه Excel | `loadPurchases`, `renderPurchases`, `openPu`, `savePu`, `exportPurchases`, `PU_DEPTS` |
 | `archive` | الأرشيف: الساكنين اللي سابوا السكن (سبب + تاريخ + ملاحظة)، رجوع للسكن | `openArchive`, `restoreWorker`, `showArchive` |
 | `reports` | 6 تقارير بشهر: ملخص شهري، السكن، الحضور، الوجبات، المستندات، حركة الساكنين + طباعة + Excel | `openReport`, `repMonthData`, `exportReport` |
 | `users` | المستخدمين والصلاحيات (للمدير بس) | `loadMe`, `applyPermissions`, `showUsers`, `openUser` |
@@ -66,6 +67,7 @@
 | `meal_groups` | `id, name (unique), people (العدد الأساسي), price (سعر الفرد), sort, active` |
 | `meal_group_members` | `id, group_id (cascade), worker_id (unique، ساكن أو null، on delete set null), name` — الأسماء جوه كل مجموعة |
 | `group_meals` | المفتاح `(group_id, meal_date)`: `people` (ممكن null لو مبلغ بس)، `amount`. بيتمسحوا مع المجموعة (cascade) |
+| `purchases` | `id, entry_date, kind ('out'/'in'), department, amount, description, pv_no, created_by` — القراية والكتابة بصلاحية `purchases` بس |
 | `app_users` | `id, email, name, role, pages (text[]), active, last_login, created_at` |
 | `app_settings` | `key='main'`, `value` jsonb: `name, sub, breakfast, lunch, hours, timeIn, warnDays, countries[], sponsors[]` |
 
@@ -75,7 +77,7 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (23 بند) يأكد إن كله متجهز.
+- `check.sql`: جدول ✅/❌ (24 بند) يأكد إن كله متجهز.
 - **الحالة الحالية:** صاحب المشروع شغّل كل الأكواد، وكل البنود لحد 17 ✅. بند 18 (منع التكرار) محتاج: يصلّح الأرقام المتكررة لو فيه، وبعدين يشغّل سطر الـ index.
 
 ## 5. الصلاحيات والأمان

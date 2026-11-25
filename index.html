@@ -129,6 +129,39 @@
       body.print-gm .gm-grid .gname { position: static; }
       body.print-gm #sidebar { display: none !important; }
     }
+          /* المشتريات والعهدة */
+    .pu-head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    #puStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #puStats .stat { border-top: 4px solid #1e3a5f; }
+    #puStats .stat small { display: block; color: #64748b; margin-top: 2px; font-size: 12px; }
+    .pu-list { display: grid; gap: 6px; }
+    .pu-row { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; cursor: pointer; border-right: 4px solid #c0392b; }
+    .pu-row.in { border-right-color: #16a34a; background: #f0fdf4; }
+    .pu-row.pv { border-right-color: #1e3a5f; }
+    .pu-row:hover { background: #fff7ed; }
+    .pu-row .pd { width: 40px; flex: none; text-align: center; font-weight: bold; font-size: 18px; color: #1e3a5f; line-height: 1.1; }
+    .pu-row .pd small { display: block; font-size: 10px; color: #64748b; font-weight: normal; }
+    .pu-row .pt { flex: 1; min-width: 0; font-size: 13px; }
+    .pu-row .pt small { color: #475569; }
+    .pu-row .pa { font-weight: bold; font-size: 15px; color: #c0392b; white-space: nowrap; }
+    .pu-row.in .pa { color: #16a34a; }
+    .dept-tag { display: inline-block; border-radius: 8px; padding: 1px 8px; font-size: 12px; font-weight: bold; color: var(--dc); background: color-mix(in srgb, var(--dc) 12%, white); }
+    .pv-tag { display: inline-block; border-radius: 8px; padding: 1px 8px; font-size: 12px; background: #eef1f5; color: #1e3a5f; direction: ltr; }
+    .pu-total { margin-top: 10px; text-align: left; font-size: 15px; color: #475569; }
+    .pu-total b { color: #c0392b; font-size: 18px; }
+    #puBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #puBox[hidden], #puDeptWrap[hidden] { display: none !important; }
+    #puForm { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; display: grid; gap: 10px; box-sizing: border-box; }
+    #puForm h3 { margin: 0; color: #1e3a5f; }
+    #puForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    #puForm input { box-sizing: border-box; width: 100%; }
+    #puForm .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #pu_amount { font-size: 18px; font-weight: bold; }
+    @media (max-width: 700px) {
+      .pu-head-btns { width: 100%; } .pu-head-btns button { flex: 1; }
+      body .dept-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      body .dept-card { padding: 10px 6px; } body .dept-card .di { width: 46px; height: 46px; font-size: 24px; } body .dept-card b { font-size: 15px; }
+    }
           /* الوجبات بالوحدات */
     #mealRooms:empty { display: none; }
     #mealRooms[hidden], #mealChips[hidden], #mealList[hidden], .ml-only[hidden] { display: none !important; }
@@ -1125,6 +1158,7 @@
     <button class="nav" data-page="timesheet" onclick="showPage('timesheet')"><span class="ni">⏱️</span>التايم شيت</button>
     <button class="nav" data-page="moves" onclick="showPage('moves')"><span class="ni">🏗️</span>معدات المشروع</button>
     <button class="nav" data-page="cars" onclick="showPage('cars')"><span class="ni">🚗</span>سيارات المشروع</button>
+    <button class="nav" data-page="purchases" onclick="showPage('purchases')"><span class="ni">🛒</span>المشتريات</button>
     <div class="nav-group">أخرى</div>
     <button class="nav" data-page="archive" onclick="showPage('archive')"><span class="ni">🗂️</span>الأرشيف</button>
     <button class="nav" data-page="reports" onclick="showPage('reports')"><span class="ni">📄</span>التقارير</button>
@@ -1339,6 +1373,28 @@
         <p id="eqMsg"></p>
       </form>
     </div>
+  </section>
+  <section id="page-purchases" class="page" hidden>
+    <div class="res-head">
+      <h2>🛒 المشتريات والعهدة</h2>
+      <div class="pu-head-btns">
+        <button onclick="openPu('out')" style="background:#c0392b">➖ مصروف</button>
+        <button onclick="openPu('in')" style="background:#16a34a">➕ استلام من المكتب</button>
+      </div>
+    </div>
+    <div id="puNotice"></div>
+    <div class="gm-bar">
+      <div class="ts-day">
+        <button onclick="shiftPuMonth(-1)" title="الشهر اللي قبله">→</button>
+        <input type="month" id="puMonth" onchange="puDept = ''; puPv = ''; renderPurchases()">
+        <button onclick="shiftPuMonth(1)" title="الشهر اللي بعده">←</button>
+        <b id="puMonthName"></b>
+      </div>
+      <div class="gm-actions"><button onclick="exportPurchases()" style="background:#16a34a">📊 Excel</button></div>
+    </div>
+    <div id="puStats"></div>
+    <div class="ts-chips gm-views" id="puTabs"></div>
+    <div id="puBody" class="gm-card"></div>
   </section>
    <section id="page-cars" class="page" hidden>
     <div class="res-head">
@@ -1665,6 +1721,28 @@
         <button type="button" onclick="if (!mergeBusy) document.getElementById('mergeBox').hidden = true" style="background:#64748b">إلغاء</button>
       </div>
       <span id="mergeMsg" style="font-size:13px"></span>
+    </form>
+  </div>
+  <div id="puBox" hidden onclick="if (event.target === this) closePu()">
+    <form id="puForm" onsubmit="event.preventDefault(); savePu()">
+      <h3 id="puTitle"></h3>
+      <div class="ts-chips" id="puKindChips">
+        <button type="button" class="chip" data-k="out" onclick="puKind = 'out'; puKindUi()">➖ مصروف</button>
+        <button type="button" class="chip" data-k="in" onclick="puKind = 'in'; puKindUi()">➕ استلام من المكتب</button>
+      </div>
+      <div class="row2">
+        <label>التاريخ <input type="date" id="pu_date" required></label>
+        <label>المبلغ (ريال) <input type="number" id="pu_amount" min="0" step="0.01" inputmode="decimal" required></label>
+      </div>
+      <div id="puDeptWrap"><span style="font-size:14px; color:#475569">القسم</span><input type="hidden" id="pu_dept"><div class="ts-chips" id="puDeptChips" style="margin-top:5px"></div></div>
+      <label>البيان <input id="pu_desc"></label>
+      <label>رقم PV <input id="pu_pv" list="puPvList" placeholder="مثلًا: B-95" dir="ltr"><datalist id="puPvList"></datalist></label>
+      <div>
+        <button type="submit">💾 حفظ</button>
+        <button type="button" onclick="closePu()" style="background:#64748b">إلغاء</button>
+        <button type="button" id="puDel" onclick="deletePu()" style="background:#c0392b" hidden>🗑️ مسح</button>
+      </div>
+      <span id="puMsg" style="font-size:13px"></span>
     </form>
   </div>
   <div id="accBox" hidden onclick="if (event.target === this) closeAccount()">
@@ -2317,7 +2395,8 @@
       // ترتيب ثابت عشان الصفحات (كل 1000 صف) متكررش ولا تفوّت صفوف
       const tables = [["workers", "الساكنين", ["id"]], ["timesheet", "التايم شيت", ["worker_id", "work_date"]], ["meals", "الوجبات", ["worker_id", "meal_date"]],
         ["cars", "السيارات", ["id"]], ["equipment", "المعدات", ["id"]], ["rooms", "الغرف", ["building", "room"]],
-        ["meal_groups", "مجموعات الفطار", ["id"]], ["group_meals", "فطار المجموعات", ["group_id", "meal_date"]]];
+        ["meal_groups", "مجموعات الفطار", ["id"]], ["group_meals", "فطار المجموعات", ["group_id", "meal_date"]],
+        ["purchases", "المشتريات", ["id"]]];
       const book = XLSX.utils.book_new();
       book.Workbook = { Views: [{ RTL: true }] };
       const skipped = [];
@@ -2339,6 +2418,7 @@
       { key: "timesheet", label: "⏱️ التايم شيت" },
       { key: "moves", label: "🏗️ معدات المشروع" },
       { key: "cars", label: "🚗 سيارات المشروع" },
+      { key: "purchases", label: "🛒 المشتريات" },
       { key: "archive", label: "🗂️ الأرشيف" },
       { key: "reports", label: "📄 التقارير" },
       { key: "users", label: "👥 المستخدمين" },
@@ -3878,6 +3958,7 @@
       if (name === "dashboard") refreshDashboard();
       if (name === "settings") fillSettingsForm();
       if (name === "meals") setMealTab(currentMealTab());
+      if (name === "purchases") loadPurchases();
       if (name === "reports" && !document.getElementById("repMonth").value) {
         document.getElementById("repMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
         repMonthChanged();
@@ -6062,6 +6143,219 @@
       gmDate = "";
       gmView = "month";
       loadGroupMeals();
+    }
+
+    // ===== المشتريات والعهدة =====
+    // دفتر واحد: مصروف (out) لكل قسم، واستلام فلوس من المكتب الرئيسي (in)، وكل حركة ممكن يبقى ليها رقم PV
+    const PU_DEPTS = [
+      { name: "كهرباء", icon: "⚡", color: "#ca8a04" },
+      { name: "ميكانيكا", icon: "⚙️", color: "#2563eb" },
+      { name: "طرق", icon: "🛣️", color: "#475569" },
+      { name: "مدني", icon: "🏗️", color: "#e08a1e" },
+      { name: "سيفتي", icon: "🦺", color: "#16a34a" },
+      { name: "صيانة سيارات", icon: "🚗", color: "#7c3aed" },
+      { name: "متنوع", icon: "📦", color: "#0891b2" }
+    ];
+    let puRows = [], puReady = true, puTab = "depts", puDept = "", puPv = "", editingPu = null, puKind = "out";
+    const puMonth = () => document.getElementById("puMonth").value;
+    const puNum = v => Number(v) || 0;
+    function puDeptList() {
+      const extra = [...new Set(puRows.filter(r => r.kind === "out").map(r => (r.department || "").trim()).filter(d => d && !PU_DEPTS.some(x => x.name === d)))];
+      return PU_DEPTS.concat(extra.map(name => ({ name, icon: "📁", color: "#64748b" })));
+    }
+    const puDeptOf = n => puDeptList().find(d => d.name === n) || { name: n || "بدون قسم", icon: "❔", color: "#94a3b8" };
+    const puPvKey = r => (r.pv_no || "").trim().toUpperCase();
+
+    async function loadPurchases() {
+      const mi = document.getElementById("puMonth");
+      if (!mi.value) mi.value = todayIso().slice(0, 7);
+      const { data, error } = await fetchAll(() => db.from("purchases").select("*").order("entry_date").order("id"));
+      puReady = !error;
+      document.getElementById("puNotice").innerHTML = puReady ? "" :
+        '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>صفحة المشتريات محتاجة جدول جديد في Supabase. شغّل كود المشتريات في SQL Editor وبعدين اعمل refresh.</div>';
+      puRows = puReady ? data : [];
+      renderPurchases();
+    }
+    function shiftPuMonth(n) {
+      const mi = document.getElementById("puMonth");
+      const [y, m] = (mi.value || todayIso().slice(0, 7)).split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      mi.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      puDept = ""; puPv = "";
+      renderPurchases();
+    }
+    function setPuTab(t) { puTab = t; if (t === "depts" || t === "pv") { puDept = ""; puPv = ""; } renderPurchases(); }
+
+    function renderPurchases() {
+      const ym = puMonth();
+      const days = monthDays(ym), first = days[0], last = days[days.length - 1];
+      const inMonth = puRows.filter(r => r.entry_date >= first && r.entry_date <= last);
+      const sum = (rows, k) => rows.filter(r => r.kind === k).reduce((s, r) => s + puNum(r.amount), 0);
+      const before = puRows.filter(r => r.entry_date < first);
+      const openBal = sum(before, "in") - sum(before, "out");
+      const mIn = sum(inMonth, "in"), mOut = sum(inMonth, "out");
+      const bal = openBal + mIn - mOut;
+      const pvs = new Set(inMonth.map(puPvKey).filter(Boolean));
+      document.getElementById("puMonthName").textContent = monthLabel(ym);
+      document.getElementById("puStats").innerHTML = puReady ? `
+        <div class="stat"><b style="color:#16a34a">${money(mIn)}</b>💵 استلمنا من المكتب<small>${inMonth.filter(r => r.kind === "in").length} مرة</small></div>
+        <div class="stat"><b style="color:#c0392b">${money(mOut)}</b>💸 مصروف الشهر<small>${inMonth.filter(r => r.kind === "out").length} مصروف</small></div>
+        <div class="stat"><b style="color:${bal < 0 ? "#c0392b" : "#1e3a5f"}">${money(bal)}</b>🏦 الرصيد معانا<small>أول الشهر: ${money(openBal)}</small></div>
+        <div class="stat"><b>${pvs.size}</b>📨 PV في الشهر<small>${[...pvs].slice(0, 3).join("، ")}${pvs.size > 3 ? "…" : ""}</small></div>` : "";
+      const tab = (k, l) => `<button class="chip ${puTab === k ? "on" : ""}" onclick="setPuTab('${k}')">${l}</button>`;
+      document.getElementById("puTabs").innerHTML = puReady ? tab("depts", "🗂️ الأقسام") + tab("out", "💸 المصروفات") + tab("in", "💵 المستلم") + tab("pv", "📨 PV") : "";
+      const body = document.getElementById("puBody");
+      body.hidden = !puReady;
+      if (!puReady) return;
+      if (puTab === "depts") body.innerHTML = puDeptsHtml(inMonth, mOut);
+      else if (puTab === "out") body.innerHTML = puOutHtml(inMonth);
+      else if (puTab === "in") body.innerHTML = puInHtml(inMonth);
+      else body.innerHTML = puPvHtml(inMonth);
+    }
+
+    function puDeptsHtml(rows, mOut) {
+      const outs = rows.filter(r => r.kind === "out");
+      const list = puDeptList().map(d => ({ d, rs: outs.filter(r => (r.department || "") === d.name) }));
+      const none = outs.filter(r => !(r.department || "").trim());
+      if (none.length) list.push({ d: { name: "", icon: "❔", color: "#94a3b8" }, rs: none });
+      list.sort((a, b) => b.rs.reduce((s, r) => s + puNum(r.amount), 0) - a.rs.reduce((s, r) => s + puNum(r.amount), 0));
+      return `<div class="dept-grid">${list.map(({ d, rs }) => {
+        const t = rs.reduce((s, r) => s + puNum(r.amount), 0);
+        return `<div class="dept-card ${t ? "" : "none"}" style="--dc:${d.color}" onclick="puDept = '${gmEsc(d.name)}'; puPv = ''; puTab = 'out'; renderPurchases()">
+          <div class="di">${d.icon}</div><b>${gmEsc(d.name || "بدون قسم")}</b>
+          <div class="dn" style="font-size:21px">${num(t)}</div><small>ريال · ${rs.length} مصروف${mOut && t ? " · " + Math.round(t / mOut * 100) + "%" : ""}</small>
+        </div>`; }).join("")}</div>
+        <p class="gm-hint">💡 دوس على أي قسم تشوف مصروفاته. والإجمالي فوق في "مصروف الشهر".</p>`;
+    }
+
+    function puRowHtml(r) {
+      const d = puDeptOf(r.department);
+      return `<div class="pu-row ${r.kind}" onclick="openPu('${r.kind}', ${r.id})">
+        <span class="pd">${Number(r.entry_date.slice(8))}<small>${new Date(r.entry_date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "short" })}</small></span>
+        <span class="pt">${r.kind === "out" ? `<span class="dept-tag" style="--dc:${d.color}">${d.icon} ${gmEsc(d.name)}</span> ` : '<span class="dept-tag" style="--dc:#16a34a">💵 من المكتب الرئيسي</span> '}
+          ${r.pv_no ? `<span class="pv-tag">📨 ${gmEsc(r.pv_no)}</span>` : ""}<br><small>${gmEsc(r.description || "")}</small></span>
+        <span class="pa">${r.kind === "out" ? "−" : "+"}${num(puNum(r.amount))}</span>
+      </div>`;
+    }
+
+    function puOutHtml(rows) {
+      let outs = rows.filter(r => r.kind === "out");
+      if (puDept !== "") outs = outs.filter(r => (r.department || "") === puDept);
+      if (puPv) outs = outs.filter(r => puPvKey(r) === puPv);
+      outs.sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.id - a.id);
+      const t = outs.reduce((s, r) => s + puNum(r.amount), 0);
+      const used = [...new Set(rows.filter(r => r.kind === "out").map(r => r.department || ""))];
+      const chips = `<div class="ts-chips" style="margin-bottom:8px"><button class="chip ${puDept === "" && !puPv ? "on" : ""}" onclick="puDept = ''; puPv = ''; renderPurchases()">الكل</button>` +
+        puDeptList().filter(d => used.includes(d.name)).map(d => `<button class="chip ${puDept === d.name ? "on" : ""}" onclick="puDept = '${gmEsc(d.name)}'; renderPurchases()">${d.icon} ${gmEsc(d.name)}</button>`).join("") +
+        (puPv ? `<button class="chip on" onclick="puPv = ''; renderPurchases()">📨 ${gmEsc(puPv)} ✖</button>` : "") + `</div>`;
+      return chips + (outs.length ? `<div class="pu-list">${outs.map(puRowHtml).join("")}</div>
+        <div class="pu-total">الإجمالي${puDept !== "" ? " · " + gmEsc(puDept || "بدون قسم") : ""}${puPv ? " · " + gmEsc(puPv) : ""}: <b>${money(t)}</b></div>` :
+        '<p style="color:#64748b">مفيش مصروفات هنا. دوس <b>➖ مصروف</b> فوق.</p>');
+    }
+
+    function puInHtml(rows) {
+      const ins = rows.filter(r => r.kind === "in").sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.id - a.id);
+      return ins.length ? `<div class="pu-list">${ins.map(puRowHtml).join("")}</div><div class="pu-total">إجمالي المستلم: <b style="color:#16a34a">${money(ins.reduce((s, r) => s + puNum(r.amount), 0))}</b></div>` :
+        '<p style="color:#64748b">مفيش فلوس متسجّل إنها اتستلمت الشهر ده. دوس <b>➕ استلام من المكتب</b> فوق.</p>';
+    }
+
+    function puPvHtml(rows) {
+      const g = {};
+      rows.forEach(r => { const k = puPvKey(r) || "-"; (g[k] = g[k] || []).push(r); });
+      const keys = Object.keys(g).sort((a, b) => a === "-" ? 1 : b === "-" ? -1 : a.localeCompare(b, "en", { numeric: true }));
+      return keys.length ? `<div class="pu-list">${keys.map(k => {
+        const rs = g[k], o = rs.filter(r => r.kind === "out").reduce((s, r) => s + puNum(r.amount), 0), i = rs.filter(r => r.kind === "in").reduce((s, r) => s + puNum(r.amount), 0);
+        const ds = rs.map(r => r.entry_date).sort();
+        const depts = [...new Set(rs.filter(r => r.kind === "out").map(r => r.department).filter(Boolean))];
+        return `<div class="pu-row pv" onclick="${k === "-" ? "" : `puPv = '${gmEsc(k)}'; puDept = ''; puTab = 'out'; renderPurchases()`}">
+          <span class="pd" style="font-size:13px">📨</span>
+          <span class="pt"><b>${k === "-" ? "من غير رقم PV" : gmEsc(k)}</b><br><small>${Number(ds[0].slice(8))}${ds.length > 1 ? " ← " + Number(ds[ds.length - 1].slice(8)) : ""} · ${rs.length} حركة${depts.length ? " · " + depts.join("، ") : ""}</small></span>
+          <span class="pa" style="text-align:left">${o ? `<span style="color:#c0392b">−${num(o)}</span>` : ""}${o && i ? "<br>" : ""}${i ? `<span style="color:#16a34a">+${num(i)}</span>` : ""}</span>
+        </div>`; }).join("")}</div><p class="gm-hint">💡 دوس على أي PV تشوف مصروفاته.</p>` : '<p style="color:#64748b">مفيش حركات الشهر ده.</p>';
+    }
+
+    // ----- نافذة الإضافة والتعديل -----
+    function openPu(kind, id) {
+      if (!puReady) { alert("شغّل كود المشتريات في Supabase الأول."); return; }
+      const r = id ? puRows.find(x => x.id === id) : null;
+      editingPu = r ? r.id : null;
+      puKind = r ? r.kind : kind;
+      const today = todayIso(), ym = puMonth();
+      document.getElementById("pu_date").value = r ? r.entry_date : (today.slice(0, 7) === ym ? today : ym + "-01");
+      document.getElementById("pu_amount").value = r ? puNum(r.amount) : "";
+      document.getElementById("pu_desc").value = r ? r.description || "" : "";
+      document.getElementById("pu_pv").value = r ? r.pv_no || "" : "";
+      document.getElementById("pu_dept").value = r ? r.department || "" : (puDept || "");
+      document.getElementById("puPvList").innerHTML = [...new Set(puRows.map(x => (x.pv_no || "").trim()).filter(Boolean))].slice(-30).reverse().map(p => `<option value="${gmEsc(p)}">`).join("");
+      document.getElementById("puDel").hidden = !r;
+      document.getElementById("puMsg").textContent = "";
+      puKindUi();
+      document.getElementById("puBox").hidden = false;
+      setTimeout(() => document.getElementById("pu_amount").focus(), 50);
+    }
+    function puKindUi() {
+      const out = puKind === "out";
+      document.getElementById("puTitle").textContent = (editingPu ? "✏️ تعديل " : "") + (out ? "➖ مصروف" : "➕ فلوس مستلمة من المكتب الرئيسي");
+      document.querySelectorAll("#puKindChips .chip").forEach(b => b.classList.toggle("on", b.dataset.k === puKind));
+      document.getElementById("puDeptWrap").hidden = !out;
+      const cur = document.getElementById("pu_dept").value;
+      document.getElementById("puDeptChips").innerHTML = puDeptList().map(d => `<button type="button" class="chip ${cur === d.name ? "on" : ""}" onclick="document.getElementById('pu_dept').value = '${gmEsc(d.name)}'; puKindUi()">${d.icon} ${gmEsc(d.name)}</button>`).join("") +
+        `<button type="button" class="chip" onclick="const n = (prompt('اسم القسم:') || '').trim(); if (n) { document.getElementById('pu_dept').value = n; puKindUi(); }">➕ قسم تاني</button>` +
+        (cur && !puDeptList().some(d => d.name === cur) ? `<button type="button" class="chip on">📁 ${gmEsc(cur)}</button>` : "");
+      document.getElementById("pu_desc").placeholder = out ? "مثلًا: خوذ وجوانتيات" : "ملاحظة (اختياري)";
+    }
+    function closePu() { document.getElementById("puBox").hidden = true; }
+
+    async function savePu() {
+      const msg = document.getElementById("puMsg");
+      const amount = Number(document.getElementById("pu_amount").value);
+      const date = document.getElementById("pu_date").value;
+      const dept = document.getElementById("pu_dept").value.trim();
+      if (!date) { msg.textContent = "⚠️ اختار التاريخ"; return; }
+      if (!(amount > 0)) { msg.textContent = "⚠️ اكتب المبلغ"; return; }
+      if (puKind === "out" && !dept) { msg.textContent = "⚠️ اختار القسم"; return; }
+      const row = { entry_date: date, kind: puKind, department: puKind === "out" ? dept : null, amount,
+        description: document.getElementById("pu_desc").value.trim() || null,
+        pv_no: document.getElementById("pu_pv").value.trim().toUpperCase() || null };
+      msg.textContent = "⏳ جاري الحفظ...";
+      if (!editingPu) row.created_by = me ? me.name : myEmail;
+      const res = editingPu ? await db.from("purchases").update(row).eq("id", editingPu).select() : await db.from("purchases").insert(row).select();
+      if (res.error) { msg.textContent = "❌ محصلش حفظ: " + res.error.message; return; }
+      const saved = res.data && res.data[0] ? res.data[0] : { ...row, id: editingPu };
+      if (editingPu) puRows = puRows.map(x => x.id === editingPu ? { ...x, ...saved } : x); else puRows.push(saved);
+      if (date.slice(0, 7) !== puMonth()) document.getElementById("puMonth").value = date.slice(0, 7);
+      closePu();
+      renderPurchases();
+    }
+    async function deletePu() {
+      if (!editingPu || !confirm("تمسح الحركة دي؟")) return;
+      const { error } = await db.from("purchases").delete().eq("id", editingPu);
+      if (error) { document.getElementById("puMsg").textContent = "❌ " + error.message; return; }
+      puRows = puRows.filter(x => x.id !== editingPu);
+      closePu();
+      renderPurchases();
+    }
+
+    function exportPurchases() {
+      const ym = puMonth(), days = monthDays(ym);
+      const rows = puRows.filter(r => r.entry_date >= days[0] && r.entry_date <= days[days.length - 1]).sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+      if (!rows.length) { alert("مفيش حركات في الشهر ده"); return; }
+      const before = puRows.filter(r => r.entry_date < days[0]);
+      const s = (rs, k) => rs.filter(r => r.kind === k).reduce((t, r) => t + puNum(r.amount), 0);
+      const openBal = s(before, "in") - s(before, "out");
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      const summary = [["المشتريات والعهدة — " + monthLabel(ym)], [], ["البند", "المبلغ (ريال)"],
+        ["رصيد أول الشهر", openBal], ["المستلم من المكتب الرئيسي", s(rows, "in")], ["إجمالي المصروف", s(rows, "out")], ["الرصيد آخر الشهر", openBal + s(rows, "in") - s(rows, "out")], [], ["القسم", "المصروف (ريال)", "عدد المصروفات"]];
+      puDeptList().concat([{ name: "" }]).forEach(d => {
+        const rs = rows.filter(r => r.kind === "out" && (r.department || "") === d.name);
+        if (rs.length) summary.push([d.name || "بدون قسم", s(rs, "out"), rs.length]);
+      });
+      XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(summary), "الملخص");
+      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows.filter(r => r.kind === "out").map((r, i) => ({ "#": i + 1, "التاريخ": r.entry_date, "القسم": r.department || "", "البيان": r.description || "", "رقم PV": r.pv_no || "", "المبلغ": puNum(r.amount) }))), "المصروفات");
+      const ins = rows.filter(r => r.kind === "in");
+      if (ins.length) XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(ins.map((r, i) => ({ "#": i + 1, "التاريخ": r.entry_date, "رقم PV": r.pv_no || "", "ملاحظة": r.description || "", "المبلغ": puNum(r.amount) }))), "المستلم");
+      XLSX.writeFile(book, "المشتريات-" + ym + ".xlsx");
     }
 
     function money(n) {
