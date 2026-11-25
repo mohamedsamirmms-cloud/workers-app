@@ -724,7 +724,7 @@
     .pf-doc .file-link, .pf-files a { cursor: pointer; color: #2563eb; font-size: 13px; text-decoration: none; white-space: nowrap; }
     .pf-files { display: flex; flex-wrap: wrap; gap: 8px; }
     .pf-files a { background: #eff6ff; border-radius: 8px; padding: 5px 10px; }
-    .pf-ids { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pf-ids { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
     .pf-id { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .pf-id > b { color: #1e3a5f; font-size: 14px; }
     .pf-id .img { border-radius: 10px; overflow: hidden; background: #f8fafc; border: 2px dashed #cbd5e1; min-height: 130px; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #94a3b8; gap: 4px; font-size: 13px; text-align: center; padding: 6px; box-sizing: border-box; }
@@ -3244,13 +3244,17 @@
       return data ? (signedCache[k] = data.signedUrl) : "";
     }
     const carsHaveFiles = () => !cars.length || "license_file" in cars[0];
+    const carsHaveReg = () => !cars.length || "reg_file" in cars[0];
+    // السيارة ليها صورة تالتة: رخصة السير
+    const CAR_IDS = PF_IDS.concat([{ key: "reg", label: "📄 رخصة السير" }]);
     let pfDocTarget = null;   // { type: "eq" | "car", id, key }
 
     // كارت الصورتين — type: eq أو car
     async function pfIdsHtml(type, obj, driver) {
       const edit = canOpen(type === "eq" ? "moves" : "cars");
       const ready = type === "eq" || carsHaveFiles();
-      const slots = await Promise.all(PF_IDS.map(async function (d) {
+      const slots = await Promise.all((type === "car" ? CAR_IDS : PF_IDS).map(async function (d) {
+        const slotReady = ready && (type !== "car" || d.key !== "reg" || carsHaveReg());
         const path = obj[d.key + "_file"];
         let view = "", from = "";
         if (path && isImagePath(path)) {
@@ -3266,16 +3270,17 @@
         const has = view.startsWith("<img");
         return `<div class="pf-id">
           <b>${d.label}</b>
-          <div class="img ${has ? "has" : ""}">${view || '<span style="font-size:34px">' + (d.key === "iqama" ? "🪪" : "🚘") + '</span><span>الصورة ناقصة</span>'}</div>
+          <div class="img ${has ? "has" : ""}">${view || '<span style="font-size:34px">' + (d.key === "iqama" ? "🪪" : d.key === "reg" ? "📄" : "🚘") + '</span><span>الصورة ناقصة</span>'}</div>
           ${from ? `<span class="from">${from}</span>` : ""}
-          ${edit && ready ? `<div class="btns no-print">
+          ${edit && ready && !slotReady ? '<span class="from">⚠️ شغّل سطر رخصة السير في Supabase</span>' : ""}
+          ${edit && slotReady ? `<div class="btns no-print">
             <button type="button" onclick="pickPfDoc('${type}', ${obj.id}, '${d.key}', true)">📷 صوّر</button>
             <button type="button" onclick="pickPfDoc('${type}', ${obj.id}, '${d.key}', false)">🖼️ ${path ? "غيّر" : "ارفع"}</button>
           </div>` : ""}
         </div>`;
       }));
       return `<div class="pf-card">
-        <h4>🪪 صورة إقامة ورخصة السائق</h4>
+        <h4>${type === "car" ? "🪪 صور الإقامة والرخصة ورخصة السير" : "🪪 صورة إقامة ورخصة السائق"}</h4>
         ${ready ? "" : '<p class="warn-note" style="margin:0 0 8px">⚠️ عشان تقدر ترفع صور للسيارات، شغّل سطر الـ SQL بتاع صور السيارات في Supabase.</p>'}
         <div class="pf-ids">${slots.join("")}</div>
         <span id="pfDocMsg" style="font-size:13px"></span>
@@ -4135,7 +4140,7 @@
       if (!confirm("متأكد إنك عايز تحذف السيارة " + c.plate + "؟")) return;
       const { error } = await db.from("cars").delete().eq("id", id);
       if (error) { alert("❌ محصلش حذف: " + error.message); return; }
-      const files = [c.iqama_file, c.license_file].filter(Boolean);
+      const files = [c.iqama_file, c.license_file, c.reg_file].filter(Boolean);
       if (files.length) await db.storage.from("equipment").remove(files);
       loadCars();
     }

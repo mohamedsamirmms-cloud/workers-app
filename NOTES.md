@@ -42,7 +42,7 @@
 **حاجات عامة:**
 - **الملف الشامل للعامل** (`showProfile`): صورة الإقامة (رفع/تغيير)، البيانات، حضور ووجبات الشهر، المعدات والسيارات اللي بيسوقها، طباعة.
 - **الملف الشامل للمعدة** (`showEqProfile`) **وللسيارة** (`showCarProfile`): في نفس نافذة ملف الساكن (`#profileBox`). البيانات، الصورة أو رسمة النوع، كل مستند بحالته وأيامه ومرفقه، والسائق لينك لملفه (`driverWorker`)، وتعديل (لو ليه الصفحة) وطباعة. بيتفتح من زرار "👁️ الملف" أو الاسم في القايمة، ومن تنبيهات لوحة التحكم، ومن ملف الساكن.
-- **صورة إقامة ورخصة السائق** في ملف المعدة والسيارة (`pfIdsHtml`, `pickPfDoc`, `uploadPfDoc`): بتظهر الصورة نفسها (والـ PDF لينك)، وفيه زرارين صوّر وارفع. ولو مفيش صورة إقامة والسائق ساكن، بتظهر صورته من ملف الساكن. للمعدات بتستخدم `iqama_file`/`license_file` الموجودين من قبل.
+- **صورة إقامة ورخصة السائق** في ملف المعدة والسيارة (والسيارة ليها صورة تالتة: رخصة السير `CAR_IDS`) (`pfIdsHtml`, `pickPfDoc`, `uploadPfDoc`): بتظهر الصورة نفسها (والـ PDF لينك)، وفيه زرارين صوّر وارفع. ولو مفيش صورة إقامة والسائق ساكن، بتظهر صورته من ملف الساكن. للمعدات بتستخدم `iqama_file`/`license_file` الموجودين من قبل.
 - **منع تكرار رقم الإقامة** (`normIqama`, `iqamaOwner`, `showDupMsg`, `dupIqamaIds`): الرقم بيتوحّد (أرقام عربي ← إنجليزي، ومن غير مسافات). في الإضافة والتعديل بتظهر رسالة وانت بتكتب، والحفظ بيتمنع. لو الرقم لساكن في الأرشيف، بيقترح "رجّعه للسكن". ولو فيه أرقام متكررة قديمة، بيظهر مربع "⛔ رقم إقامة متكرر" (فلتر `dup`). وفي قاعدة البيانات فيه unique index اسمه `workers_id_no_unique` على `trim(id_no::text)` (الفاضي مسموح يتكرر).
 - **دمج السجلات المتكررة** (`openMerge`, `doMerge`): في فلتر `dup` فيه لوحة `#dupPanel` بكل الأرقام المتكررة (حتى اللي في الأرشيف) وزرار "🔗 دمج". الزرار بيظهر بس للي عنده residents وtimesheet وmeals. الدمج بينقل التايم شيت (لو نفس اليوم في الاتنين، بيفضل اللي ساعاته أكتر) والوجبات (لو نفس اليوم، بيجمعهم)، ويكمّل البيانات الناقصة، وبعدين يمسح السجل المتكرر. لما صاحب المشروع شغّل الفحص، طلع عنده 13 رقم متكرر وكلهم نفس الشخص متسجّل مرتين.
 - **فطار المجموعات:** صاحب المشروع بيحسب الفطار بالمجموعات (حوالي 36 مجموعة) في شيت Excel شكله: NAME، COUNT، أيام الشهر، THE COST، وفي الآخر TOTAL. سعر الفرد 3.5، ما عدا Dinner 9 و OMRAN 12.5 و abdelrahman 12.5 (`GM_PRICES`). SAMIR مبلغه 22.5 لفردين، ولسه مش معروف سعره. الجمعة مفيش فطار (بس Meals و Dinner ليهم أرقام). ملفه (أكتوبر ونوفمبر 2026) جاهز يتعمله import من زرار "📥 استيراد من Excel"، والإجماليات طالعة زي الشيت بالظبط.
@@ -62,7 +62,7 @@
 | `rooms` | المفتاح `(building, room)`: `beds (عدد الأسرّة), bedrooms, bathrooms, kitchen, gas, cylinders, washers, fridges` |
 | `timesheet` | `worker_id, work_date, time_in, time_out, hours, overtime` (unique على `worker_id, work_date`) |
 | `meals` | `id, worker_id, meal_date, breakfast, lunch` (unique على `worker_id, meal_date`) |
-| `cars` | `id, plate, car_type, model, driver, reg_expiry, ins_expiry, last_service, km, notes, iqama_file, license_file` |
+| `cars` | `id, plate, car_type, model, driver, reg_expiry, ins_expiry, last_service, km, notes, iqama_file, license_file, reg_file (صورة رخصة السير)` |
 | `equipment` | `id, name, driver, kind, department (القسم), photo, iqama_no, license_no, operator_no, reg_expiry, ins_expiry, inspection_expiry, *_file, other_files (jsonb)` |
 | `meal_groups` | `id, name (unique), people (العدد الأساسي), price (سعر الفرد), sort, active` |
 | `meal_group_members` | `id, group_id (cascade), worker_id (unique، ساكن أو null، on delete set null), name` — الأسماء جوه كل مجموعة |
@@ -77,7 +77,7 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (24 بند) يأكد إن كله متجهز.
+- `check.sql`: جدول ✅/❌ (25 بند) يأكد إن كله متجهز.
 - **الحالة الحالية:** صاحب المشروع شغّل كل الأكواد، وكل البنود لحد 17 ✅. بند 18 (منع التكرار) محتاج: يصلّح الأرقام المتكررة لو فيه، وبعدين يشغّل سطر الـ index.
 
 ## 5. الصلاحيات والأمان

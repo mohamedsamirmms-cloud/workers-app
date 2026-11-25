@@ -34,6 +34,7 @@ select item as "البند", case when ok then '✅' else '❌' end as "الحا
   (22, 'عدد الأسرّة في الوحدات',             exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'rooms' and column_name = 'beds')),
   (23, 'أقسام المعدات',                      exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'equipment' and column_name = 'department')),
   (24, 'المشتريات والعهدة',                  to_regclass('public.purchases') is not null
-                                            and (select count(*) from pg_policies where schemaname = 'public' and tablename = 'purchases') >= 1)
+                                            and (select count(*) from pg_policies where schemaname = 'public' and tablename = 'purchases') >= 1),
+  (25, 'صورة رخصة السير في السيارات',        exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'cars' and column_name = 'reg_file'))
 ) as t(n, item, ok)
 order by n;

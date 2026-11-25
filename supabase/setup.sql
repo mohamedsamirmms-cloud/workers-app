@@ -83,7 +83,8 @@ end $$;
 -- 3ج) صورة إقامة ورخصة السواق في السيارات (الملفات بتتحفظ في bucket المعدات)
 alter table if exists public.cars
   add column if not exists iqama_file text,
-  add column if not exists license_file text;
+  add column if not exists license_file text,
+  add column if not exists reg_file text;      -- صورة رخصة السير
 
 -- 3ب) تجهيزات الغرف: غاز وسلندرات وغسالات وتلاجات
 alter table if exists public.rooms
