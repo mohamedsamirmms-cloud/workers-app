@@ -6446,37 +6446,36 @@
     const impIsId = x => { const t = String(x).replace(/\s/g, ""); return /^[A-Z]{0,2}-?\d[\d\-\/]*$/i.test(t) && /\d{3,}/.test(t); };
 
     // شيت السكن: كذا بلوك جنب بعض، كل بلوك بيبدأ بعمود فيه "ROOM NO"
+    // الوحدة = الغرفة (1-1)، والـ SECTTION جواها = غرفة نوم، والأسرّة بتترقّم ورا بعض في الوحدة (A: 1-3، B: 4-6)
     function impParseVilla(rows) {
       const starts = new Set();
       rows.forEach(r => (r || []).forEach((v, c) => { if (typeof v === "string" && /^\s*ROOM\s*NO/i.test(v)) starts.add(c); }));
       const cols = [...starts].sort((a, b) => a - b);
       if (!cols.length) return null;
-      const people = [], units = {}, notes = [];
+      const raw = [], secs = {};   // secs[الوحدة] = [سعة كل غرفة بالترتيب]
       cols.forEach((c0, bi) => {
         const width = (cols[bi + 1] != null ? cols[bi + 1] : c0 + 6) - c0;
-        let room = "", sec = "", used = {};
+        let room = "", si = -1;
         rows.forEach((r, ri) => {
           const v = (r || [])[c0];
-          if (typeof v === "string" && /^\s*ROOM\s*NO/i.test(v)) { room = impNormRoom(v); sec = ""; used = {}; return; }
-          if (typeof v === "string" && /SECT+I?ON/i.test(v)) {
-            let s = ((v.match(/-\s*([A-Za-z])\s*$/) || [])[1] || "A").toUpperCase();
-            if (used[s]) { const orig = s; while (used[s]) s = String.fromCharCode(s.charCodeAt(0) + 1); notes.push(`غرفة ${room}: Section ${orig} مكتوب مرتين، التاني اتسجّل ${s}`); }
-            used[s] = true; sec = s; return;
-          }
-          if (typeof v === "number" && room && sec && v >= 1 && v <= 30) {
-            const unit = room + sec;
-            units[unit] = Math.max(units[unit] || 0, v);
+          if (typeof v === "string" && /^\s*ROOM\s*NO/i.test(v)) { room = impNormRoom(v); si = -1; secs[room] = secs[room] || []; return; }
+          if (typeof v === "string" && /SECT+I?ON/i.test(v) && room) { secs[room].push(0); si = secs[room].length - 1; return; }
+          if (typeof v === "number" && room && si >= 0 && v >= 1 && v <= 30) {
+            secs[room][si] = Math.max(secs[room][si], v);
             const cells = (r || []).slice(c0 + 1, c0 + width).filter(x => x != null && String(x).trim() !== "");
             if (!cells.length) return;
             const name = String(cells[0]).trim().replace(/\s+/g, " ");
             const rest = cells.slice(1).map(x => String(x).trim().replace(/\s+/g, " "));
             const id = rest.find(impIsId) || "";
             const job = rest.find(x => x !== id) || "";
-            people.push({ name, idNo: normIqama(id), job, room: unit, bed: v, row: ri + 1 });
+            raw.push({ name, idNo: normIqama(id), job, room, si, b: v, row: ri + 1 });
           }
         });
       });
-      return { people, units, notes, kind: "villa" };
+      const units = {}, bedrooms = {};
+      Object.entries(secs).forEach(([room, caps]) => { units[room] = caps.reduce((t, c) => t + c, 0); bedrooms[room] = caps.length; });
+      const people = raw.map(x => ({ ...x, bed: secs[x.room].slice(0, x.si).reduce((t, c) => t + c, 0) + x.b, part: String.fromCharCode(65 + x.si) }));
+      return { people, units, bedrooms, notes: [], kind: "villa" };
     }
 
     // جدول عادي: صف عناوين فيه الاسم، والباقي اختياري
@@ -6545,7 +6544,11 @@
       const fresh = list.filter(x => !x.existing), moves = list.filter(x => x.existing && !x.same), same = list.filter(x => x.same);
       const unitNames = Object.keys(p.units);
       const cap = unitNames.reduce((s, u) => s + p.units[u], 0);
-      impData = { list, fresh, moves, units: p.units, building };
+      // وحدات قديمة اتعملت بالشكل القديم (1-1A، 1-1B) ومفيهاش ساكنين: نمسحها
+      const legacy = Object.values(roomsInfo).filter(x => x.building === building && x.room && !p.units[x.room] &&
+        p.units[String(x.room).replace(/[A-Z]$/i, "")] != null && /[A-Z]$/i.test(x.room) && !workers.some(w => w.building === building && roomKey("", w.room) === roomKey("", x.room))).map(x => x.room);
+      impData = { list, fresh, moves, units: p.units, bedrooms: p.bedrooms || {}, building, legacy };
+      const cleanHtml = legacy.length ? `<div class="imp-sec warn"><label class="imp-opt"><input type="checkbox" id="impClean" checked> 🧹 <b>امسح ${legacy.length} وحدة قديمة</b> اتعملت بالشكل الغلط (${legacy.slice(0, 4).join("، ")}${legacy.length > 4 ? "…" : ""}) ومفيهاش ساكنين</label></div>` : "";
       if (document.getElementById("impRoomsOnly").checked) {
         const names = unitNames.slice().sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
         const exist = names.filter(u => roomInfoOf(building, u));
@@ -6554,10 +6557,10 @@
             <div class="stat"><b>${names.length}</b>🚪 وحدة</div>
             <div class="stat"><b>${cap}</b>🛏️ سرير</div>
             ${exist.length ? `<div class="stat"><b style="color:#b45309">${exist.length}</b>موجودة قبل كده<small>عدد أسرّتها هيتحدّث</small></div>` : ""}
-          </div>
+          </div>${cleanHtml}
           ${p.notes.length ? `<div class="imp-sec warn"><b>⚠️ حاجات تراجعها</b><ul class="imp-ul">${p.notes.map(t => `<li>${gmEsc(t)}</li>`).join("")}</ul></div>` : ""}
           <details class="imp-sec" open><summary>👀 الوحدات وعدد الأسرّة</summary>
-            <div class="mr-chips" style="margin-top:6px">${names.map(u => `<span class="pv-tag" style="direction:rtl">🚪 <b dir="ltr">${gmEsc(u)}</b> · ${p.units[u]} سرير</span>`).join("")}</div>
+            <div class="mr-chips" style="margin-top:6px">${names.map(u => `<span class="pv-tag" style="direction:rtl">🚪 <b dir="ltr">${gmEsc(u)}</b> · ${p.bedrooms && p.bedrooms[u] ? p.bedrooms[u] + " غرفة · " : ""}${p.units[u]} سرير</span>`).join("")}</div>
           </details>` : '<p class="imp-sec warn">الشيت ده مفيهوش ROOM NO و SECTTION، فمش هقدر أطلّع منه الغرف.</p>';
         document.getElementById("impBtn").disabled = !names.length;
         document.getElementById("impBtn").textContent = `🚪 سجّل ${names.length} وحدة (${cap} سرير)`;
@@ -6573,15 +6576,35 @@
         </div>
         ${moves.length ? `<div class="imp-sec"><label class="imp-opt"><input type="checkbox" id="impMove" checked> 🔁 <b>انقل الـ ${moves.length} اللي موجودين قبل كده لـ ${gmEsc(building)}</b> (بنفس الغرفة والسرير اللي في الشيت)</label>
           ${li(moves, x => `<li>${gmEsc(x.name)} <small>${x.idNo} · دلوقتي: ${gmEsc(x.existing.archived ? "🗂️ في الأرشيف" : (x.existing.building || "-") + " غرفة " + (x.existing.room || "-"))} ← ${gmEsc(x.room)} سرير ${x.bed}</small></li>`)}</div>` : ""}
+        ${cleanHtml}
         ${unitNames.length ? `<div class="imp-sec"><label class="imp-opt"><input type="checkbox" id="impBeds" checked> 🛏️ <b>سجّل عدد الأسرّة لكل وحدة من الشيت</b> (عشان الأسرّة الفاضية)</label></div>` : ""}
         ${dups.length || p.notes.length || list.some(x => x.warn) || same.length ? `<div class="imp-sec warn"><b>⚠️ حاجات تراجعها</b>
           ${li(dups.concat(p.notes).concat(list.filter(x => x.warn).map(x => `${x.name}: ${x.warn}`)).concat(same.length ? [`${same.length} ساكن متسجّلين بالظبط كده قبل كده، مش هيتغيّروا`] : []), t => `<li>${gmEsc(t)}</li>`)}</div>` : ""}
         <details class="imp-sec"><summary>👀 شوف كل الأسماء (${list.length})</summary>
           <div class="imp-table"><table><tr><th>الوحدة</th><th>سرير</th><th>الاسم</th><th>الرقم</th><th>الوظيفة</th><th></th></tr>
-          ${list.slice().sort((a, b) => a.room.localeCompare(b.room, "en", { numeric: true }) || a.bed - b.bed).map(x => `<tr><td>${gmEsc(x.room)}</td><td>${x.bed || "-"}</td><td>${gmEsc(x.name)}</td><td dir="ltr">${gmEsc(x.idNo || "-")}</td><td>${gmEsc(x.job)}</td><td>${x.same ? "✔" : x.existing ? "🔁" : "➕"}</td></tr>`).join("")}</table></div>
+          ${list.slice().sort((a, b) => a.room.localeCompare(b.room, "en", { numeric: true }) || a.bed - b.bed).map(x => `<tr><td>${gmEsc(x.room)}</td><td>${x.bed || "-"}${x.part ? ` <small style="color:#64748b">(${x.part}${x.b})</small>` : ""}</td><td>${gmEsc(x.name)}</td><td dir="ltr">${gmEsc(x.idNo || "-")}</td><td>${gmEsc(x.job)}</td><td>${x.same ? "✔" : x.existing ? "🔁" : "➕"}</td></tr>`).join("")}</table></div>
         </details>`;
       document.getElementById("impBtn").disabled = !(fresh.length || moves.length || unitNames.length);
       document.getElementById("impBtn").textContent = `📥 استيراد ${fresh.length} ساكن${moves.length ? " ونقل " + moves.length : ""}`;
+    }
+
+    // الوحدات وعدد غرفها وأسرّتها من الشيت، ومسح الوحدات القديمة لو متعلّم عليها
+    async function impSaveRooms() {
+      const { units, bedrooms, building, legacy } = impData;
+      const rr = Object.entries(units).map(([room, n]) => {
+        const old = roomInfoOf(building, room);
+        const br = bedrooms[room] || (old && old.bedrooms) || 1;
+        return old ? { ...old, beds: n, bedrooms: br } : { building, room, bedrooms: br, bathrooms: 1, kitchen: false, beds: n };
+      });
+      const up = await db.from("rooms").upsert(rr);
+      if (up.error) return up;
+      const clean = document.getElementById("impClean");
+      if (clean && clean.checked && legacy.length) {
+        const del = await db.from("rooms").delete().eq("building", building).in("room", legacy);
+        if (del.error) return del;
+        legacy.forEach(r => Object.keys(roomsInfo).forEach(k => { if (roomsInfo[k].building === building && roomsInfo[k].room === r) delete roomsInfo[k]; }));
+      }
+      return { error: null };
     }
 
     async function doImport() {
@@ -6594,8 +6617,7 @@
         const n = Object.keys(units).length;
         if (!n || !confirm(`هتتسجّل ${n} وحدة في ${building} بعدد أسرّتها، من غير ساكنين. تكمل؟`)) return;
         impBusy = true; btn.disabled = true; msg.textContent = "⏳ بسجّل الوحدات...";
-        const rr = Object.entries(units).map(([room, b]) => { const old = roomInfoOf(building, room); return old ? { ...old, beds: b } : { building, room, bedrooms: 1, bathrooms: 1, kitchen: false, beds: b }; });
-        const { error } = await db.from("rooms").upsert(rr);
+        const { error } = await impSaveRooms();
         impBusy = false; btn.disabled = false;
         if (error) { msg.textContent = "❌ " + (/beds/.test(error.message) ? "عدد الأسرّة محتاج سطر الأسرّة في Supabase" : error.message); return; }
         document.getElementById("impBox").hidden = true;
@@ -6622,11 +6644,7 @@
         }
         if (beds && Object.keys(units).length) {
           msg.textContent = "⏳ بسجّل عدد الأسرّة...";
-          const rr = Object.entries(units).map(([room, n]) => {
-            const old = roomInfoOf(building, room);
-            return old ? { ...old, beds: n } : { building, room, bedrooms: 1, bathrooms: 1, kitchen: false, beds: n };
-          });
-          const { error } = await db.from("rooms").upsert(rr);
+          const { error } = await impSaveRooms();
           if (error) throw new Error(/beds/.test(error.message) ? "عدد الأسرّة محتاج سطر الأسرّة في Supabase" : error.message);
         }
       } catch (e) { fail(e.message); return; }
