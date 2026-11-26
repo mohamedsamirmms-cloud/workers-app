@@ -2,7 +2,17 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>سجل العمالة</title>
+  <!-- تسطيب البرنامج على الجهاز (PWA) -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#1e3a5f">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="سجل السكن">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>
           /* فطار المجموعات */
     .meal-tabs { margin-bottom: 12px; }
@@ -640,6 +650,12 @@
     #sideUser:empty { display: none; }
     #sideUser { cursor: pointer; }
     #sideUser:hover { color: white; }
+    .nav.install { color: #86efac; width: 100%; }
+    .nav.install .ni { background: rgba(134, 239, 172, 0.15); }
+    #iosBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 70; display: flex; align-items: flex-end; justify-content: center; padding: 15px; }
+    #iosBox[hidden] { display: none; }
+    #iosBox > div { background: white; border-radius: 16px; padding: 18px; width: 100%; max-width: 420px; box-sizing: border-box; display: grid; gap: 10px; text-align: center; }
+    #iosBox ol { text-align: right; margin: 0; padding-inline-start: 22px; line-height: 2; color: #334155; }
     .nav.logout { color: #fca5a5; width: 100%; }
     .nav.logout .ni { background: rgba(252, 165, 165, 0.12); }
     .nav.logout:hover { background: rgba(192, 57, 43, 0.25); }
@@ -1186,6 +1202,7 @@
     <button class="nav" data-page="settings" onclick="showPage('settings')"><span class="ni">⚙️</span>الإعدادات</button>
     <div class="side-foot">
       <div id="sideUser" onclick="openAccount()" title="حسابي"></div>
+      <button class="nav install" id="installBtn" onclick="installApp()" hidden><span class="ni">📲</span>سطّب البرنامج</button>
       <button class="nav account" onclick="openAccount()"><span class="ni">👤</span>حسابي</button>
       <button class="nav logout" onclick="logout()"><span class="ni">🚪</span>تسجيل خروج</button>
     </div>
@@ -1785,6 +1802,19 @@
         <button onclick="if (!impBusy) document.getElementById('impBox').hidden = true" style="background:#64748b">إلغاء</button>
       </div>
       <span id="impMsg" style="font-size:13px"></span>
+    </div>
+  </div>
+  <div id="iosBox" hidden onclick="if (event.target === this) this.hidden = true">
+    <div>
+      <img src="icons/icon-192.png" alt="" width="64" height="64" style="margin:0 auto; border-radius:14px">
+      <h3 style="margin:0; color:#1e3a5f">📲 سطّب البرنامج على الآيفون</h3>
+      <ol>
+        <li>افتح البرنامج من <b>Safari</b></li>
+        <li>دوس زرار المشاركة <b>⬆️</b> اللي تحت</li>
+        <li>اختار <b>"إضافة إلى الشاشة الرئيسية"</b></li>
+        <li>دوس <b>"إضافة"</b></li>
+      </ol>
+      <button onclick="document.getElementById('iosBox').hidden = true" style="background:#1e3a5f">تمام</button>
     </div>
   </div>
   <div id="accBox" hidden onclick="if (event.target === this) closeAccount()">
@@ -6225,6 +6255,29 @@
       gmView = "month";
       loadGroupMeals();
     }
+
+    // ===== تسطيب البرنامج على الجهاز (PWA) =====
+    let installPrompt = null;
+    const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    function showInstallBtn() {
+      const b = document.getElementById("installBtn");
+      if (b) b.hidden = isStandalone() || !(installPrompt || isIOS());
+    }
+    window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; showInstallBtn(); });
+    window.addEventListener("appinstalled", () => { installPrompt = null; showInstallBtn(); });
+    async function installApp() {
+      if (installPrompt) {
+        installPrompt.prompt();
+        await installPrompt.userChoice.catch(() => {});
+        installPrompt = null;
+        showInstallBtn();
+      } else if (isIOS()) document.getElementById("iosBox").hidden = false;
+    }
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+    showInstallBtn();
 
     // ===== المشتريات والعهدة =====
     // دفتر واحد: مصروف (out) لكل قسم، واستلام فلوس من المكتب الرئيسي (in)، وكل حركة ممكن يبقى ليها رقم PV
