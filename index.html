@@ -4799,6 +4799,25 @@
 
     const EQ_KINDS = [
       // ---- أنواع اتضافت بعد كده (قبل الباقي عشان أسماءها أدق) ----
+      // أنواع الرولر: لازم قبل "فرادة أسفلت" و"رولر" العادي
+      { key: "tandem", label: "رولر تاندم", words: ["tandem", "تاندم", "تاندوم", "double drum", "twin drum", "دبل درام", "دبل درم", "رولر حديد"],
+        svg: eqShadow + `<rect x="20" y="40" width="16" height="10" rx="2" fill="${EQC.yd}"/><rect x="84" y="40" width="16" height="10" rx="2" fill="${EQC.yd}"/>` +
+          `<rect x="26" y="34" width="68" height="20" rx="4" fill="${EQC.y}"/><rect x="44" y="27" width="30" height="8" rx="2" fill="${EQC.yd}"/><rect x="53" y="18" width="10" height="10" rx="2" fill="${EQC.k}"/>` +
+          `<path d="M42 34 L42 10 M78 34 L78 10" stroke="${EQC.k}" stroke-width="2.2"/><rect x="38" y="6" width="44" height="5" rx="2" fill="${EQC.y}"/>` +
+          [24, 96].map(x => `<circle cx="${x}" cy="60" r="14" fill="${EQC.g}"/><circle cx="${x}" cy="60" r="10.5" fill="${EQC.gl}"/><circle cx="${x}" cy="60" r="3" fill="${EQC.k}"/>`).join("") },
+      { key: "pneumatic", label: "رولر نيوماتيك (كاوتش)", words: ["pneumatic", "نيوماتيك", "نيوماتك", "نيو ماتيك", "tire roller", "tyre roller", "rubber tire", "rubber tyre", "رولر كاوتش", "رولر عجل"],
+        svg: eqShadow + `<rect x="14" y="30" width="90" height="26" rx="5" fill="${EQC.y}"/><rect x="14" y="30" width="90" height="6" rx="3" fill="${EQC.yd}"/>` +
+          `<path d="M40 30 L40 9 M74 30 L74 9" stroke="${EQC.k}" stroke-width="2.2"/><rect x="36" y="5" width="42" height="5" rx="2" fill="${EQC.y}"/><rect x="51" y="19" width="12" height="11" rx="2" fill="${EQC.k}"/>` +
+          [[30, 58], [46, 58], [88, 58], [104, 58]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#374151"/>`).join("") +
+          eqWheel(22, 63, 9) + eqWheel(38, 63, 9) + eqWheel(80, 63, 9) + eqWheel(96, 63, 9) },
+      { key: "vibro", label: "رولر سنجل درام (هزاز)", words: ["single drum", "single-drum", "vibratory", "vibrating", "vibro", "سنجل", "هزاز", "اهتزاز", "فيبرو", "رولر تراب"],
+        svg: eqShadow + `<rect x="8" y="34" width="54" height="24" rx="4" fill="${EQC.y}"/>` +
+          [14, 19, 24].map(x => `<rect x="${x}" y="40" width="2.5" height="12" rx="1" fill="${EQC.yd}"/>`).join("") +
+          eqCab(28, 10, 24, 26) +
+          `<path d="M60 40 L90 34 L106 44 L106 58 L66 56 Z" fill="${EQC.yd}"/>` +
+          `<circle cx="94" cy="57" r="17" fill="${EQC.g}"/><circle cx="94" cy="57" r="13" fill="${EQC.gl}"/><circle cx="94" cy="57" r="4" fill="${EQC.k}"/>` +
+          `<path d="M114 47 Q118 57 114 67 M109 43 Q115 57 109 71" stroke="${EQC.k}" stroke-width="1.6" fill="none" stroke-linecap="round"/>` +
+          eqWheel(24, 62, 11) },
       { key: "telehandler", label: "تلي هاندلر", words: ["telehandler", "tele handler", "tele-handler", "telescopic", "تلي هاندلر", "تليهاندلر", "تلهاندلر", "manitou", "مانيتو"],
         svg: eqShadow + `<rect x="14" y="44" width="78" height="14" rx="4" fill="${EQC.y}"/>` + eqCab(44, 22, 20, 24) +
           `<path d="M18 44 L24 34 L104 24 L104 33 Z" fill="${EQC.yd}"/><path d="M72 28 L104 24 L104 33 L72 36 Z" fill="${EQC.y}"/>` +
