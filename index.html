@@ -162,6 +162,26 @@
       body .dept-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
       body .dept-card { padding: 10px 6px; } body .dept-card .di { width: 46px; height: 46px; font-size: 24px; } body .dept-card b { font-size: 15px; }
     }
+          /* استيراد الساكنين */
+    #impBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #impBox[hidden] { display: none; }
+    #impBox > div { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto; box-sizing: border-box; display: grid; gap: 10px; }
+    #impBox h3 { margin: 0; color: #1e3a5f; }
+    #impBox label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    #impBox .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #impBox select { box-sizing: border-box; width: 100%; }
+    .imp-sec { background: #f8fafc; border-radius: 10px; padding: 8px 10px; margin-top: 8px; font-size: 13px; }
+    .imp-sec.warn { background: #fff7ed; color: #9a3412; }
+    .imp-sec summary { cursor: pointer; font-weight: bold; color: #1e3a5f; }
+    .imp-opt { display: flex !important; align-items: center; gap: 6px; cursor: pointer; color: #1e3a5f !important; }
+    .imp-opt input { width: 18px; height: 18px; flex: none; }
+    .imp-ul { margin: 6px 0 0; padding-inline-start: 18px; max-height: 160px; overflow-y: auto; line-height: 1.7; }
+    .imp-ul small { color: #64748b; }
+    .imp-table { max-height: 300px; overflow: auto; margin-top: 6px; }
+    .imp-table table { font-size: 12px; }
+    .imp-table th, .imp-table td { padding: 4px 6px; white-space: nowrap; }
+    .res-head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    @media (max-width: 700px) { #impBox .row2 { grid-template-columns: 1fr; } .res-head-btns { width: 100%; } .res-head-btns button { flex: 1; } }
           /* الوجبات بالوحدات */
     #mealRooms:empty { display: none; }
     #mealRooms[hidden], #mealChips[hidden], #mealList[hidden], .ml-only[hidden] { display: none !important; }
@@ -1175,7 +1195,11 @@
   <section id="page-residents" class="page">
   <div class="res-head">
     <h2>👷 الساكنين</h2>
-    <button onclick="openAdd()" style="background:#16a34a">➕ إضافة ساكن</button>
+    <div class="res-head-btns">
+      <button onclick="document.getElementById('impFile').click()" style="background:#7c3aed">📥 استيراد من Excel</button>
+      <button onclick="openAdd()" style="background:#16a34a">➕ إضافة ساكن</button>
+    </div>
+    <input type="file" id="impFile" accept=".xlsx,.xls,.csv" hidden onchange="readImpFile(this)">
   </div>
   <div id="resStats"></div>
   <div id="addBox" hidden onclick="if (event.target === this) closeAdd()">
@@ -1746,6 +1770,21 @@
       </div>
       <span id="puMsg" style="font-size:13px"></span>
     </form>
+  </div>
+  <div id="impBox" hidden onclick="if (event.target === this && !impBusy) this.hidden = true">
+    <div>
+      <h3>📥 استيراد ساكنين من Excel</h3>
+      <div class="row2">
+        <label>الشيت <select id="impSheet" onchange="impAnalyze()"></select></label>
+        <label>السكن <select id="impBuilding" onchange="impAnalyze()"></select></label>
+      </div>
+      <div id="impBody"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="impBtn" onclick="doImport()" style="background:#16a34a">📥 استيراد</button>
+        <button onclick="if (!impBusy) document.getElementById('impBox').hidden = true" style="background:#64748b">إلغاء</button>
+      </div>
+      <span id="impMsg" style="font-size:13px"></span>
+    </div>
   </div>
   <div id="accBox" hidden onclick="if (event.target === this) closeAccount()">
     <form id="accForm" onsubmit="event.preventDefault(); saveMyAccount()">
@@ -6397,6 +6436,173 @@
       const ins = rows.filter(r => r.kind === "in");
       if (ins.length) XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(ins.map((r, i) => ({ "#": i + 1, "التاريخ": r.entry_date, "رقم PV": r.pv_no || "", "ملاحظة": r.description || "", "المبلغ": puNum(r.amount) }))), "المستلم");
       XLSX.writeFile(book, "المشتريات-" + ym + ".xlsx");
+    }
+
+    // ===== استيراد ساكنين من Excel =====
+    // بيقرا شكلين: شيت السكن (ROOM NO / SECTTION / رقم السرير / الاسم / الرقم / الوظيفة) أو جدول عادي بعناوين
+    let impBook = null, impData = null, impBusy = false;
+    const impNormRoom = v => String(v).replace(/ROOM\s*NO\.?/i, "").replace(/\s+/g, "").replace(/^[-.:]+/, "").replace(/^([A-Z])-(\d)/i, "$1$2").toUpperCase();
+    const impIsId = x => { const t = String(x).replace(/\s/g, ""); return /^[A-Z]{0,2}-?\d[\d\-\/]*$/i.test(t) && /\d{3,}/.test(t); };
+
+    // شيت السكن: كذا بلوك جنب بعض، كل بلوك بيبدأ بعمود فيه "ROOM NO"
+    function impParseVilla(rows) {
+      const starts = new Set();
+      rows.forEach(r => (r || []).forEach((v, c) => { if (typeof v === "string" && /^\s*ROOM\s*NO/i.test(v)) starts.add(c); }));
+      const cols = [...starts].sort((a, b) => a - b);
+      if (!cols.length) return null;
+      const people = [], units = {}, notes = [];
+      cols.forEach((c0, bi) => {
+        const width = (cols[bi + 1] != null ? cols[bi + 1] : c0 + 6) - c0;
+        let room = "", sec = "", used = {};
+        rows.forEach((r, ri) => {
+          const v = (r || [])[c0];
+          if (typeof v === "string" && /^\s*ROOM\s*NO/i.test(v)) { room = impNormRoom(v); sec = ""; used = {}; return; }
+          if (typeof v === "string" && /SECT+I?ON/i.test(v)) {
+            let s = ((v.match(/-\s*([A-Za-z])\s*$/) || [])[1] || "A").toUpperCase();
+            if (used[s]) { const orig = s; while (used[s]) s = String.fromCharCode(s.charCodeAt(0) + 1); notes.push(`غرفة ${room}: Section ${orig} مكتوب مرتين، التاني اتسجّل ${s}`); }
+            used[s] = true; sec = s; return;
+          }
+          if (typeof v === "number" && room && sec && v >= 1 && v <= 30) {
+            const unit = room + sec;
+            units[unit] = Math.max(units[unit] || 0, v);
+            const cells = (r || []).slice(c0 + 1, c0 + width).filter(x => x != null && String(x).trim() !== "");
+            if (!cells.length) return;
+            const name = String(cells[0]).trim().replace(/\s+/g, " ");
+            const rest = cells.slice(1).map(x => String(x).trim().replace(/\s+/g, " "));
+            const id = rest.find(impIsId) || "";
+            const job = rest.find(x => x !== id) || "";
+            people.push({ name, idNo: normIqama(id), job, room: unit, bed: v, row: ri + 1 });
+          }
+        });
+      });
+      return { people, units, notes, kind: "villa" };
+    }
+
+    // جدول عادي: صف عناوين فيه الاسم، والباقي اختياري
+    function impParseTable(rows) {
+      const H = { name: /^(name|الاسم|اسم|اسم العامل|employee name)$/i, idNo: /(iqama|إقامة|اقامة|id|رقم الهوية|code|كود)/i, job: /(job|وظيفة|المهنة|مهنة|position|designation|trade)/i,
+        building: /(building|السكن|villa|فيلا)/i, room: /(room|الغرفة|غرفة|وحدة)/i, bed: /(bed|السرير|سرير)/i, country: /(nationality|الجنسية|البلد|country)/i, sponsor: /(sponsor|الكفيل|company)/i };
+      const hi = rows.findIndex(r => (r || []).some(v => typeof v === "string" && H.name.test(v.trim())));
+      if (hi < 0) return null;
+      const map = {};
+      rows[hi].forEach((v, c) => { if (typeof v !== "string") return; const t = v.trim(); Object.entries(H).forEach(([k, re]) => { if (map[k] == null && re.test(t)) map[k] = c; }); });
+      const people = [];
+      rows.slice(hi + 1).forEach((r, i) => {
+        const g = k => map[k] == null || r == null || r[map[k]] == null ? "" : String(r[map[k]]).trim().replace(/\s+/g, " ");
+        if (!g("name")) return;
+        people.push({ name: g("name"), idNo: normIqama(g("idNo")), job: g("job"), room: g("room").toUpperCase(), bed: Number(g("bed")) || null, building: g("building"), country: g("country"), sponsor: g("sponsor"), row: hi + i + 2 });
+      });
+      return { people, units: {}, notes: [], kind: "table" };
+    }
+
+    async function readImpFile(input) {
+      const file = input.files[0];
+      input.value = "";
+      if (!file) return;
+      try { impBook = XLSX.read(await file.arrayBuffer(), { type: "array" }); }
+      catch (e) { alert("❌ الملف ده مش Excel أو بايظ"); return; }
+      const options = impBook.SheetNames.map(sn => {
+        const rows = XLSX.utils.sheet_to_json(impBook.Sheets[sn], { header: 1, raw: true, defval: null });
+        const p = impParseVilla(rows) || impParseTable(rows);
+        return { sn, n: p ? p.people.length : 0 };
+      }).filter(o => o.n);
+      if (!options.length) { alert("مالقيتش في الملف أسماء ساكنين. لازم يبقى فيه ROOM NO و SECTTION، أو عمود عنوانه الاسم."); return; }
+      const sel = document.getElementById("impSheet");
+      sel.innerHTML = options.map(o => `<option value="${gmEsc(o.sn)}">${gmEsc(o.sn)} (${o.n} اسم)</option>`).join("");
+      sel.value = options.sort((a, b) => b.n - a.n)[0].sn;
+      const bsel = document.getElementById("impBuilding");
+      bsel.innerHTML = buildingList().map(b => `<option>${b}</option>`).join("") + '<option value="__new">➕ سكن جديد…</option>';
+      bsel.value = buildingList().find(b => !workers.some(w => w.building === b)) || currentBuilding || buildingList()[0];
+      document.getElementById("impMsg").textContent = "";
+      document.getElementById("impBox").hidden = false;
+      impAnalyze();
+    }
+
+    function impAnalyze() {
+      const bsel = document.getElementById("impBuilding");
+      if (bsel.value === "__new") {
+        const n = (prompt("اسم السكن الجديد:", "السكن الرابع") || "").trim();
+        if (n) { bsel.insertAdjacentHTML("afterbegin", `<option>${gmEsc(n)}</option>`); bsel.value = n; } else bsel.value = buildingList()[0];
+      }
+      const building = bsel.value;
+      const rows = XLSX.utils.sheet_to_json(impBook.Sheets[document.getElementById("impSheet").value], { header: 1, raw: true, defval: null });
+      const p = impParseVilla(rows) || impParseTable(rows) || { people: [], units: {}, notes: [] };
+      const seen = {}, list = [], dups = [];
+      p.people.forEach(x => {
+        const k = x.idNo || (x.name.toLowerCase() + "|" + x.room);
+        if (seen[k]) { dups.push(`${x.name} (${x.idNo || "-"}) مكتوب مرتين: ${seen[k].room} سرير ${seen[k].bed} و ${x.room} سرير ${x.bed} — هيتسجّل في الأول بس`); return; }
+        seen[k] = x; list.push(x);
+      });
+      const all = workers.concat(archivedWorkers);
+      list.forEach(x => {
+        x.building = x.building || building;
+        x.existing = x.idNo ? all.find(w => normIqama(w.idNo) === x.idNo) || null : null;
+        x.same = x.existing && !x.existing.archived && x.existing.building === x.building && roomKey("", x.existing.room) === roomKey("", x.room) && Number(x.existing.bed_no) === Number(x.bed);
+        x.warn = /^\d+$/.test(x.idNo) && x.idNo.length >= 8 && x.idNo.length !== 10 ? `رقم ${x.idNo} فيه ${x.idNo.length} رقم (المفروض 10)` : "";
+      });
+      const fresh = list.filter(x => !x.existing), moves = list.filter(x => x.existing && !x.same), same = list.filter(x => x.same);
+      const unitNames = Object.keys(p.units);
+      const cap = unitNames.reduce((s, u) => s + p.units[u], 0);
+      impData = { list, fresh, moves, units: p.units, building };
+      const li = (arr, f) => arr.length ? `<ul class="imp-ul">${arr.map(f).join("")}</ul>` : "";
+      document.getElementById("impBody").innerHTML = `
+        <div class="pf-stats">
+          <div class="stat"><b style="color:#16a34a">${fresh.length}</b>➕ ساكن جديد</div>
+          <div class="stat"><b style="color:#b45309">${moves.length}</b>🔁 موجود قبل كده</div>
+          <div class="stat"><b>${unitNames.length || new Set(list.map(x => x.room)).size}</b>🚪 وحدة</div>
+          ${cap ? `<div class="stat"><b>${cap}</b>🛏️ سرير<small>${cap - list.length} فاضي</small></div>` : ""}
+        </div>
+        ${moves.length ? `<div class="imp-sec"><label class="imp-opt"><input type="checkbox" id="impMove" checked> 🔁 <b>انقل الـ ${moves.length} اللي موجودين قبل كده لـ ${gmEsc(building)}</b> (بنفس الغرفة والسرير اللي في الشيت)</label>
+          ${li(moves, x => `<li>${gmEsc(x.name)} <small>${x.idNo} · دلوقتي: ${gmEsc(x.existing.archived ? "🗂️ في الأرشيف" : (x.existing.building || "-") + " غرفة " + (x.existing.room || "-"))} ← ${gmEsc(x.room)} سرير ${x.bed}</small></li>`)}</div>` : ""}
+        ${unitNames.length ? `<div class="imp-sec"><label class="imp-opt"><input type="checkbox" id="impBeds" checked> 🛏️ <b>سجّل عدد الأسرّة لكل وحدة من الشيت</b> (عشان الأسرّة الفاضية)</label></div>` : ""}
+        ${dups.length || p.notes.length || list.some(x => x.warn) || same.length ? `<div class="imp-sec warn"><b>⚠️ حاجات تراجعها</b>
+          ${li(dups.concat(p.notes).concat(list.filter(x => x.warn).map(x => `${x.name}: ${x.warn}`)).concat(same.length ? [`${same.length} ساكن متسجّلين بالظبط كده قبل كده، مش هيتغيّروا`] : []), t => `<li>${gmEsc(t)}</li>`)}</div>` : ""}
+        <details class="imp-sec"><summary>👀 شوف كل الأسماء (${list.length})</summary>
+          <div class="imp-table"><table><tr><th>الوحدة</th><th>سرير</th><th>الاسم</th><th>الرقم</th><th>الوظيفة</th><th></th></tr>
+          ${list.slice().sort((a, b) => a.room.localeCompare(b.room, "en", { numeric: true }) || a.bed - b.bed).map(x => `<tr><td>${gmEsc(x.room)}</td><td>${x.bed || "-"}</td><td>${gmEsc(x.name)}</td><td dir="ltr">${gmEsc(x.idNo || "-")}</td><td>${gmEsc(x.job)}</td><td>${x.same ? "✔" : x.existing ? "🔁" : "➕"}</td></tr>`).join("")}</table></div>
+        </details>`;
+      document.getElementById("impBtn").disabled = !(fresh.length || moves.length || unitNames.length);
+      document.getElementById("impBtn").textContent = `📥 استيراد ${fresh.length} ساكن${moves.length ? " ونقل " + moves.length : ""}`;
+    }
+
+    async function doImport() {
+      if (!impData || impBusy) return;
+      const msg = document.getElementById("impMsg"), btn = document.getElementById("impBtn");
+      const move = document.getElementById("impMove") ? document.getElementById("impMove").checked : false;
+      const beds = document.getElementById("impBeds") ? document.getElementById("impBeds").checked : false;
+      const { fresh, moves, units, building } = impData;
+      if (!confirm(`هيتسجّل ${fresh.length} ساكن جديد في ${building}${move && moves.length ? " ويتنقل " + moves.length : ""}. تكمل؟`)) return;
+      impBusy = true; btn.disabled = true;
+      const fail = t => { impBusy = false; btn.disabled = false; msg.textContent = "❌ " + t + " — اللي اتسجّل قبل الغلطة اتحفظ. صلّح وجرّب تاني، والمتسجّلين مش هيتكرروا."; loadWorkers(); };
+      try {
+        const rows = fresh.map(x => ({ name: x.name, id_no: x.idNo || null, job: x.job || null, building: x.building, room: x.room || null, bed_no: x.bed || null, blanket: "لا",
+          ...(x.country ? { country: x.country } : {}), ...(x.sponsor ? { sponsor: x.sponsor } : {}) }));
+        for (let i = 0; i < rows.length; i += 200) {
+          msg.textContent = `⏳ بسجّل الساكنين... ${Math.min(i + 200, rows.length)} من ${rows.length}`;
+          const { error } = await db.from("workers").insert(rows.slice(i, i + 200));
+          if (error) throw new Error(isUniqueErr(error) ? "فيه رقم إقامة متسجّل قبل كده" : error.message);
+        }
+        if (move) for (const [i, x] of moves.entries()) {
+          msg.textContent = `⏳ بنقل الموجودين... ${i + 1} من ${moves.length}`;
+          const { error } = await db.from("workers").update({ building: x.building, room: x.room || null, bed_no: x.bed || null, archived: false, archived_at: null, archive_reason: null, archive_note: null }).eq("id", x.existing.id);
+          if (error) throw new Error(error.message);
+        }
+        if (beds && Object.keys(units).length) {
+          msg.textContent = "⏳ بسجّل عدد الأسرّة...";
+          const rr = Object.entries(units).map(([room, n]) => {
+            const old = roomInfoOf(building, room);
+            return old ? { ...old, beds: n } : { building, room, bedrooms: 1, bathrooms: 1, kitchen: false, beds: n };
+          });
+          const { error } = await db.from("rooms").upsert(rr);
+          if (error) throw new Error(/beds/.test(error.message) ? "عدد الأسرّة محتاج سطر الأسرّة في Supabase" : error.message);
+        }
+      } catch (e) { fail(e.message); return; }
+      impBusy = false; btn.disabled = false;
+      document.getElementById("impBox").hidden = true;
+      await loadWorkers();
+      await loadRooms();
+      openBuilding(building);
+      alert(`✅ اتسجّل ${fresh.length} ساكن${move && moves.length ? " واتنقل " + moves.length : ""} في ${building}`);
     }
 
     function money(n) {
