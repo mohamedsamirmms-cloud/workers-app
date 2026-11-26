@@ -1778,6 +1778,7 @@
         <label>الشيت <select id="impSheet" onchange="impAnalyze()"></select></label>
         <label>السكن <select id="impBuilding" onchange="impAnalyze()"></select></label>
       </div>
+      <label class="imp-opt imp-sec" style="background:#eff6ff"><input type="checkbox" id="impRoomsOnly" onchange="impAnalyze()"> 🚪 <b>الغرف والأسرّة بس</b> (من غير ما أسجّل الساكنين، هضيفهم بإيدي)</label>
       <div id="impBody"></div>
       <div style="display:flex; gap:8px; flex-wrap:wrap">
         <button id="impBtn" onclick="doImport()" style="background:#16a34a">📥 استيراد</button>
@@ -6514,6 +6515,7 @@
       bsel.innerHTML = buildingList().map(b => `<option>${b}</option>`).join("") + '<option value="__new">➕ سكن جديد…</option>';
       bsel.value = buildingList().find(b => !workers.some(w => w.building === b)) || currentBuilding || buildingList()[0];
       document.getElementById("impMsg").textContent = "";
+      document.getElementById("impRoomsOnly").checked = false;
       document.getElementById("impBox").hidden = false;
       impAnalyze();
     }
@@ -6544,6 +6546,23 @@
       const unitNames = Object.keys(p.units);
       const cap = unitNames.reduce((s, u) => s + p.units[u], 0);
       impData = { list, fresh, moves, units: p.units, building };
+      if (document.getElementById("impRoomsOnly").checked) {
+        const names = unitNames.slice().sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+        const exist = names.filter(u => roomInfoOf(building, u));
+        document.getElementById("impBody").innerHTML = names.length ? `
+          <div class="pf-stats">
+            <div class="stat"><b>${names.length}</b>🚪 وحدة</div>
+            <div class="stat"><b>${cap}</b>🛏️ سرير</div>
+            ${exist.length ? `<div class="stat"><b style="color:#b45309">${exist.length}</b>موجودة قبل كده<small>عدد أسرّتها هيتحدّث</small></div>` : ""}
+          </div>
+          ${p.notes.length ? `<div class="imp-sec warn"><b>⚠️ حاجات تراجعها</b><ul class="imp-ul">${p.notes.map(t => `<li>${gmEsc(t)}</li>`).join("")}</ul></div>` : ""}
+          <details class="imp-sec" open><summary>👀 الوحدات وعدد الأسرّة</summary>
+            <div class="mr-chips" style="margin-top:6px">${names.map(u => `<span class="pv-tag" style="direction:rtl">🚪 <b dir="ltr">${gmEsc(u)}</b> · ${p.units[u]} سرير</span>`).join("")}</div>
+          </details>` : '<p class="imp-sec warn">الشيت ده مفيهوش ROOM NO و SECTTION، فمش هقدر أطلّع منه الغرف.</p>';
+        document.getElementById("impBtn").disabled = !names.length;
+        document.getElementById("impBtn").textContent = `🚪 سجّل ${names.length} وحدة (${cap} سرير)`;
+        return;
+      }
       const li = (arr, f) => arr.length ? `<ul class="imp-ul">${arr.map(f).join("")}</ul>` : "";
       document.getElementById("impBody").innerHTML = `
         <div class="pf-stats">
@@ -6571,6 +6590,20 @@
       const move = document.getElementById("impMove") ? document.getElementById("impMove").checked : false;
       const beds = document.getElementById("impBeds") ? document.getElementById("impBeds").checked : false;
       const { fresh, moves, units, building } = impData;
+      if (document.getElementById("impRoomsOnly").checked) {
+        const n = Object.keys(units).length;
+        if (!n || !confirm(`هتتسجّل ${n} وحدة في ${building} بعدد أسرّتها، من غير ساكنين. تكمل؟`)) return;
+        impBusy = true; btn.disabled = true; msg.textContent = "⏳ بسجّل الوحدات...";
+        const rr = Object.entries(units).map(([room, b]) => { const old = roomInfoOf(building, room); return old ? { ...old, beds: b } : { building, room, bedrooms: 1, bathrooms: 1, kitchen: false, beds: b }; });
+        const { error } = await db.from("rooms").upsert(rr);
+        impBusy = false; btn.disabled = false;
+        if (error) { msg.textContent = "❌ " + (/beds/.test(error.message) ? "عدد الأسرّة محتاج سطر الأسرّة في Supabase" : error.message); return; }
+        document.getElementById("impBox").hidden = true;
+        await loadRooms();
+        openBuilding(building);
+        alert(`✅ اتسجّلت ${n} وحدة في ${building}. دوس على أي وحدة وضيف ساكنيها.`);
+        return;
+      }
       if (!confirm(`هيتسجّل ${fresh.length} ساكن جديد في ${building}${move && moves.length ? " ويتنقل " + moves.length : ""}. تكمل؟`)) return;
       impBusy = true; btn.disabled = true;
       const fail = t => { impBusy = false; btn.disabled = false; msg.textContent = "❌ " + t + " — اللي اتسجّل قبل الغلطة اتحفظ. صلّح وجرّب تاني، والمتسجّلين مش هيتكرروا."; loadWorkers(); };
