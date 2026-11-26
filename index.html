@@ -1210,9 +1210,10 @@
 
     
     <input id="room" placeholder="رقم الغرفة" oninput="addBedHint(true)">
-        <select id="building" onchange="addBedHint(true)">
+        <select id="building" class="bld-select" onchange="addBedHint(true)">
       <option>السكن الأول</option>
       <option>السكن الثاني</option>
+      <option>السكن الثالث</option>
     </select>
     <input id="bedNo" type="number" placeholder="رقم السرير" oninput="addBedHint()">
     <span id="addBedHint" class="bed-hint"></span>
@@ -1242,6 +1243,7 @@
       <option value="">كل المساكن</option>
       <option>السكن الأول</option>
       <option>السكن الثاني</option>
+      <option>السكن الثالث</option>
     </select>
     <b id="resultCount"></b>
     <button onclick="exportExcel()" style="background:#16a34a">📊 تصدير Excel</button>
@@ -1804,9 +1806,10 @@
       <label>انتهاء الإقامة <input id="e_iqamaExp" type="date"></label>
       <label>البلد <select id="e_country"></select></label>
       <label>السكن
-        <select id="e_building">
+        <select id="e_building" class="bld-select">
           <option>السكن الأول</option>
           <option>السكن الثاني</option>
+          <option>السكن الثالث</option>
         </select>
       </label>
       <label>الغرفة <input id="e_room"></label>
@@ -2067,20 +2070,36 @@
       renderDashDocs();
     }
 
+    // المساكن: الثابتة + أي سكن متسجّل على ساكن
+    const BUILDINGS = ["السكن الأول", "السكن الثاني", "السكن الثالث"];
+    function buildingList() {
+      const extra = [...new Set(workers.concat(archivedWorkers).map(w => w.building).filter(b => b && !BUILDINGS.includes(b)))];
+      return BUILDINGS.concat(extra);
+    }
+    // قوائم السكن في الفورمات (لو فيه سكن جديد متسجّل)
+    function fillBuildingSelects() {
+      const list = buildingList();
+      document.querySelectorAll(".bld-select, #filterBuilding").forEach(sel => {
+        const keep = sel.value, all = sel.id === "filterBuilding";
+        sel.innerHTML = (all ? '<option value="">كل المساكن</option>' : "") + list.map(b => `<option>${b}</option>`).join("");
+        sel.value = keep;
+      });
+    }
+    const shortB = b => (b || "").replace("السكن ", "");
+
     // 2. دالة بتعرض العمال في الصفحة
           // كروت الأرقام
     function showStats() {
-      const b1 = workers.filter(w => w.building === "السكن الأول").length;
-      const b2 = workers.filter(w => w.building === "السكن الثاني").length;
+      fillBuildingSelects();
+      const per = buildingList().map(b => [b, workers.filter(w => w.building === b).length]).filter(([b, n]) => n || BUILDINGS.includes(b));
       const blanket = workers.filter(w => w.blanket === "نعم").length;
       const noImg = workers.filter(w => !w.iqamaImg).length;
 
       document.getElementById("tileStatsNum").textContent = workers.length;
-      document.getElementById("tileStatsSub").textContent = "الأول " + b1 + " · الثاني " + b2;
+      document.getElementById("tileStatsSub").textContent = per.filter(([, n]) => n).map(([b, n]) => shortB(b) + " " + n).join(" · ") || "-";
       document.getElementById("stats").innerHTML = `
         <div class="stat click" onclick="dashOpen('', '')"><b>${workers.length}</b>إجمالي الساكنين</div>
-        <div class="stat click" onclick="dashOpen('السكن الأول', '')"><b>${b1}</b>السكن الأول</div>
-        <div class="stat click" onclick="dashOpen('السكن الثاني', '')"><b>${b2}</b>السكن الثاني</div>
+        ${per.map(([b, n]) => `<div class="stat click" onclick="dashOpen('${b}', '')"><b>${n}</b>${b}</div>`).join("")}
         <div class="stat click" onclick="dashOpen('', 'blanket')"><b>${blanket}</b>استلموا بطانية</div>
         <div class="stat click" onclick="dashOpen('', 'noimg')"><b style="color:#c0392b">${noImg}</b>بدون صورة إقامة</div>
       `;
@@ -2150,8 +2169,7 @@
         `<div class="stat click ${cls} ${on ? "on" : ""}" onclick="${onclick}"><b>${n}</b>${label}</div>`;
       document.getElementById("resStats").innerHTML =
         card("", workers.length, "👷 إجمالي الساكنين", "dashOpen('', '')", !b && !specialFilter) +
-        card("", cnt(w => w.building === "السكن الأول"), "🏢 السكن الأول", "dashOpen('السكن الأول', '')", b === "السكن الأول" && !specialFilter) +
-        card("", cnt(w => w.building === "السكن الثاني"), "🏢 السكن الثاني", "dashOpen('السكن الثاني', '')", b === "السكن الثاني" && !specialFilter) +
+        buildingList().filter(x => BUILDINGS.includes(x) || cnt(w => w.building === x)).map(x => card("", cnt(w => w.building === x), "🏢 " + x, `dashOpen('${x}', '')`, b === x && !specialFilter)).join("") +
         card("amber", cnt(w => w.blanket !== "نعم"), "🛏️ لم يستلم بطانية", "dashOpen('', 'noblanket')", specialFilter === "noblanket") +
         card("red", cnt(w => !w.iqamaImg), "🪪 بدون صورة إقامة", "dashOpen('', 'noimg')", specialFilter === "noimg") +
         card("red", cnt(iqamaAlert), "⏳ إقامة منتهية أو قربت", "dashOpen('', 'iqama')", specialFilter === "iqama") +
@@ -2161,7 +2179,7 @@
       // تابات المساكن
       const tab = (val, label) => `<button class="chip ${b === val ? "on" : ""}" onclick="openBuilding('${val}')">${label} (${val ? cnt(w => w.building === val) : workers.length})</button>`;
       document.getElementById("buildingTabs").innerHTML =
-        tab("", "🏘️ كل المساكن") + tab("السكن الأول", "🏢 السكن الأول") + tab("السكن الثاني", "🏢 السكن الثاني");
+        tab("", "🏘️ كل المساكن") + buildingList().filter(x => BUILDINGS.includes(x) || cnt(w => w.building === x)).map(x => tab(x, "🏢 " + x)).join("");
 
       // نختار العمال اللي مطابقين البحث والسكن
       const result = workers.filter(function (w) {
@@ -2802,8 +2820,7 @@
           body = `
             <div class="rep-sec"><h4>🏢 السكن</h4><div class="rep-cards">
               ${stat(workers.length, "👷 ساكنين حاليًا")}
-              ${stat(workers.filter(w => w.building === "السكن الأول").length, "🏢 السكن الأول")}
-              ${stat(workers.filter(w => w.building === "السكن الثاني").length, "🏢 السكن الثاني")}
+              ${buildingList().map(b => [b, workers.filter(w => w.building === b).length]).filter(([, n]) => n).map(([b, n]) => stat(n, "🏢 " + b)).join("")}
               ${stat(arrivals, "🛬 وصلوا الشهر ده", "#16a34a")}
               ${stat(departures, "🛫 خرجوا الشهر ده", "#c0392b")}
             </div></div>
@@ -2846,7 +2863,7 @@
           const noBlanket = workers.filter(w => w.blanket !== "نعم");
           body = `
             <div class="rep-sec"><h4>🏢 المساكن</h4><div class="rep-cards">
-              ${["السكن الأول", "السكن الثاني"].map(b => stat(workers.filter(w => w.building === b).length, "🏢 " + b, null, keys.filter(k => k.startsWith(b)).length + " غرفة")).join("")}
+              ${buildingList().filter(b => workers.some(w => w.building === b)).map(b => stat(workers.filter(w => w.building === b).length, "🏢 " + b, null, keys.filter(k => k.startsWith(b)).length + " غرفة")).join("")}
               ${stat(workers.length, "👷 الإجمالي", null, keys.length + " غرفة")}
               ${stat(noBlanket.length, "🛏️ لم يستلم بطانية", "#b45309")}
               ${stat(noImg.length, "🪪 بدون صورة إقامة", "#c0392b")}
@@ -3784,7 +3801,7 @@
     }
     function freeBedsAll() {
       const out = [];
-      ["السكن الأول", "السكن الثاني"].forEach(b => buildingRooms(b).forEach(r => {
+      buildingList().forEach(b => buildingRooms(b).forEach(r => {
         const st = bedState(b, r);
         if (st.free > 0) out.push({ building: b, room: r, ...st });
       }));
@@ -3810,7 +3827,7 @@
       if (!showFreeBeds) { box.innerHTML = ""; return; }
       const list = freeBedsAll();
       const total = list.reduce((s, x) => s + x.free, 0);
-      const unknown = ["السكن الأول", "السكن الثاني"].reduce((s, b) => s + buildingRooms(b).filter(r => roomBeds(b, r) == null).length, 0);
+      const unknown = buildingList().reduce((s, b) => s + buildingRooms(b).filter(r => roomBeds(b, r) == null).length, 0);
       box.innerHTML = `<h4>🛏️ الأسرّة الفاضية (${total}) <button onclick="toggleFreeBeds(false)" style="background:#eef1f5; color:#1e3a5f; padding:4px 10px">✖</button></h4>
         ${list.length ? `<div class="fb-list">${list.map(x => `<div class="fb-item" onclick="openFreeRoom('${x.building}', '${x.room}')">
           <span class="n">${x.free}</span>
@@ -6522,7 +6539,7 @@
         const found = ppl.filter(w => (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q)).slice(0, 40);
         h += `<div class="mr-sheet"><h4>🔍 نتايج البحث (${found.length})</h4>${found.length ? `<div class="mr-chips">${found.map(chip).join("")}</div>` : '<p style="margin:0;color:#64748b">مفيش</p>'}</div>`;
       }
-      ["السكن الأول", "السكن الثاني"].concat([...new Set(ppl.map(w => w.building).filter(b => b && b !== "السكن الأول" && b !== "السكن الثاني"))]).forEach(b => {
+      buildingList().concat([...new Set(ppl.map(w => w.building).filter(b => b && !buildingList().includes(b)))]).forEach(b => {
         const inB = ppl.filter(w => w.building === b);
         if (!inB.length) return;
         const rooms = {};
