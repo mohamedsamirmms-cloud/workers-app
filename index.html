@@ -244,6 +244,10 @@
           /* التقرير الشامل */
     .rep-tile.rep-main { grid-column: 1 / -1; border: 2px solid #1e3a5f; }
     .rf-sec { break-inside: avoid; }
+    .rf-sec[hidden] { display: none !important; }
+    .rf-pick { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: #f8fafc; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 13px; color: #1e3a5f; }
+    .rf-pick .chip { font-size: 13px; }
+    .rf-pick .chip:not(.on) { text-decoration: line-through; color: #94a3b8; }
     .rf-mini { font-size: 13px; color: #334155; background: #f8fafc; border-radius: 8px; padding: 6px 10px; margin-top: 8px; line-height: 1.8; }
     .rf-brand { font-size: 16px; color: #1e3a5f; margin-bottom: 8px; }
           /* صيانة السكن */
@@ -3200,6 +3204,20 @@
     }
 
     // ===== التقرير الشامل للإدارة =====
+    // الأقسام اللي تظهر (بتتفتكر على الجهاز)
+    const RF_SECS = [["housing", "🏢 السكن"], ["att", "⏱️ الحضور"], ["meals", "🍽️ الوجبات"], ["eq", "🏗️ المعدات"], ["docs", "🔔 المستندات"], ["pu", "🛒 المشتريات"], ["mnt", "🔧 الصيانة"]];
+    let rfOn = (() => { try { const v = JSON.parse(localStorage.getItem("rfOn") || "null"); return new Set(Array.isArray(v) ? v : RF_SECS.map(x => x[0])); } catch (e) { return new Set(RF_SECS.map(x => x[0])); } })();
+    let rfRows = [];
+    function rfSyncSheets() {
+      repSheets = [["التقرير الشامل", rfRows.filter(r => rfOn.has(r.sec)).map(r => ({ "البند": r["البند"], "القيمة": r["القيمة"] }))]];
+    }
+    function toggleRf(k) {
+      if (rfOn.has(k)) rfOn.delete(k); else rfOn.add(k);
+      try { localStorage.setItem("rfOn", JSON.stringify([...rfOn])); } catch (e) {}
+      document.querySelectorAll(`[data-rf="${k}"]`).forEach(el => el.hidden = !rfOn.has(k));
+      document.querySelectorAll(`[data-rfc="${k}"]`).forEach(b => { b.classList.toggle("on", rfOn.has(k)); b.textContent = (rfOn.has(k) ? "✔ " : "") + RF_SECS.find(x => x[0] === k)[1]; });
+      rfSyncSheets();
+    }
     // بيجمع كل حاجة في الشهر؛ أي جزء جدوله مش موجود أو مالوش صلاحية بيتشال لوحده
     async function repFullHtml(info) {
       const { first, last, ym } = info;
@@ -3212,13 +3230,16 @@
         safe(() => fetchAll(() => db.from("maintenance").select("*").order("id")))
       ]);
       const N = n => (Math.round(n * 100) / 100).toLocaleString("en-US");
-      const sec = (icon, title, inner, note) => `<div class="rep-sec rf-sec"><h4>${icon} ${title}${note ? ` <small style="color:#64748b; font-weight:normal">${note}</small>` : ""}</h4>${inner}</div>`;
+      let cur = "";   // القسم اللي بنكتبه دلوقتي (عشان أرقام الـ Excel تتربط بيه)
+      const sec = (icon, title, inner, note) => `<div class="rep-sec rf-sec" data-rf="${cur}" ${rfOn.has(cur) ? "" : "hidden"}><h4>${icon} ${title}${note ? ` <small style="color:#64748b; font-weight:normal">${note}</small>` : ""}</h4>${inner}</div>`;
       const cards = (...a) => `<div class="rep-cards">${a.join("")}</div>`;
-      const sheet = [];
-      const add = (k, v) => sheet.push({ "البند": k, "القيمة": v });
+      rfRows = [];
+      const add = (k, v) => rfRows.push({ sec: cur, "البند": k, "القيمة": v });
       let h = "";
+      const present = [];
 
       // السكن
+      cur = "housing"; present.push(cur);
       const arrivals = workers.concat(archivedWorkers).filter(w => w.arrival && w.arrival.slice(0, 7) === ym).length;
       const departures = archivedWorkers.filter(w => (w.archived_at || "").slice(0, 7) === ym).length;
       const free = freeBedsAll().reduce((t, x) => t + x.free, 0);
@@ -3227,6 +3248,7 @@
       add("ساكنين", workers.length); perB.forEach(([b, n]) => add(b, n)); add("سرير فاضي", free); add("وصلوا", arrivals); add("خرجوا", departures);
 
       // الحضور
+      cur = "att"; present.push(cur);
       const att = repAttendance(info, ts);
       const tp = att.reduce((t, r) => t + r.present, 0), ta = att.reduce((t, r) => t + r.absent, 0);
       const th = att.reduce((t, r) => t + r.hours, 0), to = att.reduce((t, r) => t + r.ot, 0);
@@ -3237,6 +3259,7 @@
       add("نسبة الحضور %", rate); add("أيام حضور", tp); add("أيام غياب", ta); add("ساعات العمل", th); add("أوفر تايم (ساعة)", to);
 
       // الوجبات
+      cur = "meals"; present.push(cur);
       const ml = repMeals(meals);
       const tb = ml.reduce((t, r) => t + r.b, 0), tl = ml.reduce((t, r) => t + r.l, 0);
       const gAmt = gm ? gm.reduce((t, r) => t + (Number(r.amount) || 0), 0) : 0, gPpl = gm ? gm.reduce((t, r) => t + (Number(r.people) || 0), 0) : 0;
@@ -3245,6 +3268,7 @@
       if (gm && gm.length) add("فطار المجموعات (ريال)", gAmt); add("فطار الأفراد (ريال)", tb * BREAKFAST_PRICE); add("الغداء (ريال)", tl * LUNCH_PRICE); add("إجمالي الوجبات (ريال)", mealsTot);
 
       // المعدات
+      cur = "eq"; present.push(cur);
       if (el) {
         const t = elTotals(el);
         const by = {};
@@ -3256,12 +3280,14 @@
       }
 
       // المستندات
+      cur = "docs"; present.push(cur);
       const today = todayIso();
       const docs = repDocs(WARN_DAYS);
       h += sec("🔔", "المستندات", cards(stat(docs.filter(d => d.date < today).length, "⛔ منتهية", "#c0392b"), stat(docs.filter(d => d.date >= today).length, "⏳ هتخلص خلال " + WARN_DAYS + " يوم", "#b45309")), "(النهارده)");
       add("مستندات منتهية", docs.filter(d => d.date < today).length);
 
       // المشتريات والعهدة
+      cur = "pu"; present.push(cur);
       if (pu) {
         const mIn = pu.filter(r => r.kind === "in" && r.entry_date >= first).reduce((t, r) => t + (Number(r.amount) || 0), 0);
         const mOut = pu.filter(r => r.kind === "out" && r.entry_date >= first).reduce((t, r) => t + (Number(r.amount) || 0), 0);
@@ -3275,6 +3301,7 @@
       }
 
       // الصيانة
+      cur = "mnt"; present.push(cur);
       if (mn) {
         const opened = mn.filter(r => (r.opened_at || "").slice(0, 7) === ym), closed = mn.filter(r => r.status === "done" && (r.closed_at || "").slice(0, 7) === ym);
         const stillOpen = mn.filter(r => r.status !== "done" && (r.opened_at || "").slice(0, 10) <= last);
@@ -3286,8 +3313,9 @@
           (Object.keys(byC).length ? `<div class="rf-mini"><b>حسب النوع:</b> ${Object.entries(byC).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${mntCatOf(c).i} ${gmEsc(c)} ${n}`).join(" · ")}</div>` : ""));
         add("بلاغات صيانة جديدة", opened.length); add("اتصلّحت", closed.length); add("لسه مفتوحة", stillOpen.length); add("تكلفة الصيانة", cost);
       }
-      repSheets.push(["التقرير الشامل", sheet]);
-      return `<div class="rf-brand print-only"><b>${gmEsc(settings.name || "سجل السكن")}</b> — ${gmEsc(settings.sub || "")}</div>` + h +
+      rfSyncSheets();
+      const picker = `<div class="rf-pick no-print"><b>✔ الأقسام اللي تظهر:</b>${RF_SECS.filter(([k]) => h.includes(`data-rf="${k}"`)).map(([k, l]) => `<button class="chip ${rfOn.has(k) ? "on" : ""}" data-rfc="${k}" onclick="toggleRf('${k}')">${rfOn.has(k) ? "✔ " : ""}${l}</button>`).join("")}</div>`;
+      return picker + `<div class="rf-brand print-only"><b>${gmEsc(settings.name || "سجل السكن")}</b> — ${gmEsc(settings.sub || "")}</div>` + h +
         `<p class="gm-hint no-print">💡 للحفظ PDF: دوس 🖨️ طباعة، واختار "Save as PDF" أو "حفظ كـ PDF".</p>`;
     }
 
