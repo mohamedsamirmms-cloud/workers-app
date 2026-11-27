@@ -211,3 +211,29 @@ do $$ begin
 end $$;
 revoke all on public.purchases from anon;
 
+-- 9) حساب المعدات: ديزل (لتر)، أوفر تايم (ساعة)، خصم (ساعة/يوم/ريال)، بالتاريخ
+create table if not exists public.equipment_log (
+  id bigint generated always as identity primary key,
+  equipment_id bigint not null references public.equipment (id) on delete cascade,
+  log_date date not null,
+  kind text not null check (kind in ('diesel', 'overtime', 'deduction')),
+  qty numeric not null check (qty >= 0),
+  unit text,
+  note text,
+  created_by text,
+  created_at timestamptz default now()
+);
+create index if not exists equipment_log_date on public.equipment_log (log_date);
+alter table public.equipment_log enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'equipment_log') then
+    if to_regprocedure('public.app_can(text)') is not null then
+      create policy rls_read  on public.equipment_log for select to authenticated using (app_active());
+      create policy rls_write on public.equipment_log for all    to authenticated using (app_can('moves')) with check (app_can('moves'));
+    else
+      create policy "logged in users" on public.equipment_log for all to authenticated using (true) with check (true);
+    end if;
+  end if;
+end $$;
+revoke all on public.equipment_log from anon;
+

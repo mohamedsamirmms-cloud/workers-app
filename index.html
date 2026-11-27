@@ -192,6 +192,29 @@
     .imp-table th, .imp-table td { padding: 4px 6px; white-space: nowrap; }
     .res-head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
     @media (max-width: 700px) { #impBox .row2 { grid-template-columns: 1fr; } .res-head-btns { width: 100%; } .res-head-btns button { flex: 1; } }
+          /* حساب المعدة الشهري */
+    .el-head { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+    .el-head button { padding: 5px 12px; background: #eef1f5; color: #1e3a5f; }
+    .el-head b { color: #1e3a5f; min-width: 110px; text-align: center; }
+    .el-add { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .el-add button { flex: 1; font-size: 13px; padding: 8px 6px; }
+    .pu-row.el-diesel { border-right-color: #c0392b; }
+    .pu-row.el-overtime { border-right-color: #16a34a; background: #f0fdf4; }
+    .pu-row.el-deduction { border-right-color: #b45309; background: #fff7ed; }
+    .print-only { display: none; }
+    @media print { .print-only { display: block; } }
+    .em-ic { width: 54px !important; height: 36px; }
+    .em-ic svg { width: 100%; height: 100%; }
+    .em-vals { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-weight: bold; font-size: 13px; white-space: nowrap; }
+    #eqMonthView[hidden] { display: none !important; }
+    #elBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 70; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #elBox[hidden] { display: none; }
+    #elForm { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 440px; display: grid; gap: 10px; box-sizing: border-box; }
+    #elForm h3 { margin: 0; color: #1e3a5f; }
+    #elForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    #elForm input, #elForm select { box-sizing: border-box; width: 100%; }
+    #elForm .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #el_qty { font-size: 18px; font-weight: bold; }
           /* الوجبات بالوحدات */
     #mealRooms:empty { display: none; }
     #mealRooms[hidden], #mealChips[hidden], #mealList[hidden], .ml-only[hidden] { display: none !important; }
@@ -1350,6 +1373,7 @@
     </div>
     <div class="ts-chips eq-tabs" id="eqTabs"></div>
     <div id="eqDepts" hidden></div>
+    <div id="eqMonthView" hidden></div>
     <div id="eqAllView">
     <div id="eqDeptBanner"></div>
     <div id="eqStats"></div>
@@ -1816,6 +1840,28 @@
       </ol>
       <button onclick="document.getElementById('iosBox').hidden = true" style="background:#1e3a5f">تمام</button>
     </div>
+  </div>
+  <div id="elBox" hidden onclick="if (event.target === this) closeEl()">
+    <form id="elForm" onsubmit="event.preventDefault(); saveEl()">
+      <h3 id="elTitle"></h3>
+      <div class="ts-chips" id="elKinds">
+        <button type="button" class="chip" data-k="diesel" onclick="elKind = 'diesel'; elKindUi()">⛽ ديزل</button>
+        <button type="button" class="chip" data-k="overtime" onclick="elKind = 'overtime'; elKindUi()">⏱️ أوفر تايم</button>
+        <button type="button" class="chip" data-k="deduction" onclick="elKind = 'deduction'; elKindUi()">➖ خصم</button>
+      </div>
+      <label>التاريخ <input type="date" id="el_date" required></label>
+      <div class="row2">
+        <label>الكمية <input type="number" id="el_qty" min="0" step="0.01" inputmode="decimal" required></label>
+        <label>الوحدة <select id="el_unit"></select></label>
+      </div>
+      <label>ملاحظة <input id="el_note"></label>
+      <div>
+        <button type="submit">💾 حفظ</button>
+        <button type="button" onclick="closeEl()" style="background:#64748b">إلغاء</button>
+        <button type="button" id="elDel" onclick="deleteEl()" style="background:#c0392b" hidden>🗑️ مسح</button>
+      </div>
+      <span id="elMsg" style="font-size:13px"></span>
+    </form>
   </div>
   <div id="accBox" hidden onclick="if (event.target === this) closeAccount()">
     <form id="accForm" onsubmit="event.preventDefault(); saveMyAccount()">
@@ -2484,7 +2530,7 @@
       const tables = [["workers", "الساكنين", ["id"]], ["timesheet", "التايم شيت", ["worker_id", "work_date"]], ["meals", "الوجبات", ["worker_id", "meal_date"]],
         ["cars", "السيارات", ["id"]], ["equipment", "المعدات", ["id"]], ["rooms", "الغرف", ["building", "room"]],
         ["meal_groups", "مجموعات الفطار", ["id"]], ["group_meals", "فطار المجموعات", ["group_id", "meal_date"]],
-        ["purchases", "المشتريات", ["id"]]];
+        ["purchases", "المشتريات", ["id"]], ["equipment_log", "ديزل وأوفر تايم المعدات", ["id"]]];
       const book = XLSX.utils.book_new();
       book.Workbook = { Views: [{ RTL: true }] };
       const skipped = [];
@@ -3421,7 +3467,7 @@
     const pfStateLine = st => st === "bad" ? '<span class="badge bad">⛔ فيها مستند منتهي</span>'
       : st === "warn" ? '<span class="badge warn">⏳ مستند قرب يخلص</span>' : '<span class="badge ok">✅ ورقها سليم</span>';
 
-    async function showEqProfile(id) {
+    async function showEqProfile(id, ym) {
       const e = equipment.find(x => x.id === id);
       if (!e) return;
       let url = e.photo ? eqPhotoUrls[e.photo] : "";
@@ -3464,6 +3510,10 @@
             </div>
           </div>
           <div class="pf-card">
+            <h4>📊 حساب الشهر: ديزل، وأوفر تايم، وخصم</h4>
+            <div id="eqLogBox"><p style="color:#64748b; margin:0">⏳ جاري التحميل...</p></div>
+          </div>
+          <div class="pf-card">
             <h4>📄 المستندات اللي ليها تاريخ انتهاء</h4>
             <div class="pf-docs">${dated.map(d => pfDoc(d.label, e[eqField(d)], e[d.key + "_file"])).join("")}</div>
           </div>
@@ -3482,6 +3532,7 @@
             <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
           </div>
         </div>`);
+      loadEqLog(e.id, ym || elMonth || todayIso().slice(0, 7));
     }
 
     async function showCarProfile(id) {
@@ -4051,6 +4102,7 @@
       if (name === "settings") fillSettingsForm();
       if (name === "meals") setMealTab(currentMealTab());
       if (name === "purchases") loadPurchases();
+      if (name === "moves" && eqTab === "month") loadEqMonth();
       if (name === "reports" && !document.getElementById("repMonth").value) {
         document.getElementById("repMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
         repMonthChanged();
@@ -5107,17 +5159,20 @@
     function setEqTab(t) {
       eqTab = t;
       try { localStorage.setItem("eqTab", t); } catch (e) {}
-      if (t === "depts") eqDeptFilter = "";
+      if (t === "depts" || t === "month") eqDeptFilter = "";
       showEquipment();
+      if (t === "month") loadEqMonth();
     }
     function openDept(name) { eqDeptFilter = name; eqTab = "all"; showEquipment(); document.getElementById("eqTabs").scrollIntoView({ behavior: "smooth" }); }
 
     function renderEqTabs() {
       document.getElementById("eqTabs").innerHTML =
         `<button class="chip ${eqTab === "depts" ? "on" : ""}" onclick="setEqTab('depts')">🗂️ الأقسام</button>` +
-        `<button class="chip ${eqTab === "all" && !eqDeptFilter ? "on" : ""}" onclick="eqDeptFilter = ''; setEqTab('all')">🏗️ كل المعدات (${equipment.length})</button>`;
+        `<button class="chip ${eqTab === "all" && !eqDeptFilter ? "on" : ""}" onclick="eqDeptFilter = ''; setEqTab('all')">🏗️ كل المعدات (${equipment.length})</button>` +
+        `<button class="chip ${eqTab === "month" ? "on" : ""}" onclick="setEqTab('month')">⛽ حساب الشهر</button>`;
       document.getElementById("eqDepts").hidden = eqTab !== "depts";
-      document.getElementById("eqAllView").hidden = eqTab === "depts";
+      document.getElementById("eqAllView").hidden = eqTab !== "all";
+      document.getElementById("eqMonthView").hidden = eqTab !== "month";
       const ban = document.getElementById("eqDeptBanner");
       if (eqTab === "all" && eqDeptFilter) {
         const d = eqDeptFilter === "-" ? { name: "بدون قسم", icon: "❔", color: "#94a3b8" } : deptOf(eqDeptFilter);
@@ -6707,6 +6762,168 @@
       await loadRooms();
       openBuilding(building);
       alert(`✅ اتسجّل ${fresh.length} ساكن${move && moves.length ? " واتنقل " + moves.length : ""} في ${building}`);
+    }
+
+    // ===== حساب المعدة الشهري: ديزل، أوفر تايم، خصم =====
+    // كل حركة: تاريخ + نوع + كمية + وحدة + ملاحظة. والشهر = مجموع الحركات
+    const EL_KINDS = {
+      diesel: { icon: "⛽", label: "ديزل", units: ["لتر"], color: "#c0392b" },
+      overtime: { icon: "⏱️", label: "أوفر تايم", units: ["ساعة"], color: "#16a34a" },
+      deduction: { icon: "➖", label: "خصم", units: ["ساعة", "يوم", "ريال"], color: "#b45309" }
+    };
+    let elReady = true, elEqId = null, elMonth = "", elRows = [], elEditing = null, elKind = "diesel";
+    let eqMonth = "", eqMonthRows = [];
+    const elNum = v => Number(v) || 0;
+    // المجموع لكل نوع ووحدة: { diesel: {لتر: 120}, deduction: {يوم: 2, ريال: 300} }
+    function elTotals(rows) {
+      const t = {};
+      rows.forEach(r => { const u = r.unit || EL_KINDS[r.kind].units[0]; ((t[r.kind] = t[r.kind] || {})[u] = (t[r.kind][u] || 0) + elNum(r.qty)); });
+      return t;
+    }
+    const elFmt = (t, kind) => t[kind] ? Object.entries(t[kind]).map(([u, v]) => num(v) + " " + u).join(" + ") : "—";
+    const elRange = ym => { const d = monthDays(ym); return [d[0], d[d.length - 1]]; };
+
+    // ----- جوه ملف المعدة -----
+    async function loadEqLog(eqId, ym) {
+      elEqId = eqId; elMonth = ym || elMonth || todayIso().slice(0, 7);
+      const box = document.getElementById("eqLogBox");
+      if (!box) return;
+      const [a, b] = elRange(elMonth);
+      const { data, error } = await fetchAll(() => db.from("equipment_log").select("*").eq("equipment_id", eqId).gte("log_date", a).lte("log_date", b).order("log_date").order("id"));
+      if (elEqId !== eqId || !document.getElementById("eqLogBox")) return;
+      elReady = !error;
+      elRows = error ? [] : data;
+      renderEqLog();
+    }
+    function shiftElMonth(n) {
+      const [y, m] = elMonth.split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      loadEqLog(elEqId, d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+    }
+    function renderEqLog() {
+      const box = document.getElementById("eqLogBox");
+      if (!box) return;
+      if (!elReady) { box.innerHTML = '<p class="warn-note" style="margin:0">⚠️ حساب الديزل والأوفر تايم والخصم محتاج سطر SQL في Supabase. شغّله وبعدين اعمل refresh.</p>'; return; }
+      const t = elTotals(elRows), edit = canOpen("moves");
+      const rows = elRows.slice().sort((x, y) => y.log_date.localeCompare(x.log_date) || y.id - x.id);
+      box.innerHTML = `
+        <div class="el-head no-print">
+          <button onclick="shiftElMonth(-1)" title="الشهر اللي قبله">→</button><b>${monthLabel(elMonth)}</b><button onclick="shiftElMonth(1)" title="الشهر اللي بعده">←</button>
+        </div>
+        <div class="print-only"><b>${monthLabel(elMonth)}</b></div>
+        <div class="pf-stats">
+          ${Object.entries(EL_KINDS).map(([k, d]) => `<div class="stat"><b style="color:${d.color}; font-size:19px">${elFmt(t, k)}</b>${d.icon} ${d.label}<small>${elRows.filter(r => r.kind === k).length} مرة</small></div>`).join("")}
+        </div>
+        ${edit ? `<div class="el-add no-print">${Object.entries(EL_KINDS).map(([k, d]) => `<button onclick="openEl('${k}')" style="background:${d.color}">➕ ${d.icon} ${d.label}</button>`).join("")}</div>` : ""}
+        ${rows.length ? `<div class="pu-list" style="margin-top:8px">${rows.map(r => { const d = EL_KINDS[r.kind] || EL_KINDS.diesel; return `<div class="pu-row el-${r.kind}" ${edit ? `onclick="openEl('${r.kind}', ${r.id})"` : ""}>
+            <span class="pd">${Number(r.log_date.slice(8))}<small>${new Date(r.log_date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "short" })}</small></span>
+            <span class="pt"><b>${d.icon} ${d.label}</b><br><small>${gmEsc(r.note || "")}</small></span>
+            <span class="pa" style="color:${d.color}">${num(elNum(r.qty))} ${gmEsc(r.unit || d.units[0])}</span></div>`; }).join("")}</div>`
+          : '<p style="color:#64748b; margin:8px 0 0">مفيش حاجة متسجّلة الشهر ده.</p>'}`;
+    }
+
+    // ----- نافذة الإضافة -----
+    function openEl(kind, id) {
+      const r = id ? elRows.find(x => x.id === id) : null;
+      elEditing = r ? r.id : null;
+      elKind = r ? r.kind : kind;
+      const today = todayIso();
+      document.getElementById("el_date").value = r ? r.log_date : (today.slice(0, 7) === elMonth ? today : elMonth + "-01");
+      document.getElementById("el_qty").value = r ? elNum(r.qty) : "";
+      document.getElementById("el_note").value = r ? r.note || "" : "";
+      document.getElementById("elDel").hidden = !r;
+      document.getElementById("elMsg").textContent = "";
+      elKindUi(r ? r.unit : null);
+      document.getElementById("elBox").hidden = false;
+      setTimeout(() => document.getElementById("el_qty").focus(), 50);
+    }
+    function elKindUi(unit) {
+      const d = EL_KINDS[elKind];
+      const e = equipment.find(x => x.id === elEqId);
+      document.getElementById("elTitle").textContent = (elEditing ? "✏️ " : "➕ ") + d.icon + " " + d.label + (e ? " — " + e.name : "");
+      document.querySelectorAll("#elKinds .chip").forEach(b => b.classList.toggle("on", b.dataset.k === elKind));
+      const us = document.getElementById("el_unit");
+      us.innerHTML = d.units.map(u => `<option>${u}</option>`).join("");
+      us.value = unit && d.units.includes(unit) ? unit : d.units[0];
+      us.disabled = d.units.length === 1;
+      document.getElementById("el_note").placeholder = elKind === "diesel" ? "مثلًا: من محطة الشمال" : elKind === "overtime" ? "مثلًا: شغل بالليل" : "مثلًا: عطلانة يومين";
+    }
+    function closeEl() { document.getElementById("elBox").hidden = true; }
+    async function saveEl() {
+      const msg = document.getElementById("elMsg");
+      const qty = Number(document.getElementById("el_qty").value), date = document.getElementById("el_date").value;
+      if (!date) { msg.textContent = "⚠️ اختار التاريخ"; return; }
+      if (!(qty > 0)) { msg.textContent = "⚠️ اكتب الكمية"; return; }
+      const row = { equipment_id: elEqId, log_date: date, kind: elKind, qty, unit: document.getElementById("el_unit").value, note: document.getElementById("el_note").value.trim() || null };
+      if (!elEditing) row.created_by = me ? me.name : myEmail;
+      msg.textContent = "⏳ جاري الحفظ...";
+      const res = elEditing ? await db.from("equipment_log").update(row).eq("id", elEditing) : await db.from("equipment_log").insert(row);
+      if (res.error) { msg.textContent = "❌ محصلش حفظ: " + res.error.message; return; }
+      closeEl();
+      loadEqLog(elEqId, date.slice(0, 7));
+      if (eqTab === "month") loadEqMonth();
+    }
+    async function deleteEl() {
+      if (!elEditing || !confirm("تمسح الحركة دي؟")) return;
+      const { error } = await db.from("equipment_log").delete().eq("id", elEditing);
+      if (error) { document.getElementById("elMsg").textContent = "❌ " + error.message; return; }
+      closeEl();
+      loadEqLog(elEqId, elMonth);
+      if (eqTab === "month") loadEqMonth();
+    }
+
+    // ----- تاب "حساب الشهر" لكل المعدات -----
+    async function loadEqMonth() {
+      if (!eqMonth) eqMonth = todayIso().slice(0, 7);
+      const [a, b] = elRange(eqMonth);
+      const { data, error } = await fetchAll(() => db.from("equipment_log").select("*").gte("log_date", a).lte("log_date", b).order("log_date").order("id"));
+      elReady = !error;
+      eqMonthRows = error ? [] : data;
+      renderEqMonth();
+    }
+    function shiftEqMonth(n) {
+      const [y, m] = (eqMonth || todayIso().slice(0, 7)).split("-").map(Number);
+      const d = new Date(y, m - 1 + n, 1);
+      eqMonth = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+      loadEqMonth();
+    }
+    function renderEqMonth() {
+      const box = document.getElementById("eqMonthView");
+      if (!elReady) { box.innerHTML = '<div class="no-access" style="padding:16px"><b style="font-size:28px">🛠️</b>حساب الديزل والأوفر تايم والخصم محتاج سطر SQL في Supabase. شغّله وبعدين اعمل refresh.</div>'; return; }
+      const list = equipment.filter(e => !eqDeptFilter || (eqDeptFilter === "-" ? !(e.department || "").trim() : e.department === eqDeptFilter));
+      const all = elTotals(eqMonthRows.filter(r => list.some(e => e.id === r.equipment_id)));
+      const rowsOf = id => eqMonthRows.filter(r => r.equipment_id === id);
+      const withData = list.filter(e => rowsOf(e.id).length);
+      const sorted = withData.sort((x, y) => elNum((elTotals(rowsOf(y.id)).diesel || {})["لتر"]) - elNum((elTotals(rowsOf(x.id)).diesel || {})["لتر"])).concat(list.filter(e => !rowsOf(e.id).length));
+      box.innerHTML = `
+        <div class="gm-bar">
+          <div class="ts-day"><button onclick="shiftEqMonth(-1)">→</button><b style="min-width:110px; text-align:center; color:#1e3a5f">${monthLabel(eqMonth)}</b><button onclick="shiftEqMonth(1)">←</button></div>
+          <div class="gm-actions"><button onclick="exportEqMonth()" style="background:#16a34a">📊 Excel</button></div>
+        </div>
+        <div class="pf-stats" style="margin-bottom:10px">
+          ${Object.entries(EL_KINDS).map(([k, d]) => `<div class="stat" style="background:white"><b style="color:${d.color}; font-size:20px">${elFmt(all, k)}</b>${d.icon} إجمالي ${d.label}</div>`).join("")}
+          <div class="stat" style="background:white"><b>${withData.length}</b>🏗️ معدة ليها حركة<small>من ${list.length}</small></div>
+        </div>
+        <div class="gm-card"><div class="pu-list">${sorted.map(e => { const t = elTotals(rowsOf(e.id)), has = rowsOf(e.id).length; return `<div class="pu-row pv em-row" style="${has ? "" : "opacity:.6"}" onclick="showEqProfile(${e.id}, '${eqMonth}')">
+            <span class="pd em-ic">${kindSvg(eqKind(e))}</span>
+            <span class="pt"><b>${gmEsc(e.name)}</b><br><small>${e.department ? deptOf(e.department).icon + " " + gmEsc(e.department) + " · " : ""}${e.driver ? "👤 " + gmEsc(e.driver) : ""}</small></span>
+            <span class="em-vals">${has ? Object.entries(EL_KINDS).map(([k, d]) => t[k] ? `<span style="color:${d.color}">${d.icon} ${elFmt(t, k)}</span>` : "").join("") : '<small style="color:#94a3b8">مفيش حركة</small>'}</span>
+          </div>`; }).join("") || '<p style="color:#64748b">مفيش معدات</p>'}</div>
+          <p class="gm-hint">💡 دوس على أي معدة تفتح ملفها وتسجّل الديزل والأوفر تايم والخصم.</p></div>`;
+    }
+    function exportEqMonth() {
+      const rows = equipment.map(e => {
+        const t = elTotals(eqMonthRows.filter(r => r.equipment_id === e.id));
+        const g = (k, u) => (t[k] || {})[u] || "";
+        return { "المعدة": e.name, "القسم": e.department || "", "السائق": e.driver || "", "ديزل (لتر)": g("diesel", "لتر"), "أوفر تايم (ساعة)": g("overtime", "ساعة"),
+          "خصم (ساعة)": g("deduction", "ساعة"), "خصم (يوم)": g("deduction", "يوم"), "خصم (ريال)": g("deduction", "ريال") };
+      });
+      const det = eqMonthRows.map(r => { const e = equipment.find(x => x.id === r.equipment_id) || {}; const d = EL_KINDS[r.kind] || {}; return { "التاريخ": r.log_date, "المعدة": e.name || "", "النوع": d.label || r.kind, "الكمية": elNum(r.qty), "الوحدة": r.unit || "", "ملاحظة": r.note || "" }; });
+      const book = XLSX.utils.book_new();
+      book.Workbook = { Views: [{ RTL: true }] };
+      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), "الملخص");
+      if (det.length) XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(det), "الحركات");
+      XLSX.writeFile(book, "معدات-حساب-" + eqMonth + ".xlsx");
     }
 
     function money(n) {
