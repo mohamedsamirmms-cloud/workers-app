@@ -4543,7 +4543,11 @@
     let tsMonthSum = {};
 
     function openTsMonth(workerId, ym) {
+      // النافذة جوه صفحة التايم شيت، فلو اتفتحت من صفحة تانية كانت بتفضل مستخبية — ننقلها برا الصفحات
+      const box = document.getElementById("tsMonthBox");
+      if (box.parentElement !== document.body) document.body.appendChild(box);
       tsMonthWorker = findWorker(workerId);
+      if (!tsMonthWorker) return;
       document.getElementById("tsMonth").value = ym || document.getElementById("tsDate").value.slice(0, 7);
       document.getElementById("tsMonthBox").hidden = false;
       showTsMonth();
