@@ -241,6 +241,41 @@
     #elForm input, #elForm select { box-sizing: border-box; width: 100%; }
     #elForm .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     #el_qty { font-size: 18px; font-weight: bold; }
+          /* التقرير الشامل */
+    .rep-tile.rep-main { grid-column: 1 / -1; border: 2px solid #1e3a5f; }
+    .rf-sec { break-inside: avoid; }
+    .rf-mini { font-size: 13px; color: #334155; background: #f8fafc; border-radius: 8px; padding: 6px 10px; margin-top: 8px; line-height: 1.8; }
+    .rf-brand { font-size: 16px; color: #1e3a5f; margin-bottom: 8px; }
+          /* صيانة السكن */
+    #mntStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    #mntStats .stat small { display: block; color: #64748b; font-size: 12px; }
+    .mnt-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+    .mnt-card { background: white; border-radius: 12px; padding: 10px 12px; border-right: 5px solid var(--sc); display: grid; gap: 6px; }
+    .mnt-top { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .mnt-ic { width: 42px; height: 42px; flex: none; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .mnt-t { flex: 1; min-width: 0; }
+    .mnt-t > b { display: block; color: #1e3a5f; font-size: 15px; }
+    .mnt-t small { color: #475569; font-size: 13px; }
+    .mnt-st { text-align: center; font-weight: bold; font-size: 13px; white-space: nowrap; }
+    .mnt-st small { display: block; color: #64748b; font-weight: normal; font-size: 11px; }
+    .mnt-desc { margin: 0; font-size: 14px; color: #334155; background: #f8fafc; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+    .mnt-meta { font-size: 12px; color: #64748b; }
+    .mnt-meta:empty { display: none; }
+    .mnt-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+    .mnt-acts:empty { display: none; }
+    .mnt-acts button { flex: 1; font-size: 13px; padding: 7px 8px; }
+    .mnt-lbl { font-size: 14px; color: #475569; display: block; margin-bottom: 4px; }
+    .ri-mnt { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #fef2f2; border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; font-size: 13px; color: #991b1b; }
+    .ri-mnt.ok { background: #f8fafc; color: #475569; }
+    .ri-mnt button { font-size: 12px; padding: 4px 10px; margin-inline-start: auto; }
+    #mntBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    #mntBox[hidden], #mntEditOnly[hidden] { display: none !important; }
+    #mntForm { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; display: grid; gap: 10px; box-sizing: border-box; }
+    #mntForm h3 { margin: 0; color: #1e3a5f; }
+    #mntForm label { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    #mntForm input, #mntForm select, #mntForm textarea { box-sizing: border-box; width: 100%; font-family: inherit; }
+    #mntForm .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 700px) { .mnt-list { grid-template-columns: 1fr; } }
           /* الوجبات بالوحدات */
     #mealRooms:empty { display: none; }
     #mealRooms[hidden], #mealChips[hidden], #mealList[hidden], .ml-only[hidden] { display: none !important; }
@@ -1252,6 +1287,7 @@
     <div class="nav-group">السكن</div>
     <button class="nav active" data-page="residents" onclick="showPage('residents')"><span class="ni">👷</span>الساكنين</button>
     <button class="nav" data-page="meals" onclick="showPage('meals')"><span class="ni">🍽️</span>الوجبات</button>
+    <button class="nav" data-page="maintenance" onclick="showPage('maintenance')"><span class="ni">🔧</span>الصيانة</button>
     <div class="nav-group">المشروع</div>
     <button class="nav" data-page="timesheet" onclick="showPage('timesheet')"><span class="ni">⏱️</span>التايم شيت</button>
     <button class="nav" data-page="moves" onclick="showPage('moves')"><span class="ni">🏗️</span>معدات المشروع</button>
@@ -1480,6 +1516,16 @@
       </form>
     </div>
   </section>
+  <section id="page-maintenance" class="page" hidden>
+    <div class="res-head">
+      <h2>🔧 صيانة السكن</h2>
+      <button onclick="openMnt()" style="background:#c0392b">➕ بلاغ عطل</button>
+    </div>
+    <div id="mntNotice"></div>
+    <div id="mntStats"></div>
+    <div class="ts-chips" id="mntChips"></div>
+    <div id="mntList"></div>
+  </section>
   <section id="page-purchases" class="page" hidden>
     <div class="res-head">
       <h2>🛒 المشتريات والعهدة</h2>
@@ -1685,6 +1731,7 @@
       <span id="repMonthName"></span>
     </div>
     <div class="rep-grid">
+      <div class="rep-tile rep-main" data-rep="full" onclick="openReport('full')"><span class="icon" style="background:#1e3a5f; color:white">📑</span><b>التقرير الشامل للإدارة</b><small>السكن والحضور والوجبات والمعدات والمشتريات والصيانة في صفحة واحدة للطباعة أو PDF</small></div>
       <div class="rep-tile" data-rep="summary" onclick="openReport('summary')"><span class="icon" style="background:#dbeafe">📊</span><b>الملخص الشهري</b><small>السكن والحضور والوجبات والمستندات في صفحة واحدة</small></div>
       <div class="rep-tile" data-rep="housing" onclick="openReport('housing')"><span class="icon" style="background:#dcfce7">🏢</span><b>تقرير السكن</b><small>الغرف وساكنيها، الجنسيات، البطاطين، الإقامات الناقصة</small></div>
       <div class="rep-tile" data-rep="attendance" onclick="openReport('attendance')"><span class="icon" style="background:#e0e7ff">⏱️</span><b>تقرير الحضور</b><small>حضور وغياب وساعات وأوفر تايم كل عامل في الشهر</small></div>
@@ -1905,6 +1952,35 @@
       <span id="elMsg" style="font-size:13px"></span>
     </form>
   </div>
+  <div id="mntBox" hidden onclick="if (event.target === this) closeMnt()">
+    <form id="mntForm" onsubmit="event.preventDefault(); saveMnt()">
+      <h3 id="mntTitle"></h3>
+      <div class="row2">
+        <label>السكن <select id="mnt_building" class="bld-select" onchange="mntRoomList()"></select></label>
+        <label>الغرفة / الوحدة <input id="mnt_room" list="mntRooms" dir="ltr" placeholder="مثلًا 1-1"><datalist id="mntRooms"></datalist></label>
+      </div>
+      <div><span class="mnt-lbl">نوع العطل</span><div class="ts-chips" id="mntCats"></div></div>
+      <div><span class="mnt-lbl">الأولوية</span><div class="ts-chips" id="mntPris"></div></div>
+      <label>وصف العطل <textarea id="mnt_desc" rows="2" placeholder="مثلًا: التكييف مش بيبرّد في الأوضة الكبيرة"></textarea></label>
+      <label>📷 صورة العطل (اختياري) <input type="file" id="mnt_photo" accept="image/*"></label>
+      <small id="mntPhotoMsg" style="color:#64748b"></small>
+      <label>بلّغ عنه <input id="mnt_by"></label>
+      <div id="mntEditOnly" hidden style="display:grid; gap:10px">
+        <div><span class="mnt-lbl">الحالة</span><div class="ts-chips" id="mntSts"></div></div>
+        <div class="row2">
+          <label>مين بيصلّحه <input id="mnt_to" placeholder="اسم الفني أو الشركة"></label>
+          <label>التكلفة (ريال) <input type="number" id="mnt_cost" min="0" step="0.01" inputmode="decimal"></label>
+        </div>
+        <label>ملاحظة <input id="mnt_note"></label>
+      </div>
+      <div>
+        <button type="submit">💾 حفظ</button>
+        <button type="button" onclick="closeMnt()" style="background:#64748b">إلغاء</button>
+        <button type="button" id="mntDel" onclick="deleteMnt()" style="background:#c0392b" hidden>🗑️ مسح</button>
+      </div>
+      <span id="mntMsg" style="font-size:13px"></span>
+    </form>
+  </div>
   <div id="accBox" hidden onclick="if (event.target === this) closeAccount()">
     <form id="accForm" onsubmit="event.preventDefault(); saveMyAccount()">
       <h3>👤 حسابي</h3>
@@ -2014,6 +2090,7 @@
       loadMeals();
       showMealMonth();
       loadDashMeals();
+      loadMnt();
     }
 
     // تسجيل الدخول
@@ -2572,7 +2649,7 @@
       const tables = [["workers", "الساكنين", ["id"]], ["timesheet", "التايم شيت", ["worker_id", "work_date"]], ["meals", "الوجبات", ["worker_id", "meal_date"]],
         ["cars", "السيارات", ["id"]], ["equipment", "المعدات", ["id"]], ["rooms", "الغرف", ["building", "room"]],
         ["meal_groups", "مجموعات الفطار", ["id"]], ["group_meals", "فطار المجموعات", ["group_id", "meal_date"]],
-        ["purchases", "المشتريات", ["id"]], ["equipment_log", "ديزل وأوفر تايم المعدات", ["id"]]];
+        ["purchases", "المشتريات", ["id"]], ["equipment_log", "ديزل وأوفر تايم المعدات", ["id"]], ["maintenance", "صيانة السكن", ["id"]]];
       const book = XLSX.utils.book_new();
       book.Workbook = { Views: [{ RTL: true }] };
       const skipped = [];
@@ -2591,6 +2668,7 @@
       { key: "dashboard", label: "📊 لوحة التحكم" },
       { key: "residents", label: "👷 الساكنين" },
       { key: "meals", label: "🍽️ الوجبات" },
+      { key: "maintenance", label: "🔧 الصيانة" },
       { key: "timesheet", label: "⏱️ التايم شيت" },
       { key: "moves", label: "🏗️ معدات المشروع" },
       { key: "cars", label: "🚗 سيارات المشروع" },
@@ -2602,7 +2680,7 @@
     ];
     const ROLES = {
       "مدير": { cls: "r-admin", color: "#c0392b", pages: PAGES.map(x => x.key) },
-      "مشرف سكن": { cls: "r-house", color: "#16a34a", pages: ["dashboard", "residents", "meals", "archive", "reports"] },
+      "مشرف سكن": { cls: "r-house", color: "#16a34a", pages: ["dashboard", "residents", "meals", "maintenance", "archive", "reports"] },
       "مشرف مشروع": { cls: "r-project", color: "#2563eb", pages: ["dashboard", "timesheet", "moves", "cars", "reports"] },
       "مدخل بيانات": { cls: "r-data", color: "#d97706", pages: ["residents", "meals", "timesheet"] },
       "مشاهد": { cls: "r-view", color: "#64748b", pages: ["dashboard", "reports"] }
@@ -2955,7 +3033,7 @@
       document.querySelectorAll(".rep-tile").forEach(t => t.classList.toggle("on", t.dataset.rep === kind));
       const out = document.getElementById("reportOut");
       const info = repMonthInfo();
-      const titles = { summary: "📊 الملخص الشهري", housing: "🏢 تقرير السكن", attendance: "⏱️ تقرير الحضور", meals: "🍽️ تقرير الوجبات", docs: "🔔 تقرير المستندات", moves: "🧳 حركة الساكنين" };
+      const titles = { full: "📑 التقرير الشامل للإدارة", summary: "📊 الملخص الشهري", housing: "🏢 تقرير السكن", attendance: "⏱️ تقرير الحضور", meals: "🍽️ تقرير الوجبات", docs: "🔔 تقرير المستندات", moves: "🧳 حركة الساكنين" };
       out.innerHTML = `<div class="rep-body"><p>⏳ جاري تجهيز التقرير...</p></div>`;
       out.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -3088,6 +3166,8 @@
           repSheets.push(["المستندات", docs.map(d => ({ "النوع": d.kind, "الاسم": d.name, "المستند": d.doc, "تاريخ الانتهاء": d.date, "الحالة": d.date < today ? "منتهي" : "قرب", "السائق": d.holder || "" }))]);
         }
 
+        if (kind === "full") body = await repFullHtml(info);
+
         if (kind === "moves") {
           const arrivals = workers.concat(archivedWorkers).filter(w => w.arrival && w.arrival.slice(0, 7) === info.ym).sort((a, b) => a.arrival.localeCompare(b.arrival));
           const departures = archivedWorkers.filter(w => (w.archived_at || "").slice(0, 7) === info.ym).sort((a, b) => a.archived_at.localeCompare(b.archived_at));
@@ -3117,6 +3197,98 @@
           </div>
         </div>
         <div class="rep-body">${body}</div>`;
+    }
+
+    // ===== التقرير الشامل للإدارة =====
+    // بيجمع كل حاجة في الشهر؛ أي جزء جدوله مش موجود أو مالوش صلاحية بيتشال لوحده
+    async function repFullHtml(info) {
+      const { first, last, ym } = info;
+      const safe = async f => { try { const r = await f(); return r.error ? null : r.data; } catch (e) { return null; } };
+      const [{ ts, meals }, gm, el, pu, mn] = await Promise.all([
+        repMonthData(),
+        safe(() => fetchAll(() => db.from("group_meals").select("group_id,meal_date,people,amount").gte("meal_date", first).lte("meal_date", last).order("group_id").order("meal_date"))),
+        safe(() => fetchAll(() => db.from("equipment_log").select("*").gte("log_date", first).lte("log_date", last).order("id"))),
+        canOpen("purchases") ? safe(() => fetchAll(() => db.from("purchases").select("*").lte("entry_date", last).order("id"))) : Promise.resolve(null),
+        safe(() => fetchAll(() => db.from("maintenance").select("*").order("id")))
+      ]);
+      const N = n => (Math.round(n * 100) / 100).toLocaleString("en-US");
+      const sec = (icon, title, inner, note) => `<div class="rep-sec rf-sec"><h4>${icon} ${title}${note ? ` <small style="color:#64748b; font-weight:normal">${note}</small>` : ""}</h4>${inner}</div>`;
+      const cards = (...a) => `<div class="rep-cards">${a.join("")}</div>`;
+      const sheet = [];
+      const add = (k, v) => sheet.push({ "البند": k, "القيمة": v });
+      let h = "";
+
+      // السكن
+      const arrivals = workers.concat(archivedWorkers).filter(w => w.arrival && w.arrival.slice(0, 7) === ym).length;
+      const departures = archivedWorkers.filter(w => (w.archived_at || "").slice(0, 7) === ym).length;
+      const free = freeBedsAll().reduce((t, x) => t + x.free, 0);
+      const perB = buildingList().map(b => [b, workers.filter(w => w.building === b).length]).filter(([, n]) => n);
+      h += sec("🏢", "السكن", cards(stat(workers.length, "👷 ساكنين"), ...perB.map(([b, n]) => stat(n, "🏢 " + b)), stat(free, "🛏️ سرير فاضي", "#16a34a"), stat(arrivals, "🛬 وصلوا", "#16a34a"), stat(departures, "🛫 خرجوا", "#c0392b")));
+      add("ساكنين", workers.length); perB.forEach(([b, n]) => add(b, n)); add("سرير فاضي", free); add("وصلوا", arrivals); add("خرجوا", departures);
+
+      // الحضور
+      const att = repAttendance(info, ts);
+      const tp = att.reduce((t, r) => t + r.present, 0), ta = att.reduce((t, r) => t + r.absent, 0);
+      const th = att.reduce((t, r) => t + r.hours, 0), to = att.reduce((t, r) => t + r.ot, 0);
+      const rate = tp + ta ? Math.round(tp / (tp + ta) * 100) : 0;
+      const topAbs = att.filter(r => r.absent > 0).sort((a, b) => b.absent - a.absent).slice(0, 5);
+      h += sec("⏱️", "الحضور والغياب", cards(stat(rate + "%", "📈 نسبة الحضور", rate >= 90 ? "#16a34a" : rate >= 75 ? "#b45309" : "#c0392b"), stat(N(tp), "✅ أيام حضور", "#16a34a"), stat(N(ta), "❌ أيام غياب", "#c0392b"), stat(N(th), "🕒 ساعات"), stat(N(to), "⚡ أوفر تايم", "#e08a1e")) +
+        (topAbs.length ? `<div class="rf-mini"><b>أكتر غياب:</b> ${topAbs.map(r => `${gmEsc(r.w.name)} (${r.absent})`).join("، ")}</div>` : ""));
+      add("نسبة الحضور %", rate); add("أيام حضور", tp); add("أيام غياب", ta); add("ساعات العمل", th); add("أوفر تايم (ساعة)", to);
+
+      // الوجبات
+      const ml = repMeals(meals);
+      const tb = ml.reduce((t, r) => t + r.b, 0), tl = ml.reduce((t, r) => t + r.l, 0);
+      const gAmt = gm ? gm.reduce((t, r) => t + (Number(r.amount) || 0), 0) : 0, gPpl = gm ? gm.reduce((t, r) => t + (Number(r.people) || 0), 0) : 0;
+      const mealsTot = tb * BREAKFAST_PRICE + tl * LUNCH_PRICE + gAmt;
+      h += sec("🍽️", "الوجبات", cards(...(gm && gm.length ? [stat(money(gAmt), "👥 فطار المجموعات", "#b45309", N(gPpl) + " وجبة")] : []), stat(money(tb * BREAKFAST_PRICE), "🍳 فطار الأفراد", "#b45309", tb + " وجبة"), stat(money(tl * LUNCH_PRICE), "🍛 الغداء", "#16a34a", tl + " وجبة"), stat(money(mealsTot), "💰 إجمالي الوجبات", "#e08a1e")));
+      if (gm && gm.length) add("فطار المجموعات (ريال)", gAmt); add("فطار الأفراد (ريال)", tb * BREAKFAST_PRICE); add("الغداء (ريال)", tl * LUNCH_PRICE); add("إجمالي الوجبات (ريال)", mealsTot);
+
+      // المعدات
+      if (el) {
+        const t = elTotals(el);
+        const by = {};
+        el.filter(r => r.kind === "diesel").forEach(r => by[r.equipment_id] = (by[r.equipment_id] || 0) + elNum(r.qty));
+        const topD = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, q]) => `${gmEsc((equipment.find(e => e.id == id) || {}).name || "-")} (${N(q)} لتر)`);
+        h += sec("🏗️", "المعدات", cards(stat(equipment.length, "🏗️ معدة"), stat(elFmt(t, "diesel"), "⛽ ديزل", "#c0392b"), stat(elFmt(t, "overtime"), "⏱️ أوفر تايم", "#16a34a"), stat(elFmt(t, "deduction"), "➖ خصم", "#b45309")) +
+          (topD.length ? `<div class="rf-mini"><b>أكتر ديزل:</b> ${topD.join("، ")}</div>` : ""));
+        add("ديزل المعدات", elFmt(t, "diesel")); add("أوفر تايم المعدات", elFmt(t, "overtime")); add("خصم المعدات", elFmt(t, "deduction"));
+      }
+
+      // المستندات
+      const today = todayIso();
+      const docs = repDocs(WARN_DAYS);
+      h += sec("🔔", "المستندات", cards(stat(docs.filter(d => d.date < today).length, "⛔ منتهية", "#c0392b"), stat(docs.filter(d => d.date >= today).length, "⏳ هتخلص خلال " + WARN_DAYS + " يوم", "#b45309")), "(النهارده)");
+      add("مستندات منتهية", docs.filter(d => d.date < today).length);
+
+      // المشتريات والعهدة
+      if (pu) {
+        const mIn = pu.filter(r => r.kind === "in" && r.entry_date >= first).reduce((t, r) => t + (Number(r.amount) || 0), 0);
+        const mOut = pu.filter(r => r.kind === "out" && r.entry_date >= first).reduce((t, r) => t + (Number(r.amount) || 0), 0);
+        const bal = pu.reduce((t, r) => t + (r.kind === "in" ? 1 : -1) * (Number(r.amount) || 0), 0);
+        const byD = {};
+        pu.filter(r => r.kind === "out" && r.entry_date >= first).forEach(r => byD[r.department || "بدون قسم"] = (byD[r.department || "بدون قسم"] || 0) + (Number(r.amount) || 0));
+        const dl = Object.entries(byD).sort((a, b) => b[1] - a[1]);
+        h += sec("🛒", "المشتريات والعهدة", cards(stat(money(mIn), "💵 استلمنا", "#16a34a"), stat(money(mOut), "💸 المصروف", "#c0392b"), stat(money(bal), "🏦 الرصيد آخر الشهر", bal < 0 ? "#c0392b" : "#1e3a5f")) +
+          (dl.length ? `<div class="rf-mini"><b>حسب القسم:</b> ${dl.map(([d, v]) => `${gmEsc(d)} ${N(v)}`).join(" · ")}</div>` : ""));
+        add("استلمنا من المكتب", mIn); add("المصروف", mOut); add("الرصيد آخر الشهر", bal); dl.forEach(([d, v]) => add("مصروف " + d, v));
+      }
+
+      // الصيانة
+      if (mn) {
+        const opened = mn.filter(r => (r.opened_at || "").slice(0, 7) === ym), closed = mn.filter(r => r.status === "done" && (r.closed_at || "").slice(0, 7) === ym);
+        const stillOpen = mn.filter(r => r.status !== "done" && (r.opened_at || "").slice(0, 10) <= last);
+        const cost = closed.reduce((t, r) => t + (Number(r.cost) || 0), 0);
+        const avg = closed.length ? Math.round(closed.reduce((t, r) => t + mntDays(r.opened_at, r.closed_at), 0) / closed.length * 10) / 10 : 0;
+        const byC = {};
+        opened.forEach(r => byC[r.category] = (byC[r.category] || 0) + 1);
+        h += sec("🔧", "صيانة السكن", cards(stat(opened.length, "📥 بلاغات جديدة"), stat(closed.length, "🟢 اتصلّح", "#16a34a", avg ? "متوسط " + avg + " يوم" : ""), stat(stillOpen.length, "🔴 لسه مفتوح", stillOpen.length ? "#c0392b" : "#16a34a"), stat(money(cost), "💰 التكلفة")) +
+          (Object.keys(byC).length ? `<div class="rf-mini"><b>حسب النوع:</b> ${Object.entries(byC).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${mntCatOf(c).i} ${gmEsc(c)} ${n}`).join(" · ")}</div>` : ""));
+        add("بلاغات صيانة جديدة", opened.length); add("اتصلّحت", closed.length); add("لسه مفتوحة", stillOpen.length); add("تكلفة الصيانة", cost);
+      }
+      repSheets.push(["التقرير الشامل", sheet]);
+      return `<div class="rf-brand print-only"><b>${gmEsc(settings.name || "سجل السكن")}</b> — ${gmEsc(settings.sub || "")}</div>` + h +
+        `<p class="gm-hint no-print">💡 للحفظ PDF: دوس 🖨️ طباعة، واختار "Save as PDF" أو "حفظ كـ PDF".</p>`;
     }
 
     function exportReport() {
@@ -4158,6 +4330,9 @@
 
       box.innerHTML = `
         <div class="ri-head"><b>🚪 وحدة ${room}</b><small>${currentBuilding} · 👷 ${people} ساكن${st.beds ? " من " + st.beds + " سرير" : ""}</small></div>
+        ${mntReady ? (() => { const m = mntOpenIn(currentBuilding, room); return `<div class="ri-mnt ${m.length ? "" : "ok"}">${m.length ? `🔧 فيها ${m.length} عطل مفتوح: ${m.map(r => mntCatOf(r.category).i + " " + gmEsc(r.category)).join("، ")}` : "🔧 مفيش أعطال مفتوحة"}
+          ${canOpen("maintenance") || canOpen("residents") ? `<button onclick="openMnt(null, currentBuilding, '${gmEsc(room)}')" style="background:#c0392b">➕ بلّغ عن عطل</button>` : ""}
+          ${m.length && canOpen("maintenance") ? `<button onclick="mntBld = currentBuilding; mntFilter = 'open'; showPage('maintenance')" style="background:#eef1f5; color:#1e3a5f">شوف الأعطال</button>` : ""}</div>`; })() : ""}
         ${bedsBlock}
         <div class="ri-grid">
           ${step("r_beds", st.beds || "", "عدد الأسرّة", "🛏️")}
@@ -4219,6 +4394,7 @@
       if (name === "settings") fillSettingsForm();
       if (name === "meals") setMealTab(currentMealTab());
       if (name === "purchases") loadPurchases();
+      if (name === "maintenance") loadMnt();
       if (name === "moves" && eqTab === "month") loadEqMonth();
       if (name === "reports" && !document.getElementById("repMonth").value) {
         document.getElementById("repMonth").value = new Date().toLocaleDateString("en-CA").slice(0, 7);
@@ -7156,6 +7332,174 @@
       XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), "الملخص");
       if (det.length) XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(det), "الحركات");
       XLSX.writeFile(book, "معدات-حساب-" + eqMonth + ".xlsx");
+    }
+
+    // ===== صيانة السكن: بلاغات الأعطال =====
+    const MNT_CATS = [
+      { n: "تكييف", i: "❄️" }, { n: "سباكة", i: "🚿" }, { n: "كهربا", i: "💡" }, { n: "نجارة وأبواب", i: "🚪" },
+      { n: "أجهزة", i: "🧊" }, { n: "نضافة", i: "🧹" }, { n: "حشرات", i: "🪳" }, { n: "أخرى", i: "🔧" }
+    ];
+    const MNT_ST = { new: { l: "جديد", i: "🔴", c: "#c0392b" }, progress: { l: "جاري", i: "🟡", c: "#ca8a04" }, done: { l: "اتصلّح", i: "🟢", c: "#16a34a" } };
+    let mntRows = [], mntReady = true, mntFilter = "open", mntBld = "", editingMnt = null, mntCat = "تكييف", mntPri = "normal", mntStatus = "new", mntPhoto = null;
+    const mntCatOf = n => MNT_CATS.find(c => c.n === n) || MNT_CATS[MNT_CATS.length - 1];
+    const mntDays = (a, b) => a ? Math.max(0, Math.round(((b ? new Date(b) : new Date()) - new Date(a)) / 86400000)) || 0 : 0;
+    const mntAge = r => { const d = mntDays(r.opened_at, r.status === "done" ? r.closed_at : null); return d === 0 ? "النهارده" : d === 1 ? "من يوم" : d === 2 ? "من يومين" : "من " + d + " يوم"; };
+    const mntOpenIn = (b, room) => mntRows.filter(r => r.status !== "done" && r.building === b && roomKey("", r.room) === roomKey("", room));
+
+    async function loadMnt() {
+      const { data, error } = await fetchAll(() => db.from("maintenance").select("*").order("id"));
+      mntReady = !error;
+      mntRows = error ? [] : data;
+      renderMnt();
+    }
+    function renderMnt() {
+      const notice = document.getElementById("mntNotice");
+      if (!notice) return;
+      notice.innerHTML = mntReady ? "" : '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>صفحة الصيانة محتاجة جدول جديد في Supabase. شغّل كود الصيانة في SQL Editor وبعدين اعمل refresh.</div>';
+      const ym = todayIso().slice(0, 7);
+      const open = mntRows.filter(r => r.status !== "done");
+      const doneM = mntRows.filter(r => r.status === "done" && (r.closed_at || "").slice(0, 7) === ym);
+      const avg = doneM.length ? Math.round(doneM.reduce((s, r) => s + mntDays(r.opened_at, r.closed_at), 0) / doneM.length * 10) / 10 : 0;
+      const costM = mntRows.filter(r => (r.closed_at || r.opened_at || "").slice(0, 7) === ym).reduce((s, r) => s + (Number(r.cost) || 0), 0);
+      const st = (f, n, l, c, sub) => `<div class="stat click ${mntFilter === f ? "on" : ""}" onclick="mntFilter = '${f}'; renderMnt()"><b style="color:${c}">${n}</b>${l}${sub ? `<small>${sub}</small>` : ""}</div>`;
+      document.getElementById("mntStats").innerHTML = mntReady ? st("new", open.filter(r => r.status === "new").length, "🔴 جديد", "#c0392b") +
+        st("progress", open.filter(r => r.status === "progress").length, "🟡 جاري", "#ca8a04") +
+        st("urgent", open.filter(r => r.priority === "urgent").length, "🔥 عاجل مفتوح", "#c0392b") +
+        st("done", doneM.length, "🟢 اتصلّح الشهر ده", "#16a34a", avg ? "متوسط " + avg + " يوم" : "") +
+        `<div class="stat"><b>${money(costM)}</b>💰 تكلفة الشهر</div>` : "";
+      const blds = [...new Set(mntRows.map(r => r.building).filter(Boolean))];
+      const chip = (v, l, on, set) => `<button class="chip ${on ? "on" : ""}" onclick="${set}; renderMnt()">${l}</button>`;
+      document.getElementById("mntChips").innerHTML = mntReady ?
+        chip("open", `🔧 المفتوح (${open.length})`, mntFilter === "open", "mntFilter = 'open'") + chip("all", `الكل (${mntRows.length})`, mntFilter === "all", "mntFilter = 'all'") +
+        (blds.length > 1 ? '<span style="width:10px"></span>' + chip("", "🏘️ كل المساكن", !mntBld, "mntBld = ''") + blds.map(b => chip(b, "🏢 " + gmEsc(b), mntBld === b, `mntBld = '${gmEsc(b)}'`)).join("") : "") : "";
+      let list = mntRows.filter(r => !mntBld || r.building === mntBld);
+      list = list.filter(r => mntFilter === "all" ? true : mntFilter === "open" ? r.status !== "done" : mntFilter === "urgent" ? r.status !== "done" && r.priority === "urgent" : mntFilter === "done" ? r.status === "done" && (r.closed_at || "").slice(0, 7) === ym : r.status === mntFilter);
+      list.sort((a, b) => (a.status === "done") - (b.status === "done") || (b.priority === "urgent") - (a.priority === "urgent") || (a.status === "done" ? (b.closed_at || "").localeCompare(a.closed_at || "") : (a.opened_at || "").localeCompare(b.opened_at || "")));
+      const edit = canOpen("maintenance") || canOpen("residents");
+      document.getElementById("mntList").innerHTML = !mntReady ? "" : list.length ? `<div class="mnt-list">${list.map(r => {
+        const c = mntCatOf(r.category), s = MNT_ST[r.status] || MNT_ST.new;
+        return `<div class="mnt-card" style="--sc:${s.c}">
+          <div class="mnt-top" onclick="openMnt(${r.id})">
+            <span class="mnt-ic">${c.i}</span>
+            <span class="mnt-t"><b>${gmEsc(c.n)}${r.priority === "urgent" ? ' <span class="badge bad">🔥 عاجل</span>' : ""}</b>
+              <small>🏢 ${gmEsc(r.building || "-")} · 🚪 <b dir="ltr">${gmEsc(r.room || "-")}</b></small></span>
+            <span class="mnt-st" style="color:${s.c}">${s.i} ${s.l}<small>${mntAge(r)}</small></span>
+          </div>
+          ${r.description ? `<p class="mnt-desc" onclick="openMnt(${r.id})">${gmEsc(r.description)}</p>` : ""}
+          <div class="mnt-meta">${r.reported_by ? "👤 " + gmEsc(r.reported_by) : ""}${r.assigned_to ? " · 🛠️ " + gmEsc(r.assigned_to) : ""}${Number(r.cost) ? " · 💰 " + money(Number(r.cost)) : ""}${r.note ? " · 📝 " + gmEsc(r.note) : ""}</div>
+          <div class="mnt-acts no-print">
+            ${r.photo ? `<button onclick="viewMntPhoto('${r.photo}')" style="background:#eef1f5; color:#1e3a5f">📷 الصورة</button>` : ""}
+            ${edit && r.status === "new" ? `<button onclick="setMntStatus(${r.id}, 'progress')" style="background:#ca8a04">▶️ بدأنا</button>` : ""}
+            ${edit && r.status !== "done" ? `<button onclick="setMntStatus(${r.id}, 'done')" style="background:#16a34a">✅ اتصلّح</button>` : ""}
+            ${edit && r.status === "done" ? `<button onclick="setMntStatus(${r.id}, 'progress')" style="background:#eef1f5; color:#1e3a5f">↩️ رجّعه مفتوح</button>` : ""}
+          </div>
+        </div>`; }).join("")}</div>` : `<p style="background:white; border-radius:12px; padding:14px; color:#64748b">${mntFilter === "open" ? "✅ مفيش أعطال مفتوحة" : "مفيش بلاغات هنا"}</p>`;
+    }
+    async function viewMntPhoto(path) {
+      const url = await signedUrl("iqama", path);
+      if (!url) { alert("❌ الصورة مفتحتش"); return; }
+      document.getElementById("iqamaBig").src = url;
+      document.getElementById("iqamaView").hidden = false;
+    }
+    async function setMntStatus(id, status) {
+      const r = mntRows.find(x => x.id === id);
+      if (!r) return;
+      const ch = { status, closed_at: status === "done" ? new Date().toISOString() : null };
+      if (status === "done") {
+        const c = prompt("✅ اتصلّح. التكلفة كام ريال؟ (سيبها فاضية لو مفيش)", r.cost || "");
+        if (c === null) return;
+        if (String(c).trim() !== "") ch.cost = Number(c) || 0;
+      }
+      const { error } = await db.from("maintenance").update(ch).eq("id", id);
+      if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
+      Object.assign(r, ch);
+      renderMnt();
+      if (currentRoom) showRoomInfo(currentRoom);
+    }
+
+    // ----- نافذة البلاغ -----
+    function openMnt(id, building, room) {
+      if (!mntReady) { alert("شغّل كود الصيانة في Supabase الأول."); return; }
+      const r = id ? mntRows.find(x => x.id === id) : null;
+      editingMnt = r ? r.id : null;
+      mntCat = r ? r.category : "تكييف";
+      mntPri = r ? r.priority : "normal";
+      mntStatus = r ? r.status : "new";
+      mntPhoto = null;
+      fillBuildingSelects();
+      const b = r ? r.building : building || currentBuilding || mntBld || buildingList()[0];
+      document.getElementById("mnt_building").value = b;
+      document.getElementById("mnt_room").value = r ? r.room || "" : room || "";
+      document.getElementById("mnt_desc").value = r ? r.description || "" : "";
+      document.getElementById("mnt_by").value = r ? r.reported_by || "" : (me ? me.name : "");
+      document.getElementById("mnt_to").value = r ? r.assigned_to || "" : "";
+      document.getElementById("mnt_cost").value = r && r.cost != null ? r.cost : "";
+      document.getElementById("mnt_note").value = r ? r.note || "" : "";
+      document.getElementById("mnt_photo").value = "";
+      document.getElementById("mntPhotoMsg").textContent = r && r.photo ? "📷 فيه صورة متسجّلة — لو اخترت تانية هتتبدّل" : "";
+      document.getElementById("mntEditOnly").hidden = !r;
+      document.getElementById("mntDel").hidden = !r;
+      document.getElementById("mntTitle").textContent = r ? "✏️ بلاغ عطل" : "➕ بلاغ عطل جديد";
+      document.getElementById("mntMsg").textContent = "";
+      mntRoomList();
+      mntUi();
+      document.getElementById("mntBox").hidden = false;
+    }
+    function mntRoomList() {
+      const b = document.getElementById("mnt_building").value;
+      document.getElementById("mntRooms").innerHTML = buildingRooms(b).map(r => `<option value="${gmEsc(r)}">`).join("");
+    }
+    function mntUi() {
+      document.getElementById("mntCats").innerHTML = MNT_CATS.map(c => `<button type="button" class="chip ${mntCat === c.n ? "on" : ""}" onclick="mntCat = '${c.n}'; mntUi()">${c.i} ${c.n}</button>`).join("");
+      document.getElementById("mntPris").innerHTML = `<button type="button" class="chip ${mntPri === "normal" ? "on" : ""}" onclick="mntPri = 'normal'; mntUi()">عادي</button><button type="button" class="chip ${mntPri === "urgent" ? "on" : ""}" onclick="mntPri = 'urgent'; mntUi()">🔥 عاجل</button>`;
+      document.getElementById("mntSts").innerHTML = Object.entries(MNT_ST).map(([k, s]) => `<button type="button" class="chip ${mntStatus === k ? "on" : ""}" onclick="mntStatus = '${k}'; mntUi()">${s.i} ${s.l}</button>`).join("");
+    }
+    function closeMnt() { document.getElementById("mntBox").hidden = true; }
+    async function saveMnt() {
+      const msg = document.getElementById("mntMsg");
+      const room = document.getElementById("mnt_room").value.trim();
+      if (!room) { msg.textContent = "⚠️ اكتب رقم الغرفة / الوحدة"; return; }
+      const old = editingMnt ? mntRows.find(x => x.id === editingMnt) : null;
+      const row = { building: document.getElementById("mnt_building").value, room, category: mntCat, priority: mntPri,
+        description: document.getElementById("mnt_desc").value.trim() || null, reported_by: document.getElementById("mnt_by").value.trim() || null };
+      if (old) {
+        row.status = mntStatus;
+        row.assigned_to = document.getElementById("mnt_to").value.trim() || null;
+        const c = document.getElementById("mnt_cost").value;
+        row.cost = c === "" ? null : Number(c) || 0;
+        row.note = document.getElementById("mnt_note").value.trim() || null;
+        row.closed_at = mntStatus === "done" ? (old.closed_at || new Date().toISOString()) : null;
+      } else { row.status = "new"; row.opened_at = new Date().toISOString(); }
+      msg.textContent = "⏳ جاري الحفظ...";
+      const file = document.getElementById("mnt_photo").files[0];
+      if (file) {
+        try {
+          const blob = await (await fetch(await resizeImage(file))).blob();
+          const path = "mnt/" + Date.now() + ".jpg";
+          const up = await db.storage.from("iqama").upload(path, blob, { contentType: "image/jpeg" });
+          if (up.error) throw new Error(up.error.message);
+          row.photo = path;
+        } catch (e) { msg.textContent = "❌ الصورة مترفعتش: " + e.message + " — احفظ من غير صورة أو جرّب تاني"; return; }
+      }
+      const res = old ? await db.from("maintenance").update(row).eq("id", old.id).select() : await db.from("maintenance").insert(row).select();
+      if (res.error) { msg.textContent = "❌ محصلش حفظ: " + res.error.message; return; }
+      if (old && row.photo && old.photo) db.storage.from("iqama").remove([old.photo]);
+      const saved = res.data && res.data[0] ? res.data[0] : { ...old, ...row };
+      if (old) Object.assign(old, saved); else mntRows.push(saved);
+      closeMnt();
+      renderMnt();
+      if (currentRoom) showRoomInfo(currentRoom);
+    }
+    async function deleteMnt() {
+      const r = mntRows.find(x => x.id === editingMnt);
+      if (!r || !confirm("تمسح البلاغ ده نهائي؟")) return;
+      const { error } = await db.from("maintenance").delete().eq("id", r.id);
+      if (error) { document.getElementById("mntMsg").textContent = "❌ " + error.message; return; }
+      if (r.photo) db.storage.from("iqama").remove([r.photo]);
+      mntRows = mntRows.filter(x => x.id !== r.id);
+      closeMnt();
+      renderMnt();
+      if (currentRoom) showRoomInfo(currentRoom);
     }
 
     function money(n) {

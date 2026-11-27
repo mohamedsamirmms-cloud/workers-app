@@ -33,10 +33,11 @@
 | `meals` | الوجبات: تابين (`setMealTab`). **🍳 فطار المجموعات** (الأساسي): 3 عروض. **🗂️ المجموعات** (كروت شكل 3 اللي صاحب المشروع اختاره: العدد في دايرة بتكمل على قد المبلغ، والاسم والمبلغ تحتها، ومعاها ملخص فوق. `gmCardsHtml`. وهو العرض الافتراضي): لما تدوس على أي كرت تفتح صفحة المجموعة (`showGroup`) فيها العدد والأسماء والإجمالي، وخط "سلّمة" لأيام الشهر (`gmStepChart`) بيطلع وينزل لما العدد يتغيّر، وعند كل تغيير ▲/▼ بالعدد والمبلغ، ولما تمر عليه بيظهر اليوم. لو فيه أيام مبلغ من غير عدد، بيرسم بالمبلغ. وتضيف أسماء (ساكن بالاسم أو رقم الإقامة، أو أي اسم) أو تشيلها. والعرضين التانيين: المجموعات بعددها وسعر الفرد، تسجيل يوم (− +)، كشف الشهر زي شيت صاحب المشروع، استيراد من شيت BREAKFAST، وExcel وطباعة. **👷 وجبات الأفراد**: عرض **🚪 بالوحدات** (الافتراضي، شكل 1 اللي صاحب المشروع اختاره): زرار "سجّل للكل"، ومربع لكل وحدة عليه كام من كام. دوسة على المربع بتسجّل أو تشيل الوحدة كلها، و"أسماء ▾" بيعدّل واحد واحد. فيه تبديل بين 🍛 الغداء و🍳 الفطار، والبحث بيطلّع الأسماء. الدوال: `renderMealRooms`, `mealSet`, `mealRoomToggle`. وعرض **📋 القايمة** (القديم): يومي (فطار/غداء لكل عامل)، + حساب شهري (كشف الأسماء الشهري مستخبي، وبيظهر بزرار `mealMonthNames`) | `loadGroupMeals`, `renderGmDay`, `renderGmMonth`, `gmSave`, `readGmImport`, `doGmImport`, `exportGroupMeals`, `GM_PRICES` · `showMeals`, `toggleMeal`, `showMealMonth` |
 | `timesheet` | التايم شيت: يومي + **كشف شهري لكل عامل** (تقويم/جدول) + **كشف شهري لكل العمال** (ملخص/بالأيام) | `showTimesheet`, `markPresent`, `saveTime`, `openTsMonth`, `showTsMonth`, `openTsAll`, `loadTsAll`, `exportTsAll` |
 | `moves` | **معدات المشروع** (الاسم القديم في الكود `moves`): مستندات بأرقام وتواريخ ومرفقات، صورة لكل معدة، **رسومات لأنواع المعدات** (25 نوع بتتعرف من الاسم. الجديدة: رولر تاندم، رولر نيوماتيك، رولر سنجل درام هزاز (قبل "فرادة أسفلت" و"رولر")، تلي هاندلر، مان لفت، مضخة خرسانة، فرادة أسفلت، تانكر ديزل (`test`: ديزل/وقود + تانكر/وايت/truck)، تريلا. ولو النوع متسجّل "other" بيتعرف من الاسم تاني)، قراءة PDF/صورة تلقائيًا | `showEquipment`, `openEq`, `readEqFile`, `parseEqText`, `EQ_DOCS`, `EQ_KINDS`, `detectKind` |
+| `maintenance` | **صيانة السكن**: بلاغ عطل (السكن، والغرفة، والنوع من 8 أنواع، وعادي أو 🔥 عاجل، ووصف، وصورة في bucket iqama تحت mnt/) ← 🔴 جديد ← 🟡 جاري ← 🟢 اتصلّح (بالتكلفة). وفيه أرقام الشهر ومتوسط وقت الإصلاح. وصفحة الوحدة في الساكنين بتوري الأعطال المفتوحة، وفيها زرار "بلّغ عن عطل" | `loadMnt`, `renderMnt`, `openMnt`, `saveMnt`, `setMntStatus`, `MNT_CATS` |
 | `cars` | سيارات المشروع: استمارة وتأمين وصيانة وعداد | `showCars`, `openCar`, `exportCars` |
 | `purchases` | **المشتريات والعهدة**: مصروف (out) بقسم (كهرباء، ميكانيكا، طرق، مدني، سيفتي، صيانة سيارات، متنوع، وأي قسم جديد)، واستلام فلوس من المكتب الرئيسي (in)، وكل حركة برقم PV (زي B-95). ملخص الشهر: المستلم، والمصروف، والرصيد (من أول ما بدأوا)، وتابات: الأقسام، والمصروفات، والمستلم، والـ PV. ومعاه Excel | `loadPurchases`, `renderPurchases`, `openPu`, `savePu`, `exportPurchases`, `PU_DEPTS` |
 | `archive` | الأرشيف: الساكنين اللي سابوا السكن (سبب + تاريخ + ملاحظة)، رجوع للسكن | `openArchive`, `restoreWorker`, `showArchive` |
-| `reports` | 6 تقارير بشهر: ملخص شهري، السكن، الحضور، الوجبات، المستندات، حركة الساكنين + طباعة + Excel | `openReport`, `repMonthData`, `exportReport` |
+| `reports` | **📑 التقرير الشامل للإدارة** (`repFullHtml`: السكن، والحضور، والوجبات + فطار المجموعات، والمعدات من الديزل والأوفر تايم والخصم، والمستندات، والمشتريات لو ليه صلاحية، والصيانة. صفحة A4 واحدة للطباعة أو PDF، ومعاه Excel)، + 6 تقارير بشهر: ملخص شهري، السكن، الحضور، الوجبات، المستندات، حركة الساكنين + طباعة + Excel | `openReport`, `repMonthData`, `exportReport` |
 | `users` | المستخدمين والصلاحيات (للمدير بس) | `loadMe`, `applyPermissions`, `showUsers`, `openUser` |
 | `settings` | الإعدادات + نسخة Excel كاملة | `loadSettings`, `applySettings`, `saveSettings`, `fullBackup` |
 
@@ -75,6 +76,7 @@
 | `group_meals` | المفتاح `(group_id, meal_date)`: `people` (ممكن null لو مبلغ بس)، `amount`. بيتمسحوا مع المجموعة (cascade) |
 | `purchases` | `id, entry_date, kind ('out'/'in'), department, amount, description, pv_no, created_by` — القراية والكتابة بصلاحية `purchases` بس |
 | `equipment_log` | `id, equipment_id (cascade), log_date, kind ('diesel'/'overtime'/'deduction'), qty, unit (لتر/ساعة/يوم/ريال), note, created_by` — القراية للكل، والكتابة بصلاحية `moves` |
+| `maintenance` | `id, building, room, category, description, priority (normal/urgent), status (new/progress/done), photo, reported_by, assigned_to, cost, note, opened_at, closed_at` — القراية للكل، والكتابة بـ `maintenance` أو `residents` |
 | `app_users` | `id, email, name, role, pages (text[]), active, last_login, created_at` |
 | `app_settings` | `key='main'`, `value` jsonb: `name, sub, breakfast, lunch, hours, timeIn, warnDays, countries[], sponsors[]` |
 
@@ -84,7 +86,7 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (26 بند) يأكد إن كله متجهز.
+- `check.sql`: جدول ✅/❌ (27 بند) يأكد إن كله متجهز.
 - **الحالة الحالية:** صاحب المشروع شغّل كل الأكواد، وكل البنود لحد 17 ✅. بند 18 (منع التكرار) محتاج: يصلّح الأرقام المتكررة لو فيه، وبعدين يشغّل سطر الـ index.
 
 ## 5. الصلاحيات والأمان

@@ -66,7 +66,7 @@ begin
   for r in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals', 'meal_group_members', 'purchases', 'equipment_log')
+      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals', 'meal_group_members', 'purchases', 'equipment_log', 'maintenance')
   loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
@@ -95,6 +95,7 @@ alter table if exists public.group_meals enable row level security;
 alter table if exists public.meal_group_members enable row level security;
 alter table if exists public.purchases enable row level security;
 alter table if exists public.equipment_log enable row level security;
+alter table if exists public.maintenance enable row level security;
 
 -- ---------- 4) القواعد الجديدة ----------
 -- القراءة: أي مستخدم متسجّل وشغال (لوحة التحكم والتقارير والملف بيقروا من كذا جدول)
@@ -147,6 +148,13 @@ do $$ begin
     create policy rls_read  on public.equipment_log for select to authenticated using (app_active());
     create policy rls_write on public.equipment_log for all    to authenticated using (app_can('moves')) with check (app_can('moves'));
     revoke all on public.equipment_log from anon;
+  end if;
+end $$;
+do $$ begin
+  if to_regclass('public.maintenance') is not null then
+    create policy rls_read  on public.maintenance for select to authenticated using (app_active());
+    create policy rls_write on public.maintenance for all    to authenticated using (app_can('maintenance') or app_can('residents')) with check (app_can('maintenance') or app_can('residents'));
+    revoke all on public.maintenance from anon;
   end if;
 end $$;
 

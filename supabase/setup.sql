@@ -237,3 +237,33 @@ do $$ begin
 end $$;
 revoke all on public.equipment_log from anon;
 
+-- 10) صيانة السكن: بلاغات الأعطال لكل غرفة (جديد ← جاري ← اتصلّح)، والصور في bucket الإقامة تحت mnt/
+create table if not exists public.maintenance (
+  id bigint generated always as identity primary key,
+  building text,
+  room text,
+  category text not null default 'أخرى',
+  description text,
+  priority text not null default 'normal' check (priority in ('normal', 'urgent')),
+  status text not null default 'new' check (status in ('new', 'progress', 'done')),
+  photo text,
+  reported_by text,
+  assigned_to text,
+  cost numeric,
+  note text,
+  opened_at timestamptz default now(),
+  closed_at timestamptz
+);
+alter table public.maintenance enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'maintenance') then
+    if to_regprocedure('public.app_can(text)') is not null then
+      create policy rls_read  on public.maintenance for select to authenticated using (app_active());
+      create policy rls_write on public.maintenance for all    to authenticated using (app_can('maintenance') or app_can('residents')) with check (app_can('maintenance') or app_can('residents'));
+    else
+      create policy "logged in users" on public.maintenance for all to authenticated using (true) with check (true);
+    end if;
+  end if;
+end $$;
+revoke all on public.maintenance from anon;
+

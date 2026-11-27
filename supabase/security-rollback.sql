@@ -10,7 +10,7 @@ begin
   for r in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals', 'meal_group_members', 'purchases', 'equipment_log')
+      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals', 'meal_group_members', 'purchases', 'equipment_log', 'maintenance')
   loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
@@ -47,6 +47,9 @@ do $$ begin
   end if;
   if to_regclass('public.equipment_log') is not null then
     create policy "logged in users" on public.equipment_log for all to authenticated using (true) with check (true);
+  end if;
+  if to_regclass('public.maintenance') is not null then
+    create policy "logged in users" on public.maintenance for all to authenticated using (true) with check (true);
   end if;
 end $$;
 
