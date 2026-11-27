@@ -1526,16 +1526,16 @@
     <div id="tsAbsent"></div>
     <div class="ts-chips" id="tsChips"></div>
     <div id="tsList"></div>
-        <div id="tsMonthBox" hidden onclick="if (event.target === this) closeTsMonth()">
+        <div id="tsMonthBox" hidden onclick="if (event.target === this) navBack()">
       <div id="tsMonthInner">
         <div class="tsm-head">
           <span class="tsm-avatar" id="tsMonthAvatar"></span>
           <div><h3 id="tsMonthTitle"></h3><small id="tsMonthSub"></small></div>
-          <button class="tsm-close" onclick="closeTsMonth()" title="إغلاق">✖</button>
+          <button class="tsm-close pf-close" onclick="navBack()" title="إغلاق">✖</button>
         </div>
         <div class="tsm-body">
           <div class="ts-month-bar">
-            <button onclick="closeTsMonth(); showProfile(tsMonthWorker.id)" style="background:#7c3aed">🪪 الملف الشامل</button>
+            <button onclick="navTo('worker', tsMonthWorker.id)" style="background:#7c3aed">🪪 الملف الشامل</button>
             <button class="nav-btn" onclick="shiftTsMonth(-1)" title="الشهر اللي قبله">→</button>
             <input type="month" id="tsMonth" onchange="showTsMonth()">
             <button class="nav-btn" onclick="shiftTsMonth(1)" title="الشهر اللي بعده">←</button>
@@ -1741,7 +1741,7 @@
     <button type="button" onclick="takePhoto()">📸 التقط الصورة</button>
     <button type="button" onclick="closeCamera()" style="background:#c0392b">إلغاء</button>
   </div>
-   <div id="profileBox" hidden onclick="if (event.target === this) closeProfile()">
+   <div id="profileBox" hidden onclick="if (event.target === this) navBack()">
     <div id="profile"></div>
   </div>
   <div id="iqamaView" hidden onclick="this.hidden = true"><img id="iqamaBig"></div>
@@ -3200,6 +3200,7 @@
     async function showProfile(workerId) {
       const w = findWorker(workerId);
       if (!w) return;
+      pfMark("worker", workerId);
       profileId = workerId;
 
       let imgUrl = "";
@@ -3217,14 +3218,14 @@
       // المعدات والسيارات اللي بيسوقها
       const myEq = equipment.filter(e => (e.driver && e.driver.trim().toLowerCase() === w.name.trim().toLowerCase()) || (w.idNo && e.iqama_no === w.idNo));
       const myCars = cars.filter(c => c.driver && c.driver.trim().toLowerCase() === w.name.trim().toLowerCase());
-      const vehicles = myEq.map(e => `<a onclick="showEqProfile(${e.id})">🏗️ <b>${e.name}</b> ${eqState(e) === "bad" ? '<span class="badge bad">فيها مستند منتهي</span>' : eqState(e) === "warn" ? '<span class="badge warn">مستند قرب يخلص</span>' : ""}</a>`)
-        .concat(myCars.map(c => `<a onclick="showCarProfile(${c.id})">🚗 <b>${c.car_type || "سيارة"}</b> <span class="plate">${c.plate}</span></a>`));
+      const vehicles = myEq.map(e => `<a onclick="navTo('eq', ${e.id})">🏗️ <b>${e.name}</b> ${eqState(e) === "bad" ? '<span class="badge bad">فيها مستند منتهي</span>' : eqState(e) === "warn" ? '<span class="badge warn">مستند قرب يخلص</span>' : ""}</a>`)
+        .concat(myCars.map(c => `<a onclick="navTo('car', ${c.id})">🚗 <b>${c.car_type || "سيارة"}</b> <span class="plate">${c.plate}</span></a>`));
 
       document.getElementById("profile").innerHTML = `
         <div class="tsm-head">
           <span class="tsm-avatar">${initials}</span>
           <div><h3>🪪 الملف الشامل — ${w.name}</h3><small>${[w.country, w.job].filter(Boolean).join(" · ") || ""}</small></div>
-          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+          <button class="tsm-close no-print pf-close" onclick="navBack()" title="إغلاق">✖</button>
         </div>
         <div class="pf-body">
           ${w.archived ? `<div class="pf-archived"><span>🗂️ <b>مؤرشف</b> — ${w.archive_reason || "-"} · خرج يوم ${w.archived_at || "-"}${w.archive_note ? " · " + w.archive_note : ""}</span>
@@ -3253,13 +3254,13 @@
                 ${info("السكن", w.building)}
                 ${info("الغرفة / السرير", (w.room || "-") + (w.bed_no ? " · سرير " + w.bed_no : ""))}
                 ${info("تاريخ القدوم", w.arrival)}
-                ${(() => { const m = gmMembers.find(x => x.worker_id === w.id), g = m && mealGroups.find(x => x.id === m.group_id); return g ? info("مجموعة الفطار", `<a class="pf-driver" onclick="showGroup(${g.id})">👥 ${gmEsc(g.name)}</a>`) : ""; })()}
+                ${(() => { const m = gmMembers.find(x => x.worker_id === w.id), g = m && mealGroups.find(x => x.id === m.group_id); return g ? info("مجموعة الفطار", `<a class="pf-driver" onclick="navTo('group', ${g.id})">👥 ${gmEsc(g.name)}</a>`) : ""; })()}
                 ${info("البطانية", w.blanket === "نعم" ? '<span class="badge ok">استلم</span>' : '<span class="badge bad">لم يستلم</span>')}
               </div>
             </div>
           </div>
           <div class="pf-card">
-            <h4>⏱️ الحضور — ${monthName} <button class="no-print" onclick="closeProfile(); openTsMonth(${w.id}, '${ym}')">📅 الكشف الشهري</button></h4>
+            <h4>⏱️ الحضور — ${monthName} <button class="no-print" onclick="navTo('ts', ${w.id}, '${ym}')">📅 الكشف الشهري</button></h4>
             <div class="pf-stats" id="pfAtt"><p>⏳ جاري التحميل...</p></div>
           </div>
           <div class="pf-card">
@@ -3273,7 +3274,7 @@
           <div class="pf-actions no-print">
             <button onclick="closeProfile(); openEdit(${w.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>
             <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة الملف</button>
-            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+            <button class="pf-close pf-close-txt" onclick="navBack()" style="background:#64748b">إغلاق</button>
           </div>
         </div>
       `;
@@ -3363,7 +3364,7 @@
     function driverHtml(name, iqamaNo) {
       if (!name) return "";
       const w = driverWorker(name, iqamaNo);
-      return w ? `<a class="pf-driver" onclick="showProfile(${w.id})" title="ملف السائق">👤 ${name}</a>` : "👤 " + name;
+      return w ? `<a class="pf-driver" onclick="navTo('worker', ${w.id})" title="ملف السائق">👤 ${name}</a>` : "👤 " + name;
     }
     const daysLeftText = date => {
       if (!date) return "مفيش تاريخ";
@@ -3484,6 +3485,7 @@
     async function showEqProfile(id, ym) {
       const e = equipment.find(x => x.id === id);
       if (!e) return;
+      pfMark("eq", id, ym);
       let url = e.photo ? eqPhotoUrls[e.photo] : "";
       if (e.photo && !url) {
         const { data } = await db.storage.from("equipment").createSignedUrl(e.photo, 3600);
@@ -3500,7 +3502,7 @@
         <div class="tsm-head">
           <span class="tsm-avatar pf-avatar-svg">${kindSvg(k)}</span>
           <div><h3>🏗️ الملف الشامل — ${e.name}</h3><small>${k.label}${e.driver ? " · السائق " + e.driver : ""}</small></div>
-          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+          <button class="tsm-close no-print pf-close" onclick="navBack()" title="إغلاق">✖</button>
         </div>
         <div class="pf-body">
           <div class="pf-top">
@@ -3543,7 +3545,7 @@
           <div class="pf-actions no-print">
             ${edit ? `<button onclick="closeProfile(); showPage('moves'); openEq(${e.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>` : ""}
             <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة الملف</button>
-            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+            <button class="pf-close pf-close-txt" onclick="navBack()" style="background:#64748b">إغلاق</button>
           </div>
         </div>`);
       loadEqLog(e.id, ym || elMonth || todayIso().slice(0, 7));
@@ -3552,6 +3554,7 @@
     async function showCarProfile(id) {
       const c = cars.find(x => x.id === id);
       if (!c) return;
+      pfMark("car", id);
       const sts = [expiryState(c.reg_expiry), expiryState(c.ins_expiry)];
       const st = sts.includes("bad") ? "bad" : sts.includes("warn") ? "warn" : "ok";
       const since = c.last_service ? Math.floor((new Date() - new Date(c.last_service)) / 86400000) : null;
@@ -3561,7 +3564,7 @@
         <div class="tsm-head">
           <span class="tsm-avatar" style="font-size:26px">🚗</span>
           <div><h3>🚗 الملف الشامل — ${c.car_type || "سيارة"}</h3><small>لوحة ${c.plate}${c.model ? " · موديل " + c.model : ""}</small></div>
-          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+          <button class="tsm-close no-print pf-close" onclick="navBack()" title="إغلاق">✖</button>
         </div>
         <div class="pf-body">
           <div class="pf-card">
@@ -3584,7 +3587,7 @@
           <div class="pf-actions no-print">
             ${edit ? `<button onclick="closeProfile(); showPage('cars'); openCar(${c.id})" style="background:#e08a1e">✏️ تعديل البيانات</button>` : ""}
             <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة الملف</button>
-            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+            <button class="pf-close pf-close-txt" onclick="navBack()" style="background:#64748b">إغلاق</button>
           </div>
         </div>`);
     }
@@ -3593,6 +3596,49 @@
       profileId = null;
       gmDetailId = null;
       document.getElementById("profileBox").hidden = true;
+      navStack = []; pfCurrent = null;
+    }
+
+    // ===== رجوع خطوة خطوة (مجموعة ← ملف ← كشف شهري) =====
+    // كل فتحة من جوه نافذة بتتحفظ، والقفل بيرجع للي قبلها بدل ما يقفل كله
+    let navStack = [], pfCurrent = null, navOpening = false;
+    const pfVisible = () => !document.getElementById("profileBox").hidden || !document.getElementById("tsMonthBox").hidden;
+    function pfMark(kind, id, extra) {
+      if (!navOpening && !pfVisible()) navStack = [];
+      pfCurrent = { kind, id, extra };
+      setTimeout(updateBackBtns, 0);
+    }
+    function navOpen(t) {
+      navOpening = true;
+      try {
+        if (t.kind === "ts") { document.getElementById("profileBox").hidden = true; openTsMonth(t.id, t.extra); }
+        else {
+          document.getElementById("tsMonthBox").hidden = true;
+          if (t.kind === "worker") showProfile(t.id);
+          else if (t.kind === "eq") showEqProfile(t.id, t.extra);
+          else if (t.kind === "car") showCarProfile(t.id);
+          else if (t.kind === "group") showGroup(t.id);
+        }
+      } finally { navOpening = false; }
+    }
+    function navTo(kind, id, extra) {
+      if (pfCurrent && pfVisible()) navStack.push(pfCurrent);
+      navOpen({ kind, id, extra });
+    }
+    function navBack() {
+      const prev = navStack.pop();
+      if (prev) { navOpen(prev); return; }
+      document.getElementById("tsMonthBox").hidden = true;
+      closeProfile();
+    }
+    // زرار القفل بيبقى "رجوع" لو فيه حاجة قبله (ويتحدّث كل ما محتوى النافذة يتغيّر)
+    new MutationObserver(() => updateBackBtns()).observe(document.getElementById("profile"), { childList: true });
+    function updateBackBtns() {
+      const back = navStack.length > 0;
+      document.querySelectorAll(".pf-close").forEach(b => {
+        if (b.classList.contains("pf-close-txt")) b.textContent = back ? "↩️ رجوع" : "إغلاق";
+        else { b.textContent = back ? "→" : "✖"; b.title = back ? "رجوع" : "إغلاق"; }
+      });
     }
      
     
@@ -4548,6 +4594,7 @@
       if (box.parentElement !== document.body) document.body.appendChild(box);
       tsMonthWorker = findWorker(workerId);
       if (!tsMonthWorker) return;
+      pfMark("ts", workerId, ym);
       document.getElementById("tsMonth").value = ym || document.getElementById("tsDate").value.slice(0, 7);
       document.getElementById("tsMonthBox").hidden = false;
       showTsMonth();
@@ -4649,7 +4696,9 @@
 
     // دوسة على يوم في التقويم: تفتح التايم شيت على اليوم ده
     function openTsDay(date) {
-      closeTsMonth();
+      document.getElementById("tsMonthBox").hidden = true;
+      navStack = []; pfCurrent = null;
+      showPage("timesheet");
       document.getElementById("tsDate").value = date;
       document.getElementById("tsSearch").value = tsMonthWorker.name;
       tsFilter = "all";
@@ -5886,6 +5935,7 @@
     function showGroup(id) {
       const g = mealGroups.find(x => x.id === id);
       if (!g) return;
+      pfMark("group", id);
       gmDetailId = id;
       const ym = document.getElementById("gmMonth").value, days = monthDays(ym), today = todayIso();
       const recs = days.map(d => [d, gmRows[gmKey(id, d)]]).filter(x => x[1]);
@@ -5900,7 +5950,7 @@
         <div class="tsm-head">
           <span class="tsm-avatar" style="font-size:24px">👥</span>
           <div><h3>${gmEsc(g.name)}</h3><small>${num(Number(g.price))} ريال للفرد${g.active === false ? " · ⏸️ متوقفة" : ""}</small></div>
-          <button class="tsm-close no-print" onclick="closeProfile()" title="إغلاق">✖</button>
+          <button class="tsm-close no-print pf-close" onclick="navBack()" title="إغلاق">✖</button>
         </div>
         <div class="pf-body">
           <div class="pf-stats">
@@ -5915,8 +5965,8 @@
             ${!gmMembersReady ? '<p class="warn-note" style="margin:0">⚠️ عشان تحط أسماء جوه المجموعات، شغّل سطر الـ SQL بتاع أسماء المجموعات في Supabase.</p>' :
               mem.length ? `<div class="gd-members">${mem.map((m, i) => `<div class="gd-mem">
                 <span class="n">${i + 1}</span>
-                <span class="t"><b>${gmEsc(m.w ? m.w.name : m.name)}</b><small>${m.w ? [m.w.idNo ? "🪪 " + m.w.idNo : "", m.w.room ? "🚪 " + m.w.room + " · " + (m.w.building || "") : "", m.w.archived ? "🗂️ في الأرشيف" : ""].filter(Boolean).join(" · ") : "مش ساكن"}</small></span>
-                ${m.w ? `<button class="no-print" onclick="showProfile(${m.w.id})" title="ملفه">🪪</button>` : ""}
+                <span class="t"><b ${m.w ? `class="gm-link" onclick="navTo('worker', ${m.w.id})" title="افتح ملفه"` : ""}>${gmEsc(m.w ? m.w.name : m.name)}</b><small>${m.w ? [m.w.idNo ? "🪪 " + m.w.idNo : "", m.w.room ? "🚪 " + m.w.room + " · " + (m.w.building || "") : "", m.w.archived ? "🗂️ في الأرشيف" : ""].filter(Boolean).join(" · ") : "مش ساكن"}</small></span>
+                ${m.w ? `<button class="no-print" onclick="navTo('worker', ${m.w.id})" title="ملفه">🪪</button>` : ""}
                 ${edit ? `<button class="x no-print" onclick="gmRemoveMember(${m.id})" title="شيله من المجموعة">✖</button>` : ""}
               </div>`).join("")}</div>` : '<p style="color:#64748b; margin:0">مفيش أسماء متسجّلة في المجموعة دي لسه.</p>'}
             ${edit && gmMembersReady ? `<div class="gd-add no-print">
@@ -5931,7 +5981,7 @@
           <div class="pf-actions no-print">
             ${edit ? `<button onclick="closeProfile(); openGroups()" style="background:#e08a1e">✏️ تعديل الاسم والعدد والسعر</button>` : ""}
             <button onclick="printWith('print-profile')" style="background:#1e3a5f">🖨️ طباعة</button>
-            <button onclick="closeProfile()" style="background:#64748b">إغلاق</button>
+            <button class="pf-close pf-close-txt" onclick="navBack()" style="background:#64748b">إغلاق</button>
           </div>
         </div>`);
       if (recs.length) gmStepChart(document.getElementById("gdChart"), document.getElementById("gdNote"), g, days, recs);
