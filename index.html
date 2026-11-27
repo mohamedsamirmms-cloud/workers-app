@@ -2300,13 +2300,21 @@
       hasIqamaExp = !data.length || "iqama_expiry" in data[0];
       workers = all.filter(w => !w.archived);
       archivedWorkers = all.filter(w => w.archived);
-      showArchive();
+      renderIfOpen("archive", showArchive);
       showWorkers();
       showStats();
       showRooms(currentRoom);
-      showTimesheet();
-      showMeals();
+      renderIfOpen("timesheet", showTimesheet);
+      renderIfOpen("meals", showMeals);
       renderDashDocs();
+    }
+
+    // السرعة: الصفحة المستخبية مش بتترسم مع كل حفظة، بتترسم لما تفتحها
+    const pageDirty = {};
+    function renderIfOpen(page, fn) {
+      const el = document.getElementById("page-" + page);
+      if (el && el.hidden) pageDirty[page] = (pageDirty[page] || new Set()).add(fn);
+      else fn();
     }
 
     // المساكن: الثابتة + أي سكن متسجّل على ساكن
@@ -2566,9 +2574,9 @@
       document.getElementById("sponsorList").innerHTML = settings.sponsors.map(x => `<option value="${x}">`).join("");
 
       // نعيد رسم الصفحات اللي فيها أسعار وساعات وتواريخ
-      showMeals();
-      showMealMonth();
-      showTimesheet();
+      renderIfOpen("meals", showMeals);
+      renderIfOpen("meals", showMealMonth);
+      renderIfOpen("timesheet", showTimesheet);
       showCars();
       showEquipment();
       if (!document.getElementById("page-dashboard").hidden) refreshDashboard();
@@ -4418,6 +4426,7 @@
       if (!canOpen(name)) name = myPages()[0];
       document.querySelectorAll(".page").forEach(p => p.hidden = p.id !== "page-" + name);
       document.querySelectorAll(".nav[data-page]").forEach(b => b.classList.toggle("active", b.dataset.page === name));
+      if (pageDirty[name]) { const fns = pageDirty[name]; delete pageDirty[name]; fns.forEach(f => f()); }
       if (name === "dashboard") refreshDashboard();
       if (name === "settings") fillSettingsForm();
       if (name === "meals") setMealTab(currentMealTab());
