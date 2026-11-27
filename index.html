@@ -192,6 +192,11 @@
     .imp-table th, .imp-table td { padding: 4px 6px; white-space: nowrap; }
     .res-head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
     @media (max-width: 700px) { #impBox .row2 { grid-template-columns: 1fr; } .res-head-btns { width: 100%; } .res-head-btns button { flex: 1; } }
+          /* سرعة: الكروت اللي تحت الشاشة ماتترسمش لحد ما توصلها */
+    @media (max-width: 700px) {
+      #tsList tr.ts-row, #workersList tr.res-row, #mealList tr.meal-row, #eqList tr.eq-row, #carsList tr.car-row { content-visibility: auto; contain-intrinsic-size: auto 170px; }
+    }
+    .gm-gcard, .dept-card, .mr-tile, .room, .pu-row { content-visibility: auto; contain-intrinsic-size: auto 120px; }
           /* حساب المعدة الشهري */
     .el-head { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
     .el-head button { padding: 5px 12px; background: #eef1f5; color: #1e3a5f; }
@@ -1195,9 +1200,9 @@
       border-radius: 8px;
     }
   </style>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -2180,7 +2185,8 @@
     // ساكنين إقامتهم منتهية أو قربت تخلص
     const iqamaAlert = w => ["bad", "warn"].includes(expiryState(w.iqama_expiry));
     async function loadWorkers() {
-      const { data, error } = await db.from("workers").select("*").order("building").order("room").order("bed_no");
+      // fetchAll: أكتر من 1000 ساكن (Supabase بيرجّع 1000 بس في المرة)
+      const { data, error } = await fetchAll(() => db.from("workers").select("*").order("building").order("room").order("bed_no").order("id"));
       if (error) {
         alert("❌ مشكلة في تحميل العمال: " + error.message);
         return;
@@ -2193,10 +2199,9 @@
       showArchive();
       showWorkers();
       showStats();
-      showCharts();
       showRooms(currentRoom);
-            showTimesheet();
-      if (typeof showMeals === "function") showMeals();
+      showTimesheet();
+      showMeals();
       renderDashDocs();
     }
 
@@ -3969,16 +3974,28 @@
     ];
 
     // ===== الأسرّة الفاضية =====
+    // ===== سرعة: حسابات بتتعمل مرة واحدة في كل رسمة للشاشة =====
+    // الكاش بيتمسح لوحده أول ما الرسمة الحالية تخلص، فالأرقام دايمًا جديدة
+    let _memo = null;
+    function renderMemo(key, fn) {
+      if (!_memo) { _memo = {}; queueMicrotask(() => { _memo = null; }); }
+      if (!(key in _memo)) _memo[key] = fn();
+      return _memo[key];
+    }
+
     // عدد الأسرّة متسجّل في بيانات الوحدة (rooms.beds). الساكن بياخد سرير برقمه (bed_no)
     const roomKey = (b, r) => b + "|" + String(r || "").trim().toUpperCase();
-    const roomInfoOf = (building, room) => roomsInfo[building + "|" + room] || Object.values(roomsInfo).find(x => roomKey(x.building, x.room) === roomKey(building, room));
+    // فهارس: الساكنين حسب الوحدة، وبيانات الوحدات حسب المفتاح
+    const occIndex = () => renderMemo("occ", () => { const m = new Map(); workers.forEach(w => { const k = roomKey(w.building, w.room); (m.get(k) || m.set(k, []).get(k)).push(w); }); return m; });
+    const roomIndex = () => renderMemo("rooms", () => { const m = new Map(); Object.values(roomsInfo).forEach(x => { const k = roomKey(x.building, x.room); if (!m.has(k)) m.set(k, x); }); return m; });
+    const roomInfoOf = (building, room) => roomsInfo[building + "|" + room] || roomIndex().get(roomKey(building, room));
     function roomBeds(building, room) {
       const info = roomInfoOf(building, room);
       return info && Number(info.beds) > 0 ? Number(info.beds) : null;
     }
     // حالة الوحدة: الساكنين، الأسرّة، الفاضي، أرقام الأسرّة الفاضية، المكرر
     function bedState(building, room) {
-      const ppl = workers.filter(w => roomKey(w.building, w.room) === roomKey(building, room));
+      const ppl = occIndex().get(roomKey(building, room)) || [];
       const beds = roomBeds(building, room);
       const nums = ppl.map(w => Number(w.bed_no)).filter(n => n > 0);
       const dups = [...new Set(nums.filter((n, i) => nums.indexOf(n) !== i))];
@@ -3988,12 +4005,16 @@
     }
     // كل الوحدات (اللي فيها ناس أو ليها بيانات) في سكن
     function buildingRooms(building) {
+      return renderMemo("br|" + building, () => buildingRoomsRaw(building));
+    }
+    function buildingRoomsRaw(building) {
       const names = new Set();
       workers.filter(w => w.building === building && w.room).forEach(w => names.add(String(w.room).trim().toUpperCase()));
       Object.values(roomsInfo).filter(x => x.building === building && x.room).forEach(x => names.add(String(x.room).trim().toUpperCase()));
       return [...names].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
     }
-    function freeBedsAll() {
+    function freeBedsAll() { return renderMemo("freeAll", freeBedsAllRaw); }
+    function freeBedsAllRaw() {
       const out = [];
       buildingList().forEach(b => buildingRooms(b).forEach(r => {
         const st = bedState(b, r);
@@ -5237,7 +5258,7 @@
       return k ? k.key : "other";
     }
     // "معدة تانية" المتسجّلة قبل كده بتتعرف من الاسم تاني (عشان الأنواع الجديدة)
-    const eqKind = e => EQ_KINDS.find(k => k.key === (e.kind && e.kind !== "other" ? e.kind : detectKind(e.name))) || EQ_KINDS[EQ_KINDS.length - 1];
+    const eqKind = e => { const m = renderMemo("eqKind", () => new Map()); if (!m.has(e)) m.set(e, EQ_KINDS.find(k => k.key === (e.kind && e.kind !== "other" ? e.kind : detectKind(e.name))) || EQ_KINDS[EQ_KINDS.length - 1]); return m.get(e); };
     const kindSvg = (k, cls) => `<svg class="${cls || ""}" viewBox="0 0 120 80" role="img" aria-label="${k.label}">${k.svg}</svg>`;
 
     let eqKindFilter = "all";
@@ -5378,8 +5399,12 @@
 
     // أسوأ حالة لمستندات المعدة اللي ليها تاريخ انتهاء
     function eqState(e) {
+      const m = renderMemo("eqState", () => new Map());
+      if (m.has(e)) return m.get(e);
       const st = EQ_DOCS.filter(d => !d.num).map(d => expiryState(e[eqField(d)]));
-      return st.includes("bad") ? "bad" : st.includes("warn") ? "warn" : "ok";
+      const r = st.includes("bad") ? "bad" : st.includes("warn") ? "warn" : "ok";
+      m.set(e, r);
+      return r;
     }
 
     function showEquipment() {
@@ -7390,7 +7415,6 @@
     function refreshDashboard() {
       document.getElementById("dashToday").textContent = new Date().toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
       showStats();
-      showCharts();
       loadDashMeals();
       loadDashAtt();
       renderDashDocs();
