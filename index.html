@@ -218,6 +218,21 @@
     .el-day-r { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; padding: 4px 8px; border-radius: 8px; cursor: pointer; }
     .el-day-r:hover { background: #fff7ed; }
     .el-day-r small { flex-basis: 100%; color: #64748b; }
+    .el-day-r { border-bottom: 1px dashed #e2e8f0; padding: 7px 8px; }
+    .ec-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .ec-hd { font-size: 11px; color: #64748b; text-align: center; padding: 2px 0; }
+    .ec-c { min-height: 60px; border-radius: 9px; background: #f8fafc; border: 1px solid #eef1f5; padding: 3px 2px; font-size: 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
+    .ec-c b { font-size: 13px; color: #1e3a5f; }
+    .ec-c.has { background: #fff7ed; border-color: #fed7aa; }
+    .ec-c.fri { background: #f1f5f9; }
+    .ec-c.fri b { color: #94a3b8; }
+    .ec-c.today b { background: #1e3a5f; color: white; border-radius: 6px; padding: 0 4px; align-self: center; }
+    .ec-c.on { outline: 3px solid #e08a1e; outline-offset: -1px; }
+    .ec-c:hover { border-color: #e08a1e; }
+    .ec-c .d, .ec-leg .d { color: #c0392b; } .ec-c .o, .ec-leg .o { color: #16a34a; } .ec-c .x, .ec-leg .x { color: #b45309; }
+    .ec-c span { white-space: nowrap; font-weight: bold; }
+    .ec-leg { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; font-size: 12px; margin-top: 8px; }
+    @media (max-width: 420px) { .ec-c { min-height: 52px; font-size: 9px; } .ec-c b { font-size: 12px; } }
     #elBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 70; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #elBox[hidden] { display: none; }
     #elForm { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 440px; display: grid; gap: 10px; box-sizing: border-box; }
@@ -6938,7 +6953,7 @@
       deduction: { icon: "➖", label: "خصم", units: ["ساعة", "يوم", "ريال"], color: "#b45309" }
     };
     let elReady = true, elEqId = null, elMonth = "", elRows = [], elEditing = null, elKind = "diesel";
-    let eqMonth = "", eqMonthRows = [], eqMonthView = "eq";
+    let eqMonth = "", eqMonthRows = [], eqMonthView = "eq";   // eq: بالمعدة — day: تقويم باليوم
     const elNum = v => Number(v) || 0;
     // المجموع لكل نوع ووحدة: { diesel: {لتر: 120}, deduction: {يوم: 2, ريال: 300} }
     function elTotals(rows) {
@@ -7085,7 +7100,7 @@
         </div>
         <div class="ts-chips" style="margin-bottom:8px">
           <button class="chip ${eqMonthView === "eq" ? "on" : ""}" onclick="eqMonthView = 'eq'; renderEqMonth()">🏗️ بالمعدة</button>
-          <button class="chip ${eqMonthView === "day" ? "on" : ""}" onclick="eqMonthView = 'day'; renderEqMonth()">📅 باليوم</button>
+          <button class="chip ${eqMonthView === "day" ? "on" : ""}" onclick="eqMonthView = 'day'; renderEqMonth()">📅 تقويم باليوم</button>
         </div>
         <div class="pf-stats" style="margin-bottom:10px">
           ${Object.entries(EL_KINDS).map(([k, d]) => `<div class="stat" style="background:white"><b style="color:${d.color}; font-size:20px">${elFmt(all, k)}</b>${d.icon} إجمالي ${d.label}</div>`).join("")}
@@ -7098,19 +7113,35 @@
           </div>`; }).join("") || '<p style="color:#64748b">مفيش معدات</p>'}</div>
           <p class="gm-hint">💡 دوس على أي معدة تفتح ملفها وتسجّل الديزل والأوفر تايم والخصم.</p></div>`}`;
     }
-    // عرض باليوم: كل يوم وحركاته
+    // عرض باليوم: تقويم الشهر، وكل يوم فيه الديزل والأوفر تايم، ودوسة على اليوم تفتح تفاصيله تحت
+    let eqDaySel = "";
     function eqDaysHtml(list) {
       const ids = new Set(list.map(e => e.id));
       const rows = eqMonthRows.filter(r => ids.has(r.equipment_id));
-      const days = [...new Set(rows.map(r => r.log_date))].sort().reverse();
-      if (!days.length) return '<div class="gm-card"><p style="color:#64748b; margin:0">مفيش حاجة متسجّلة الشهر ده.</p></div>';
-      return `<div class="gm-card">${days.map(d => {
-        const rs = rows.filter(r => r.log_date === d), t = elTotals(rs);
-        return `<div class="el-day"><div class="el-day-h"><b>📅 ${new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" })}</b>
+      const days = monthDays(eqMonth);
+      const withData = [...new Set(rows.map(r => r.log_date))].sort();
+      if (!eqDaySel || eqDaySel.slice(0, 7) !== eqMonth) eqDaySel = withData.length ? withData[withData.length - 1] : (todayIso().slice(0, 7) === eqMonth ? todayIso() : days[0]);
+      const sumK = (rs, k) => rs.filter(r => r.kind === k).reduce((t, r) => t + elNum(r.qty), 0);
+      const names = ["سبت", "حد", "اتنين", "تلات", "أربع", "خميس", "جمعة"];
+      const lead = (new Date(days[0] + "T12:00:00").getDay() + 1) % 7;   // السبت أول عمود
+      let cells = names.map(n => `<div class="ec-hd">${n}</div>`).join("") + "<div></div>".repeat(lead);
+      days.forEach(d => {
+        const rs = rows.filter(r => r.log_date === d), dz = sumK(rs, "diesel"), ot = sumK(rs, "overtime"), dd = rs.some(r => r.kind === "deduction");
+        cells += `<div class="ec-c ${rs.length ? "has" : ""} ${isFriday(d) ? "fri" : ""} ${eqDaySel === d ? "on" : ""} ${d === todayIso() ? "today" : ""}" onclick="eqDaySel = '${d}'; renderEqMonth()">
+          <b>${Number(d.slice(8))}</b>${dz ? `<span class="d">⛽${num(dz)}</span>` : ""}${ot ? `<span class="o">⏱️${num(ot)}</span>` : ""}${dd ? '<span class="x">➖</span>' : ""}</div>`;
+      });
+      const rs = rows.filter(r => r.log_date === eqDaySel).sort((a, b) => a.kind.localeCompare(b.kind));
+      const t = elTotals(rs);
+      return `<div class="gm-card"><div class="ec-cal">${cells}</div>
+        <div class="ec-leg"><span class="d">⛽ ديزل (لتر)</span><span class="o">⏱️ أوفر تايم (ساعة)</span><span class="x">➖ خصم</span></div></div>
+        <div class="gm-card" style="margin-top:10px">
+          <div class="el-day-h"><b>📅 ${new Date(eqDaySel + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" })}</b>
             <span>${Object.entries(EL_KINDS).map(([k, x]) => t[k] ? `<span style="color:${x.color}">${x.icon} ${elFmt(t, k)}</span>` : "").join(" ")}</span></div>
-          ${rs.map(r => { const e = equipment.find(x => x.id === r.equipment_id) || {}; const x = EL_KINDS[r.kind] || EL_KINDS.diesel;
-            return `<div class="el-day-r" onclick="showEqProfile(${r.equipment_id}, '${eqMonth}')"><span>${gmEsc(e.name || "-")}</span><span style="color:${x.color}">${x.icon} ${num(elNum(r.qty))} ${gmEsc(r.unit || x.units[0])}</span>${r.note ? `<small>${gmEsc(r.note)}</small>` : ""}</div>`; }).join("")}
-        </div>`; }).join("")}</div>`;
+          ${rs.length ? rs.map(r => { const e = equipment.find(x => x.id === r.equipment_id) || {}; const x = EL_KINDS[r.kind] || EL_KINDS.diesel;
+            return `<div class="el-day-r" onclick="showEqProfile(${r.equipment_id}, '${eqMonth}')"><span>${x.icon} ${gmEsc(e.name || "-")}</span><b style="color:${x.color}">${num(elNum(r.qty))} ${gmEsc(r.unit || x.units[0])}</b>${r.note ? `<small>${gmEsc(r.note)}</small>` : ""}</div>`; }).join("")
+            : '<p style="color:#64748b; margin:4px 0 0; font-size:13px">مفيش حركة اليوم ده.</p>'}
+          <p class="gm-hint">💡 دوس على أي يوم في التقويم تشوف تفاصيله، ودوس على المعدة تفتح ملفها.</p>
+        </div>`;
     }
     function exportEqMonth() {
       const rows = equipment.map(e => {
