@@ -444,6 +444,19 @@
     #tsDayName { font-weight: bold; color: #1e3a5f; min-width: 60px; text-align: center; }
     #tsStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
     #tsStats .stat { border-top: 4px solid #1e3a5f; }
+    .abs-box { background: white; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; border-right: 5px solid #c0392b; }
+    .abs-box.ok { border-right-color: #16a34a; }
+    .abs-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .abs-head h4 { margin: 0; color: #c0392b; font-size: 16px; flex: 1; min-width: 200px; }
+    .abs-box.ok .abs-head h4 { color: #16a34a; }
+    .abs-head h4 small { color: #64748b; font-weight: normal; font-size: 13px; }
+    .abs-head button { font-size: 13px; padding: 6px 11px; background: #eef1f5; color: #1e3a5f; }
+    .abs-grp { margin-top: 8px; }
+    .abs-grp > b { display: block; font-size: 13px; color: #1e3a5f; margin-bottom: 4px; }
+    .abs-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .abs-chip { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 16px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+    .abs-chip small { color: #64748b; }
+    .abs-chip:hover { background: #fee2e2; }
     #tsStats .stat.green { border-color: #16a34a; } #tsStats .stat.green b { color: #16a34a; }
     #tsStats .stat.red { border-color: #c0392b; } #tsStats .stat.red b { color: #c0392b; }
     #tsStats .stat.orange { border-color: #e08a1e; } #tsStats .stat.orange b { color: #e08a1e; }
@@ -1510,6 +1523,7 @@
       <button onclick="openTsAll()" style="background:#7c3aed">📅 الكشف الشهري لكل العمال</button>
     </div>
     <div id="tsStats"></div>
+    <div id="tsAbsent"></div>
     <div class="ts-chips" id="tsChips"></div>
     <div id="tsList"></div>
         <div id="tsMonthBox" hidden onclick="if (event.target === this) closeTsMonth()">
@@ -4330,6 +4344,55 @@
       loadTimesheet();
     }
 
+    // ===== الغياب =====
+    // الغايب = كان في السكن اليوم ده (onDuty) ومالوش تسجيل حضور
+    function absentOn(date, recMap) {
+      return workers.filter(w => onDuty(w, date) && !(recMap[w.id] && recMap[w.id].time_in));
+    }
+    let absOpen = true;
+    function absentText(date, list) {
+      const total = workers.filter(w => onDuty(w, date)).length;
+      const day = new Date(date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      let t = `🚫 غياب يوم ${day}: ${list.length} من ${total}\n`;
+      buildingList().concat([""]).forEach(b => {
+        const g = list.filter(w => (w.building || "") === b);
+        if (!g.length) return;
+        t += `\n🏢 ${b || "بدون سكن"} (${g.length}):\n` + g.map((w, i) => `${i + 1}- ${w.name}${w.room ? " (" + w.room + ")" : ""}`).join("\n") + "\n";
+      });
+      return t;
+    }
+    function renderAbsentBox(date, list) {
+      const box = document.getElementById("tsAbsent");
+      if (!box) return;
+      if (!date || !workers.length) { box.innerHTML = ""; return; }
+      const total = workers.filter(w => onDuty(w, date)).length;
+      const isToday = date === todayIso();
+      const day = new Date(date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" });
+      if (!list.length) { box.innerHTML = `<div class="abs-box ok"><div class="abs-head"><h4>✅ مفيش غياب ${isToday ? "النهارده" : "يوم " + day} <small>· الكل حاضر (${total})</small></h4></div></div>`; return; }
+      const pct = total ? Math.round(list.length / total * 100) : 0;
+      const groups = buildingList().concat([""]).map(b => [b, list.filter(w => (w.building || "") === b)]).filter(([, g]) => g.length);
+      box.innerHTML = `<div class="abs-box">
+        <div class="abs-head">
+          <h4>🚫 ${isToday ? "الغايبين النهارده" : "الغايبين يوم " + day}: ${list.length} <small>من ${total} (${pct}%)${isToday ? " · اللي لسه ماسجّلش حضور" : ""}${isFriday(date) ? " · 🕌 النهارده جمعة" : ""}</small></h4>
+          <button onclick="copyAbsent()">📋 نسخ</button>
+          ${navigator.share ? '<button onclick="shareAbsent()">📤 مشاركة</button>' : ""}
+          <button onclick="absOpen = !absOpen; showTimesheet()">${absOpen ? "🙈 إخفاء الأسماء" : "👁️ الأسماء"}</button>
+        </div>
+        ${absOpen ? groups.map(([b, g]) => `<div class="abs-grp"><b>🏢 ${gmEsc(b || "بدون سكن")} (${g.length})</b><div class="abs-chips">${g.slice().sort((x, y) => String(x.room || "").localeCompare(String(y.room || ""), "en", { numeric: true })).map(w => `<span class="abs-chip" onclick="openTsMonth(${w.id})" title="الكشف الشهري">${gmEsc(w.name)}${w.room ? ` <small>· ${gmEsc(w.room)}</small>` : ""}</span>`).join("")}</div></div>`).join("") : ""}
+      </div>`;
+    }
+    function copyAbsent() {
+      const date = document.getElementById("tsDate").value;
+      const t = absentText(date, absentOn(date, tsRecords));
+      const done = () => alert("✅ اتنسخت أسماء الغايبين. الصقها في واتساب أو أي مكان.");
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(() => prompt("انسخ من هنا:", t));
+      else prompt("انسخ من هنا:", t);
+    }
+    function shareAbsent() {
+      const date = document.getElementById("tsDate").value;
+      navigator.share({ text: absentText(date, absentOn(date, tsRecords)) }).catch(() => {});
+    }
+
     function showTimesheet() {
       const date = document.getElementById("tsDate").value;
       document.getElementById("tsDayName").textContent = date
@@ -4338,7 +4401,8 @@
       const q = document.getElementById("tsSearch").value.trim().toLowerCase();
       const searched = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
       const isIn = w => !!(tsRecords[w.id] && tsRecords[w.id].time_in);
-      tsResult = searched.filter(w => tsFilter === "all" || (tsFilter === "present" ? isIn(w) : !isIn(w)));
+      const duty = w => !date || onDuty(w, date);
+      tsResult = searched.filter(w => tsFilter === "all" || (tsFilter === "present" ? isIn(w) : duty(w) && !isIn(w)));
       if (tsPage * PAGE_SIZE >= tsResult.length) tsPage = 0;
 
       // الأرقام فوق
@@ -4346,10 +4410,11 @@
       const present = recs.length;
       const totalHours = Math.round(recs.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
       const totalOt = Math.round(recs.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
-      const notYet = Math.max(0, workers.length - present);
+      const absent = date ? absentOn(date, tsRecords) : [];
+      const isToday = date === todayIso();
       document.getElementById("tsStats").innerHTML = `
         <div class="stat green"><b>${present}</b>✅ حاضر</div>
-        <div class="stat red"><b>${notYet}</b>⏳ لم يسجّل</div>
+        <div class="stat red click" onclick="setTsFilter('absent')"><b>${absent.length}</b>🚫 ${isToday ? "غايب لحد دلوقتي" : "غايب"}</div>
         <div class="stat"><b>${totalHours}</b>🕒 إجمالي الساعات</div>
         <div class="stat orange"><b>${totalOt}</b>⚡ أوفر تايم</div>`;
 
@@ -4358,7 +4423,8 @@
       document.getElementById("tsChips").innerHTML =
         chip("all", "الكل (" + searched.length + ")") +
         chip("present", "✅ الحاضرين (" + presentShown + ")") +
-        chip("absent", "⏳ لم يسجّل (" + (searched.length - presentShown) + ")");
+        chip("absent", "🚫 الغايبين (" + searched.filter(w => duty(w) && !isIn(w)).length + ")");
+      renderAbsentBox(date, absent);
 
       if (tsResult.length === 0) {
         document.getElementById("tsList").innerHTML = "<div><p>لا يوجد عمال هنا</p></div>";
@@ -7263,27 +7329,34 @@
       renderDashDocs();
     }
 
-    function dashOpenTs() {
+    function dashOpenTs(filter) {
       showPage("timesheet");
+      tsFilter = filter || "all";
       shiftTsDate(0);
     }
 
     // حضور النهارده (من التايم شيت)
     async function loadDashAtt() {
       const today = new Date().toLocaleDateString("en-CA");
-      const { data, error } = await fetchAll(() => db.from("timesheet").select("time_in,hours,overtime").eq("work_date", today).order("worker_id"));
+      const { data, error } = await fetchAll(() => db.from("timesheet").select("worker_id,time_in,hours,overtime").eq("work_date", today).order("worker_id"));
       if (error) { document.getElementById("dashAtt").innerHTML = '<div class="stat">❌ مشكلة في تحميل الحضور</div>'; return; }
       const present = data.filter(r => r.time_in).length;
       const hours = Math.round(data.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
       const ot = Math.round(data.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
-      const pct = workers.length ? Math.round(present / workers.length * 100) : 0;
-      document.getElementById("tileAttNum").textContent = present + " / " + workers.length;
-      document.getElementById("tileAttSub").textContent = pct + "% من الساكنين";
+      const recMap = {};
+      data.forEach(r => recMap[r.worker_id] = r);
+      const absent = absentOn(today, recMap);
+      const duty = workers.filter(w => onDuty(w, today)).length;
+      const pct = duty ? Math.round(present / duty * 100) : 0;
+      document.getElementById("tileAttNum").textContent = present + " / " + duty;
+      document.getElementById("tileAttSub").textContent = pct + "% · 🚫 " + absent.length + " غايب";
       document.getElementById("dashAtt").innerHTML = `
         <div class="stat click" onclick="dashOpenTs()"><b style="color:#16a34a">${present}</b>✅ حاضر</div>
-        <div class="stat click" onclick="dashOpenTs()"><b style="color:#c0392b">${Math.max(0, workers.length - present)}</b>⏳ لم يسجّل</div>
+        <div class="stat click" onclick="dashOpenTs('absent')"><b style="color:#c0392b">${absent.length}</b>🚫 غايب</div>
         <div class="stat click" onclick="dashOpenTs()"><b>${hours}</b>🕒 إجمالي الساعات</div>
-        <div class="stat click" onclick="dashOpenTs()"><b style="color:#e08a1e">${ot}</b>⚡ أوفر تايم</div>`;
+        <div class="stat click" onclick="dashOpenTs()"><b style="color:#e08a1e">${ot}</b>⚡ أوفر تايم</div>` +
+        (absent.length ? `<div class="abs-box" style="grid-column:1/-1; margin:0; text-align:right"><b style="color:#c0392b; font-size:14px">🚫 الغايبين لحد دلوقتي (${absent.length})</b>
+          <div class="abs-chips" style="margin-top:6px">${absent.slice(0, 40).map(w => `<span class="abs-chip" onclick="openTsMonth(${w.id})">${gmEsc(w.name)}${w.room ? ` <small>· ${gmEsc(w.room)}</small>` : ""}</span>`).join("")}${absent.length > 40 ? `<span class="abs-chip" onclick="dashOpenTs('absent')">وكمان ${absent.length - 40} ←</span>` : ""}</div></div>` : "");
     }
 
     // المعدات والسيارات + تنبيهات المستندات
