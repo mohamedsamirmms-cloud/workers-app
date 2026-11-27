@@ -212,6 +212,12 @@
     .em-ic svg { width: 100%; height: 100%; }
     .em-vals { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-weight: bold; font-size: 13px; white-space: nowrap; }
     #eqMonthView[hidden] { display: none !important; }
+    .el-day { border-bottom: 1px solid #eef1f5; padding: 8px 0; }
+    .el-day-h { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 14px; color: #1e3a5f; margin-bottom: 4px; }
+    .el-day-h span { font-weight: bold; font-size: 13px; }
+    .el-day-r { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; padding: 4px 8px; border-radius: 8px; cursor: pointer; }
+    .el-day-r:hover { background: #fff7ed; }
+    .el-day-r small { flex-basis: 100%; color: #64748b; }
     #elBox { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 70; display: flex; align-items: center; justify-content: center; padding: 15px; }
     #elBox[hidden] { display: none; }
     #elForm { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 440px; display: grid; gap: 10px; box-sizing: border-box; }
@@ -1868,7 +1874,8 @@
         <button type="button" class="chip" data-k="overtime" onclick="elKind = 'overtime'; elKindUi()">⏱️ أوفر تايم</button>
         <button type="button" class="chip" data-k="deduction" onclick="elKind = 'deduction'; elKindUi()">➖ خصم</button>
       </div>
-      <label>التاريخ <input type="date" id="el_date" required></label>
+      <label>التاريخ <span id="elDayName" style="color:#1e3a5f; font-weight:bold"></span> <input type="date" id="el_date" required oninput="elDayLabel()"></label>
+      <p id="elEditNote" class="warn-note" style="margin:0" hidden>✏️ انت بتعدّل حركة موجودة. لو عايز تضيف يوم جديد، اقفل ودوس ➕.</p>
       <div class="row2">
         <label>الكمية <input type="number" id="el_qty" min="0" step="0.01" inputmode="decimal" required></label>
         <label>الوحدة <select id="el_unit"></select></label>
@@ -1876,6 +1883,7 @@
       <label>ملاحظة <input id="el_note"></label>
       <div>
         <button type="submit">💾 حفظ</button>
+        <button type="button" id="elNext" onclick="saveEl(true)" style="background:#16a34a">💾 حفظ وسجّل اليوم اللي بعده</button>
         <button type="button" onclick="closeEl()" style="background:#64748b">إلغاء</button>
         <button type="button" id="elDel" onclick="deleteEl()" style="background:#c0392b" hidden>🗑️ مسح</button>
       </div>
@@ -6930,7 +6938,7 @@
       deduction: { icon: "➖", label: "خصم", units: ["ساعة", "يوم", "ريال"], color: "#b45309" }
     };
     let elReady = true, elEqId = null, elMonth = "", elRows = [], elEditing = null, elKind = "diesel";
-    let eqMonth = "", eqMonthRows = [];
+    let eqMonth = "", eqMonthRows = [], eqMonthView = "eq";
     const elNum = v => Number(v) || 0;
     // المجموع لكل نوع ووحدة: { diesel: {لتر: 120}, deduction: {يوم: 2, ريال: 300} }
     function elTotals(rows) {
@@ -6975,7 +6983,7 @@
         ${edit ? `<div class="el-add no-print">${Object.entries(EL_KINDS).map(([k, d]) => `<button onclick="openEl('${k}')" style="background:${d.color}">➕ ${d.icon} ${d.label}</button>`).join("")}</div>` : ""}
         ${rows.length ? `<div class="pu-list" style="margin-top:8px">${rows.map(r => { const d = EL_KINDS[r.kind] || EL_KINDS.diesel; return `<div class="pu-row el-${r.kind}" ${edit ? `onclick="openEl('${r.kind}', ${r.id})"` : ""}>
             <span class="pd">${Number(r.log_date.slice(8))}<small>${new Date(r.log_date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "short" })}</small></span>
-            <span class="pt"><b>${d.icon} ${d.label}</b><br><small>${gmEsc(r.note || "")}</small></span>
+            <span class="pt"><b>${d.icon} ${d.label}</b> <small style="color:#64748b">${Number(r.log_date.slice(8))}/${Number(r.log_date.slice(5, 7))}</small><br><small>${gmEsc(r.note || "")}</small></span>
             <span class="pa" style="color:${d.color}">${num(elNum(r.qty))} ${gmEsc(r.unit || d.units[0])}</span></div>`; }).join("")}</div>`
           : '<p style="color:#64748b; margin:8px 0 0">مفيش حاجة متسجّلة الشهر ده.</p>'}`;
     }
@@ -6990,7 +6998,10 @@
       document.getElementById("el_qty").value = r ? elNum(r.qty) : "";
       document.getElementById("el_note").value = r ? r.note || "" : "";
       document.getElementById("elDel").hidden = !r;
+      document.getElementById("elNext").hidden = !!r;
+      document.getElementById("elEditNote").hidden = !r;
       document.getElementById("elMsg").textContent = "";
+      elDayLabel();
       elKindUi(r ? r.unit : null);
       document.getElementById("elBox").hidden = false;
       setTimeout(() => document.getElementById("el_qty").focus(), 50);
@@ -6998,7 +7009,7 @@
     function elKindUi(unit) {
       const d = EL_KINDS[elKind];
       const e = equipment.find(x => x.id === elEqId);
-      document.getElementById("elTitle").textContent = (elEditing ? "✏️ " : "➕ ") + d.icon + " " + d.label + (e ? " — " + e.name : "");
+      document.getElementById("elTitle").textContent = (elEditing ? "✏️ تعديل " : "➕ ") + d.icon + " " + d.label + (e ? " — " + e.name : "");
       document.querySelectorAll("#elKinds .chip").forEach(b => b.classList.toggle("on", b.dataset.k === elKind));
       const us = document.getElementById("el_unit");
       us.innerHTML = d.units.map(u => `<option>${u}</option>`).join("");
@@ -7007,7 +7018,11 @@
       document.getElementById("el_note").placeholder = elKind === "diesel" ? "مثلًا: من محطة الشمال" : elKind === "overtime" ? "مثلًا: شغل بالليل" : "مثلًا: عطلانة يومين";
     }
     function closeEl() { document.getElementById("elBox").hidden = true; }
-    async function saveEl() {
+    function elDayLabel() {
+      const d = document.getElementById("el_date").value;
+      document.getElementById("elDayName").textContent = d ? "(" + new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" }) + ")" : "";
+    }
+    async function saveEl(next) {
       const msg = document.getElementById("elMsg");
       const qty = Number(document.getElementById("el_qty").value), date = document.getElementById("el_date").value;
       if (!date) { msg.textContent = "⚠️ اختار التاريخ"; return; }
@@ -7017,9 +7032,19 @@
       msg.textContent = "⏳ جاري الحفظ...";
       const res = elEditing ? await db.from("equipment_log").update(row).eq("id", elEditing) : await db.from("equipment_log").insert(row);
       if (res.error) { msg.textContent = "❌ محصلش حفظ: " + res.error.message; return; }
-      closeEl();
       loadEqLog(elEqId, date.slice(0, 7));
       if (eqTab === "month") loadEqMonth();
+      if (next && !elEditing) {
+        // نفس النوع والكمية، واليوم اللي بعده
+        const d = new Date(date + "T12:00:00"); d.setDate(d.getDate() + 1);
+        document.getElementById("el_date").value = d.toLocaleDateString("en-CA");
+        elDayLabel();
+        msg.textContent = "✅ اتسجّل يوم " + Number(date.slice(8)) + ". اكتب اليوم اللي بعده.";
+        document.getElementById("el_qty").focus();
+        document.getElementById("el_qty").select();
+        return;
+      }
+      closeEl();
     }
     async function deleteEl() {
       if (!elEditing || !confirm("تمسح الحركة دي؟")) return;
@@ -7058,16 +7083,34 @@
           <div class="ts-day"><button onclick="shiftEqMonth(-1)">→</button><b style="min-width:110px; text-align:center; color:#1e3a5f">${monthLabel(eqMonth)}</b><button onclick="shiftEqMonth(1)">←</button></div>
           <div class="gm-actions"><button onclick="exportEqMonth()" style="background:#16a34a">📊 Excel</button></div>
         </div>
+        <div class="ts-chips" style="margin-bottom:8px">
+          <button class="chip ${eqMonthView === "eq" ? "on" : ""}" onclick="eqMonthView = 'eq'; renderEqMonth()">🏗️ بالمعدة</button>
+          <button class="chip ${eqMonthView === "day" ? "on" : ""}" onclick="eqMonthView = 'day'; renderEqMonth()">📅 باليوم</button>
+        </div>
         <div class="pf-stats" style="margin-bottom:10px">
           ${Object.entries(EL_KINDS).map(([k, d]) => `<div class="stat" style="background:white"><b style="color:${d.color}; font-size:20px">${elFmt(all, k)}</b>${d.icon} إجمالي ${d.label}</div>`).join("")}
           <div class="stat" style="background:white"><b>${withData.length}</b>🏗️ معدة ليها حركة<small>من ${list.length}</small></div>
         </div>
-        <div class="gm-card"><div class="pu-list">${sorted.map(e => { const t = elTotals(rowsOf(e.id)), has = rowsOf(e.id).length; return `<div class="pu-row pv em-row" style="${has ? "" : "opacity:.6"}" onclick="showEqProfile(${e.id}, '${eqMonth}')">
+        ${eqMonthView === "day" ? eqDaysHtml(list) : `<div class="gm-card"><div class="pu-list">${sorted.map(e => { const t = elTotals(rowsOf(e.id)), has = rowsOf(e.id).length; return `<div class="pu-row pv em-row" style="${has ? "" : "opacity:.6"}" onclick="showEqProfile(${e.id}, '${eqMonth}')">
             <span class="pd em-ic">${kindSvg(eqKind(e))}</span>
-            <span class="pt"><b>${gmEsc(e.name)}</b><br><small>${e.department ? deptOf(e.department).icon + " " + gmEsc(e.department) + " · " : ""}${e.driver ? "👤 " + gmEsc(e.driver) : ""}</small></span>
+            <span class="pt"><b>${gmEsc(e.name)}</b><br><small>${has ? "📅 " + new Set(rowsOf(e.id).map(r => r.log_date)).size + " يوم · " : ""}${e.department ? deptOf(e.department).icon + " " + gmEsc(e.department) + " · " : ""}${e.driver ? "👤 " + gmEsc(e.driver) : ""}</small></span>
             <span class="em-vals">${has ? Object.entries(EL_KINDS).map(([k, d]) => t[k] ? `<span style="color:${d.color}">${d.icon} ${elFmt(t, k)}</span>` : "").join("") : '<small style="color:#94a3b8">مفيش حركة</small>'}</span>
           </div>`; }).join("") || '<p style="color:#64748b">مفيش معدات</p>'}</div>
-          <p class="gm-hint">💡 دوس على أي معدة تفتح ملفها وتسجّل الديزل والأوفر تايم والخصم.</p></div>`;
+          <p class="gm-hint">💡 دوس على أي معدة تفتح ملفها وتسجّل الديزل والأوفر تايم والخصم.</p></div>`}`;
+    }
+    // عرض باليوم: كل يوم وحركاته
+    function eqDaysHtml(list) {
+      const ids = new Set(list.map(e => e.id));
+      const rows = eqMonthRows.filter(r => ids.has(r.equipment_id));
+      const days = [...new Set(rows.map(r => r.log_date))].sort().reverse();
+      if (!days.length) return '<div class="gm-card"><p style="color:#64748b; margin:0">مفيش حاجة متسجّلة الشهر ده.</p></div>';
+      return `<div class="gm-card">${days.map(d => {
+        const rs = rows.filter(r => r.log_date === d), t = elTotals(rs);
+        return `<div class="el-day"><div class="el-day-h"><b>📅 ${new Date(d + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" })}</b>
+            <span>${Object.entries(EL_KINDS).map(([k, x]) => t[k] ? `<span style="color:${x.color}">${x.icon} ${elFmt(t, k)}</span>` : "").join(" ")}</span></div>
+          ${rs.map(r => { const e = equipment.find(x => x.id === r.equipment_id) || {}; const x = EL_KINDS[r.kind] || EL_KINDS.diesel;
+            return `<div class="el-day-r" onclick="showEqProfile(${r.equipment_id}, '${eqMonth}')"><span>${gmEsc(e.name || "-")}</span><span style="color:${x.color}">${x.icon} ${num(elNum(r.qty))} ${gmEsc(r.unit || x.units[0])}</span>${r.note ? `<small>${gmEsc(r.note)}</small>` : ""}</div>`; }).join("")}
+        </div>`; }).join("")}</div>`;
     }
     function exportEqMonth() {
       const rows = equipment.map(e => {
