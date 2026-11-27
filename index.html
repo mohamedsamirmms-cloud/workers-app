@@ -3203,11 +3203,19 @@
       pfMark("worker", workerId);
       profileId = workerId;
 
+      // النافذة تفتح على طول، وصورة الإقامة تيجي بعدها (من غير ما الشاشة تعلّق لو النت بطيء)
+      const pb = document.getElementById("profileBox");
+      if (pb.hidden) {
+        document.getElementById("profile").innerHTML = `<div class="tsm-head"><span class="tsm-avatar">⏳</span><div><h3>🪪 الملف الشامل — ${gmEsc(w.name)}</h3><small>جاري التحميل...</small></div>
+          <button class="tsm-close no-print pf-close" onclick="navBack()" title="إغلاق">✖</button></div><div class="pf-body"><p style="color:#64748b">⏳ جاري التحميل...</p></div>`;
+        pb.hidden = false;
+      }
       let imgUrl = "";
       if (w.iqamaImg) {
-        const { data } = await db.storage.from("iqama").createSignedUrl(w.iqamaImg, 3600);
-        if (data) imgUrl = data.signedUrl;
+        try { imgUrl = await Promise.race([signedUrl("iqama", w.iqamaImg), new Promise(r => setTimeout(() => r(""), 5000))]) || ""; }
+        catch (e) { imgUrl = ""; }
       }
+      if (profileId !== workerId) return;   // اتفتح ملف تاني واحنا مستنيين
 
       const ym = w.archived && w.archived_at ? w.archived_at.slice(0, 7) : new Date().toLocaleDateString("en-CA").slice(0, 7);
       const [y, m] = ym.split("-").map(Number);
