@@ -1506,7 +1506,7 @@
           <div class="kind-pick" id="eqKindPick"></div>
         </div>
         <label>القسم <select id="eq_dept"></select></label>
-        <label>السائق <input id="eq_driver" list="eqDriverList" placeholder="اسم السائق"></label>
+        <label>السائق <input id="eq_driver" list="eqDriverList" placeholder="اسم السائق" oninput="eqLicCheck()"></label>
         <datalist id="eqDriverList"></datalist>
         <p style="margin:5px 0 0; color:#475569">📄 المستندات: تاريخ الانتهاء + صورة أو PDF</p>
         <div id="eqDocs"></div>
@@ -5634,6 +5634,44 @@
       return r;
     }
 
+    // منع تكرار رقم الرخصة في المعدات
+    const normLic = v => normIqama(v).toUpperCase();
+    const sameName = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+    // معدة تانية عليها نفس رقم الرخصة: same = نفس السواق (مسموح بتنبيه)
+    function licOwner(no, exceptId, driver) {
+      const n = normLic(no);
+      if (!n) return null;
+      const list = equipment.filter(e => e.id !== exceptId && normLic(e.license_no) === n);
+      if (!list.length) return null;
+      const other = list.find(e => !(driver && sameName(e.driver, driver)));
+      return other ? { e: other, same: false } : { e: list[0], same: true };
+    }
+    function eqLicCheck() {
+      const input = document.getElementById("eq_license_no"), msg = document.getElementById("eqLicMsg");
+      if (!input || !msg) return null;
+      const o = licOwner(input.value, editingEqId, document.getElementById("eq_driver").value);
+      input.classList.toggle("dup", !!o && !o.same);
+      msg.className = "dup-msg " + (o ? (o.same ? "warn" : "bad") : "");
+      msg.innerHTML = !o ? "" : o.same
+        ? `ℹ️ نفس الرخصة متسجّلة على <b>${gmEsc(o.e.name)}</b> لنفس السواق — مسموح (سواق واحد على معدتين).`
+        : `⛔ رقم الرخصة ده متسجّل قبل كده على <b>${gmEsc(o.e.name)}</b>${o.e.driver ? " (السواق: " + gmEsc(o.e.driver) + ")" : ""}. <a onclick="closeEq(); showEqProfile(${o.e.id})">افتح المعدة دي</a>`;
+      return o;
+    }
+    // المعدات اللي رقم رخصتها متكرر مع معدة سواقها مختلف
+    function eqLicDupIds() {
+      return renderMemo("eqLicDup", () => {
+        const by = {};
+        equipment.forEach(e => { const n = normLic(e.license_no); if (n) (by[n] = by[n] || []).push(e); });
+        const ids = new Set();
+        Object.values(by).forEach(l => {
+          if (l.length < 2) return;
+          if (l.every(e => (e.driver || "").trim() && sameName(e.driver, l[0].driver))) return;
+          l.forEach(e => ids.add(e.id));
+        });
+        return ids;
+      });
+    }
+
     function showEquipment() {
       renderEqTabs();
       const list = document.getElementById("eqList");
@@ -5646,6 +5684,10 @@
         card("bad", "red", cnt("bad"), "⛔ فيها مستند منتهي") +
         card("warn", "amber", cnt("warn"), "⏳ مستند قرب يخلص") +
         card("ok", "green", cnt("ok"), "✅ ورقها سليم");
+      const dupIds = eqLicDupIds();
+      const dupN = base.filter(e => dupIds.has(e.id)).length;
+      if (eqFilter === "dup" && !dupN) eqFilter = "all";
+      if (dupN) document.getElementById("eqStats").innerHTML += card("dup", "red", dupN, "🪪 رخصة متكررة");
 
       // شرايح الأنواع (اللي موجود منها بس)
       const kindCount = {};
@@ -5660,7 +5702,7 @@
       const q = document.getElementById("eqSearch").value.trim().toLowerCase();
       const result = base
         .filter(e => eqKindFilter === "all" || eqKind(e).key === eqKindFilter)
-        .filter(e => eqFilter === "all" || eqState(e) === eqFilter)
+        .filter(e => eqFilter === "all" || (eqFilter === "dup" ? dupIds.has(e.id) : eqState(e) === eqFilter))
         .filter(e => !q || [e.name, e.driver, e.iqama_no, e.license_no, e.operator_no].join(" ").toLowerCase().includes(q));
       document.getElementById("eqCount").textContent = "العدد: " + result.length;
       renderDashDocs();
@@ -5680,7 +5722,7 @@
             <span><b onclick="showEqProfile(${e.id})" title="الملف الشامل">${e.name}</b><small><span class="eq-kind-tag">${eqKind(e).label}</span>${e.driver ? "👤 " + e.driver : "بدون سائق"}</small></span>
           </div></td>`;
         EQ_DOCS.forEach(d => html += `<td data-label="${d.label}">${d.num
-          ? (e[eqField(d)] ? `<span class="eq-num">${e[eqField(d)]}</span>` : "-")
+          ? (e[eqField(d)] ? `<span class="eq-num">${e[eqField(d)]}</span>${d.key === "license" && dupIds.has(e.id) ? ' <span class="badge bad" title="رقم الرخصة ده متسجّل على معدة تانية">⛔ متكرر</span>' : ""}` : "-")
           : expiryBadge(e[eqField(d)])} ${fileLink(e[d.key + "_file"])}</td>`);
         const others = e.other_files || [];
         html += `<td data-label="مرفقات أخرى">${others.length ? others.map(f => `<a class="file-link" title="${f.name}" onclick="openFile('${f.path}')">📎</a>`).join("") : "-"}</td>
@@ -5716,7 +5758,7 @@
         <div class="eq-doc">
           <b>${d.label}</b>
           ${d.num
-            ? `<input id="eq_${eqField(d)}" value="${e[eqField(d)] || ""}" placeholder="رقم ${d.label}">`
+            ? `<input id="eq_${eqField(d)}" value="${e[eqField(d)] || ""}" placeholder="رقم ${d.label}"${d.key === "license" ? ' oninput="eqLicCheck()"' : ""}>${d.key === "license" ? '<span id="eqLicMsg" class="dup-msg"></span>' : ""}`
             : `<input type="date" id="eq_${eqField(d)}" value="${e[eqField(d)] || ""}">`}
           <input type="file" id="eq_${d.key}_file" accept="image/*,application/pdf">
           ${e[d.key + "_file"] ? `<small>فيه مرفق محفوظ ${fileLink(e[d.key + "_file"])} — لو اخترت ملف جديد هيتبدّل</small>` : ""}
@@ -5725,6 +5767,7 @@
       document.querySelectorAll("#eqForm .filled").forEach(el => el.classList.remove("filled"));
       document.getElementById("eqMsg").textContent = "";
       showEqOther();
+      eqLicCheck();
       document.getElementById("eqBox").hidden = false;
     }
 
@@ -5904,6 +5947,7 @@
         // نحفظ الملف نفسه في المرفقات
         if (!eqPendingFiles.some(f => f.name === file.name && f.size === file.size)) eqPendingFiles.push(file);
         showEqOther();
+        eqLicCheck();
 
         const missing = EQ_DOCS.filter(d => !found[eqField(d)]).map(d => d.label);
         say((filled.length
@@ -5934,6 +5978,12 @@
       event.preventDefault();
       const msg = document.getElementById("eqMsg");
       const btn = document.getElementById("eqSave");
+      const lic = eqLicCheck();
+      if (lic && !lic.same) {
+        msg.textContent = "⛔ مينفعش تحفظ: رقم الرخصة متسجّل على " + lic.e.name + ". صحّح الرقم أو امسحه.";
+        document.getElementById("eq_license_no").focus();
+        return;
+      }
       msg.textContent = "⏳ جاري الحفظ ورفع الملفات...";
       btn.disabled = true;
 
