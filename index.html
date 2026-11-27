@@ -3626,6 +3626,11 @@
       navOpen({ kind, id, extra });
     }
     function navBack() {
+      // من الكشف الشهري: لو جاي من مجموعة، نرجع للمجموعة على طول (عشان تكمّل على باقي الأفراد)
+      if (pfCurrent && pfCurrent.kind === "ts") {
+        const gi = navStack.map(x => x.kind).lastIndexOf("group");
+        if (gi >= 0) navStack = navStack.slice(0, gi + 1);
+      }
       const prev = navStack.pop();
       if (prev) { navOpen(prev); return; }
       document.getElementById("tsMonthBox").hidden = true;
@@ -5966,7 +5971,7 @@
               mem.length ? `<div class="gd-members">${mem.map((m, i) => `<div class="gd-mem">
                 <span class="n">${i + 1}</span>
                 <span class="t"><b ${m.w ? `class="gm-link" onclick="navTo('worker', ${m.w.id})" title="افتح ملفه"` : ""}>${gmEsc(m.w ? m.w.name : m.name)}</b><small>${m.w ? [m.w.idNo ? "🪪 " + m.w.idNo : "", m.w.room ? "🚪 " + m.w.room + " · " + (m.w.building || "") : "", m.w.archived ? "🗂️ في الأرشيف" : ""].filter(Boolean).join(" · ") : "مش ساكن"}</small></span>
-                ${m.w ? `<button class="no-print" onclick="navTo('worker', ${m.w.id})" title="ملفه">🪪</button>` : ""}
+                ${m.w ? `<button class="no-print" onclick="navTo('ts', ${m.w.id}, '${ym}')" title="الكشف الشهري">📅</button><button class="no-print" onclick="navTo('worker', ${m.w.id})" title="ملفه">🪪</button>` : ""}
                 ${edit ? `<button class="x no-print" onclick="gmRemoveMember(${m.id})" title="شيله من المجموعة">✖</button>` : ""}
               </div>`).join("")}</div>` : '<p style="color:#64748b; margin:0">مفيش أسماء متسجّلة في المجموعة دي لسه.</p>'}
             ${edit && gmMembersReady ? `<div class="gd-add no-print">
