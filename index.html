@@ -1134,6 +1134,12 @@
           /* كروت الأرقام */
     #stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
     .stat { background: white; padding: 15px; border-radius: 12px; text-align: center; }
+    /* وقت التحميل: بدل الأصفار (كانت بتخوّف إن البيانات راحت) */
+    #loadingBar { display: none; }
+    .loading-data #loadingBar { display: block; position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 3000; background: #1e3a5f; color: white; padding: 10px 18px; border-radius: 999px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.25); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
+    .loading-data .stat > b, .loading-data .dash-tile .num { font-size: 0 !important; }
+    .loading-data .stat > b::after, .loading-data .dash-tile .num::after { content: "⏳"; font-size: 22px; }
+    .loading-data #buildingTabs, .loading-data #resultCount { visibility: hidden; }
     .stat b { display: block; font-size: 28px; color: #1e3a5f; }
 
     /* الجدول */
@@ -1280,7 +1286,8 @@
   </div>
 
   <!-- البرنامج نفسه (مخفي لحد ما تسجل دخول) -->
-  <div id="app" hidden>
+  <div id="app" hidden class="loading-data">
+  <div id="loadingBar">⏳ جاري تحميل البيانات... ثواني وتظهر</div>
       <nav id="sidebar">
     <div class="brand">
       <span class="brand-logo">🏢</span>
@@ -2292,6 +2299,7 @@
       // fetchAll: أكتر من 1000 ساكن (Supabase بيرجّع 1000 بس في المرة)
       const { data, error } = await fetchAll(() => db.from("workers").select("*").order("building").order("room").order("bed_no").order("id"));
       if (error) {
+        document.getElementById("app").classList.remove("loading-data");
         alert("❌ مشكلة في تحميل العمال: " + error.message);
         return;
       }
@@ -2300,6 +2308,7 @@
       hasIqamaExp = !data.length || "iqama_expiry" in data[0];
       workers = all.filter(w => !w.archived);
       archivedWorkers = all.filter(w => w.archived);
+      document.getElementById("app").classList.remove("loading-data");
       renderIfOpen("archive", showArchive);
       showWorkers();
       showStats();
@@ -2452,7 +2461,8 @@
         (filterName ? ` <span class="badge warn">${filterName} <a href="#" onclick="specialFilter = ''; showWorkers(); return false;">✖</a></span>` : "");
 
       if (result.length === 0) {
-        list.innerHTML = "<div><p>لا يوجد نتائج</p></div>";
+        list.innerHTML = document.getElementById("app").classList.contains("loading-data")
+          ? "<div><p>⏳ جاري تحميل الساكنين...</p></div>" : "<div><p>لا يوجد نتائج</p></div>";
         return;
       }
 
