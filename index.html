@@ -1136,7 +1136,20 @@
     .stat { background: white; padding: 15px; border-radius: 12px; text-align: center; }
     /* وقت التحميل: بدل الأصفار (كانت بتخوّف إن البيانات راحت) */
     #loadingBar { display: none; }
-    .loading-data #loadingBar { display: block; position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 3000; background: #1e3a5f; color: white; padding: 10px 18px; border-radius: 999px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.25); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
+    #loadingBar button { margin-inline-start: 8px; background: #e08a1e; color: white; border: 0; border-radius: 999px; padding: 4px 10px; font-weight: bold; font-size: 13px; cursor: pointer; }
+    #netDiag { position: fixed; inset: 0; z-index: 4000; background: rgba(15,23,42,.55); display: flex; align-items: flex-start; justify-content: center; padding: 16px; box-sizing: border-box; overflow-y: auto; }
+    #netDiag[hidden] { display: none; }
+    #netDiag .nd-card { background: white; border-radius: 14px; padding: 14px; width: 100%; max-width: 620px; box-sizing: border-box; }
+    #netDiag .nd-hint { color: #64748b; font-size: 13px; margin: 4px 0 8px; }
+    #netDiag .nd-lines { background: #f1f5f9; border-radius: 10px; padding: 8px 10px; font-size: 13px; line-height: 1.8; margin-bottom: 8px; }
+    #netDiag .nd-table { max-height: 55vh; overflow: auto; }
+    #netDiag table { width: 100%; border-collapse: collapse; font-size: 13px; display: table; }
+    #netDiag tr { display: table-row; }
+    #netDiag th, #netDiag td { display: table-cell; padding: 5px 6px; border-bottom: 1px solid #e2e8f0; text-align: start; white-space: nowrap; }
+    #netDiag td:first-child { white-space: normal; }
+    #netDiag td::before { content: none !important; }
+    #netDiag .nd-slow td { background: #fef2f2; color: #c0392b; font-weight: bold; }
+    .loading-data #loadingBar { display: block; position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 3000; background: #1e3a5f; color: white; padding: 10px 18px; border-radius: 999px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.25); max-width: calc(100vw - 32px); box-sizing: border-box; text-align: center; }
     .loading-data .stat > b, .loading-data .dash-tile .num { font-size: 0 !important; }
     .loading-data .stat > b::after, .loading-data .dash-tile .num::after { content: "⏳"; font-size: 22px; }
     .loading-data #buildingTabs, .loading-data #resultCount { visibility: hidden; }
@@ -1287,7 +1300,7 @@
 
   <!-- البرنامج نفسه (مخفي لحد ما تسجل دخول) -->
   <div id="app" hidden class="loading-data">
-  <div id="loadingBar">⏳ جاري تحميل البيانات... ثواني وتظهر</div>
+  <div id="loadingBar">⏳ جاري تحميل البيانات... <button id="loadingDiag" hidden onclick="showNetDiag()">🩺 إيه اللي مأخّر؟</button></div>
       <nav id="sidebar">
     <div class="brand">
       <span class="brand-logo">🏢</span>
@@ -1808,6 +1821,11 @@
         <button type="button" onclick="fullBackup()" style="background:#16a34a">📥 تحميل نسخة احتياطية كاملة</button>
         <span id="backupMsg" style="font-size:13px"></span>
       </div>
+      <div class="set-card">
+        <h3><span class="ic">🩺</span>فحص السرعة</h3>
+        <small class="hint">لو البرنامج بطيء: بيوريك كل حاجة اتحمّلت من ساعة ما فتحت البرنامج، وأخدت قد إيه. صوّره وابعته.</small>
+        <button type="button" onclick="showNetDiag()" style="background:#1e3a5f">🩺 افتح فحص السرعة</button>
+      </div>
     </div>
     <div class="set-save">
       <span id="setMsg">غيّر اللي محتاجه ودوس حفظ</span>
@@ -2081,12 +2099,94 @@
         const SUPABASE_URL = "https://xbckfzqifaywhrpuqkyo.supabase.co";
     const SUPABASE_KEY = "sb_publishable_FyUepLOGo7wUTpj7cdSZsg_TXi1r8bl";
 
+    // 🩺 فحص السرعة: بنسجّل كل طلب لـ Supabase بياخد قد إيه وحجمه قد إيه (من غير البيانات نفسها)
+    const NET = [];
+    const NET_NAMES = { workers: "الساكنين", rooms: "الغرف", timesheet: "التايم شيت", meals: "الوجبات", cars: "السيارات", equipment: "المعدات", equipment_log: "حساب المعدات", app_users: "المستخدمين", app_settings: "الإعدادات", meal_groups: "مجموعات الفطار", meal_group_members: "أسماء المجموعات", group_meals: "فطار المجموعات", purchases: "المشتريات", maintenance: "الصيانة" };
+    (function () {
+      const _fetch = window.fetch.bind(window);
+      window.fetch = function (input, init) {
+        const url = typeof input === "string" ? input : (input && input.url) || "";
+        if (!url.startsWith(SUPABASE_URL)) return _fetch(input, init);
+        const u = new URL(url), method = (init && init.method) || "GET";
+        let label;
+        const rest = u.pathname.match(/\/rest\/v1\/(rpc\/)?([\w]+)/);
+        if (rest) {
+          label = (NET_NAMES[rest[2]] || rest[2]) + (rest[1] ? " (دالة)" : "");
+          if (method === "HEAD") label += " (عدد بس)";
+          else if (method !== "GET") label += " (حفظ)";
+          const off = Number(u.searchParams.get("offset") || 0);
+          if (off) label += " · من " + off;
+        } else if (u.pathname.includes("/storage/")) label = "الصور والملفات";
+        else if (u.pathname.includes("/auth/")) label = "الدخول";
+        else label = u.pathname;
+        const rec = { label, start: performance.now(), end: null, kb: null, status: null };
+        NET.push(rec);
+        if (NET.length > 400) NET.shift();
+        return _fetch(input, init).then(res => {
+          rec.status = res.status;
+          if (rest && method === "GET") res.clone().arrayBuffer().then(b => { rec.kb = b.byteLength / 1024; rec.end = performance.now(); }, () => { rec.end = performance.now(); });
+          else rec.end = performance.now();
+          return res;
+        }, err => { rec.end = performance.now(); rec.status = "❌"; throw err; });
+      };
+    })();
+    let netTimer = null;
+    function showNetDiag() {
+      let box = document.getElementById("netDiag");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "netDiag";
+        box.onclick = e => { if (e.target === box) closeNetDiag(); };
+        document.body.appendChild(box);
+      }
+      box.hidden = false;
+      renderNetDiag();
+      clearInterval(netTimer);
+      netTimer = setInterval(renderNetDiag, 1000);
+    }
+    function closeNetDiag() { clearInterval(netTimer); document.getElementById("netDiag").hidden = true; }
+    function netReport() {
+      const now = performance.now(), sec = ms => (ms / 1000).toFixed(1);
+      const nav = performance.getEntriesByType("navigation")[0];
+      const libs = performance.getEntriesByType("resource").filter(r => /supabase-js|xlsx|tesseract|pdf\.js/.test(r.name))
+        .map(r => ({ name: /supabase/.test(r.name) ? "مكتبة Supabase" : /xlsx/.test(r.name) ? "مكتبة Excel" : /tesseract/.test(r.name) ? "مكتبة قراية الصور" : "مكتبة PDF", t: r.duration, kb: (r.transferSize || 0) / 1024 }));
+      const c = navigator.connection;
+      const pending = NET.filter(r => r.end === null);
+      return {
+        lines: [
+          "من ساعة ما فتحت: " + sec(now) + " ث",
+          nav ? "البرنامج نفسه (الصفحة) اتحمّل في: " + sec(nav.responseEnd) + " ث" + (nav.transferSize ? " · " + Math.round(nav.transferSize / 1024) + " KB" : " · من الجهاز") : "",
+          ...libs.map(l => l.name + ": " + sec(l.t) + " ث" + (l.kb ? " · " + Math.round(l.kb) + " KB" : " · من الجهاز")),
+          c ? "النت: " + (c.effectiveType || "?") + (c.downlink ? " · " + c.downlink + " Mbps" : "") + (c.rtt ? " · " + c.rtt + "ms" : "") : "",
+          "الطلبات: " + NET.length + " · لسه مستني: " + pending.length
+        ].filter(Boolean),
+        rows: NET.map(r => ({ label: r.label, at: sec(r.start), took: r.end === null ? "⏳ " + sec(now - r.start) : sec(r.end - r.start), kb: r.kb === null ? "" : r.kb < 1 ? "<1" : Math.round(r.kb), bad: r.status && r.status !== 200 && r.status !== 206 && r.status !== 201 && r.status !== 204 ? r.status : "", slow: (r.end === null ? now : r.end) - r.start > 5000 }))
+      };
+    }
+    function renderNetDiag() {
+      const box = document.getElementById("netDiag");
+      if (!box || box.hidden) return;
+      const r = netReport();
+      box.innerHTML = `<div class="nd-card"><div class="tsm-head"><b>🩺 فحص السرعة</b><button onclick="closeNetDiag()">✖</button></div>
+        <p class="nd-hint">صوّر الشاشة دي وابعتها. الأحمر هو اللي أخد أكتر من 5 ثواني.</p>
+        <div class="nd-lines">${r.lines.map(l => `<div>${l}</div>`).join("")}</div>
+        <div class="nd-table"><table><tr><th>الطلب</th><th>بدأ بعد</th><th>أخد (ث)</th><th>KB</th></tr>
+        ${r.rows.map(x => `<tr class="${x.slow ? "nd-slow" : ""}"><td>${x.label}${x.bad ? ` <span class="badge bad">${x.bad}</span>` : ""}</td><td>${x.at}</td><td>${x.took}</td><td>${x.kb}</td></tr>`).join("")}</table></div>
+        <div style="display:flex; gap:8px; margin-top:10px"><button onclick="copyNetDiag()">📋 نسخ</button><button onclick="closeNetDiag()" style="background:#eef1f5; color:#1e3a5f">إغلاق</button></div></div>`;
+    }
+    function copyNetDiag() {
+      const r = netReport();
+      const text = r.lines.join("\n") + "\n\n" + r.rows.map(x => [x.label, x.at, x.took, x.kb, x.bad].join(" | ")).join("\n");
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => alert("✅ اتنسخ. الصقه في الشات."), () => prompt("انسخ ده:", text));
+    }
+
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // إظهار البرنامج وإخفاء شاشة الدخول
     function showApp() {
       document.getElementById("loginBox").hidden = true;
       document.getElementById("app").hidden = false;
+      setTimeout(() => { if (document.getElementById("app").classList.contains("loading-data")) document.getElementById("loadingDiag").hidden = false; }, 8000);
             document.querySelector("h1").hidden = true;
             loadWorkers();
                   loadRooms();
