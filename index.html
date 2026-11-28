@@ -2099,7 +2099,7 @@
       document.getElementById("mealDate").value = document.getElementById("tsDate").value;
       document.getElementById("mealMonth").value = document.getElementById("tsDate").value.slice(0, 7);
       loadMeals();
-      showMealMonth();
+      renderIfOpen("meals", showMealMonth);
       loadDashMeals();
       loadMnt();
     }
@@ -7605,12 +7605,18 @@
 
     // Supabase بيرجّع 1000 صف بس في المرة، فنجيب على دفعات
     async function fetchAll(query) {
-      let all = [];
-      for (let from = 0; ; from += 1000) {
-        const { data, error } = await query().range(from, from + 999);
-        if (error) return { data: null, error };
-        all = all.concat(data);
-        if (data.length < 1000) return { data: all, error: null };
+      // أول دفعة لوحدها (أغلب الجداول أقل من 1000)، ولو فيه أكتر: 6 دفعات مع بعض بدل ما يستنوا بعض
+      const first = await query().range(0, 999);
+      if (first.error) return { data: null, error: first.error };
+      let all = first.data;
+      if (all.length < 1000) return { data: all, error: null };
+      for (let from = 1000; ; from += 6000) {
+        const res = await Promise.all([0, 1, 2, 3, 4, 5].map(k => query().range(from + k * 1000, from + k * 1000 + 999)));
+        for (const r of res) {
+          if (r.error) return { data: null, error: r.error };
+          all = all.concat(r.data);
+          if (r.data.length < 1000) return { data: all, error: null };
+        }
       }
     }
 
@@ -7798,8 +7804,7 @@
         alert("❌ محصلش حفظ: " + error.message);
         return;
       }
-      showMealMonth();
-      loadDashMeals();
+      mealsChanged();
     }
 
     async function toggleMeal(workerId) {
@@ -7815,8 +7820,7 @@
       if (breakfast || lunch) mealRecords[workerId] = { worker_id: workerId, meal_date: date, breakfast, lunch };
       else delete mealRecords[workerId];
       showMeals();
-      showMealMonth();
-      loadDashMeals();
+      mealsChanged();
     }
 
     async function mealAll(kind) {
@@ -7834,12 +7838,18 @@
       if (error) { alert("❌ محصلش حفظ: " + error.message); return; }
       rows.forEach(r => mealRecords[r.worker_id] = r);
       showMeals();
-      showMealMonth();
-      loadDashMeals();
+      mealsChanged();
     }
 
     // حساب الشهر لكل عامل
     let mealMonthNames = false;
+    // بعد تسجيل وجبات: نستنى لحد ما يخلص تعليم، وبعدين نحدّث حساب الشهر ولوحة التحكم مرة واحدة
+    let mealsChangedTimer = null;
+    function mealsChanged() {
+      clearTimeout(mealsChangedTimer);
+      mealsChangedTimer = setTimeout(() => { renderIfOpen("meals", showMealMonth); loadDashMeals(); }, 1500);
+    }
+
     async function showMealMonth() {
       const ym = document.getElementById("mealMonth").value;
       if (!ym) return;
@@ -7849,7 +7859,7 @@
       const last = ym + "-" + String(days).padStart(2, "0");
       document.getElementById("mealMonthName").textContent = "🗓️ " + new Date(y, m - 1, 1).toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
 
-      const { data, error } = await fetchAll(() => db.from("meals").select("*").gte("meal_date", first).lte("meal_date", last).order("id"));
+      const { data, error } = await fetchAll(() => db.from("meals").select("worker_id,breakfast,lunch").gte("meal_date", first).lte("meal_date", last).order("id"));
       if (error) { alert("❌ مشكلة في تحميل حساب الشهر: " + error.message); return; }
 
       const byWorker = {};
@@ -8026,12 +8036,14 @@
       const ym = new Date().toLocaleDateString("en-CA").slice(0, 7);
       const [y, m] = ym.split("-").map(Number);
       const last = ym + "-" + String(new Date(y, m, 0).getDate()).padStart(2, "0");
-      const { data, error } = await fetchAll(() => db.from("meals").select("breakfast,lunch").gte("meal_date", ym + "-01").lte("meal_date", last).order("id"));
+      // بنعدّ بس على السيرفر (طلبين صغيرين) بدل ما نجيب كل وجبات الشهر
+      const cnt = kind => db.from("meals").select("id", { count: "exact", head: true }).eq(kind, true).gte("meal_date", ym + "-01").lte("meal_date", last);
+      const [cb, cl] = await Promise.all([cnt("breakfast"), cnt("lunch")]);
       const box = document.getElementById("dashMeals");
-      if (error) { box.innerHTML = '<div class="stat">❌ مشكلة في تحميل الوجبات</div>'; return; }
+      if (cb.error || cl.error) { box.innerHTML = '<div class="stat">❌ مشكلة في تحميل الوجبات</div>'; return; }
 
-      const tb = data.filter(r => r.breakfast).length;
-      const tl = data.filter(r => r.lunch).length;
+      const tb = cb.count || 0;
+      const tl = cl.count || 0;
       // فطار المجموعات (لو الجداول موجودة)
       const gq = await fetchAll(() => db.from("group_meals").select("amount,people").gte("meal_date", ym + "-01").lte("meal_date", last).order("group_id").order("meal_date"));
       const gRows = gq.error ? [] : gq.data;
