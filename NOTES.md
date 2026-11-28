@@ -11,7 +11,7 @@
 - **بيتسطّب على الجهاز (PWA):** `manifest.webmanifest` و`sw.js` و`icons/`. ملف `sw.js` بيجيب البرنامج نفسه من النت الأول، ولو مفيش نت من النسخة اللي على الجهاز. والمكتبات (CDN) بيجيبها من الجهاز وبيحدّثها في الخلفية، و**بيانات Supabase مش بتتخزن خالص**. زرار "📲 سطّب البرنامج" في القايمة (`installApp`)، وعلى الآيفون بيطلّع خطوات Safari (`#iosBox`). واتضاف سطر `meta viewport`، اللي كان ناقص، فشكل الموبايل بقى يشتغل على الموبايل الحقيقي.
 - **الكود كله في ملف واحد:** `index.html` (حوالي 4700 سطر: CSS + HTML + JavaScript، من غير build).
 - **الواجهة:** عربي (لهجة مصرية في الرسايل)، `dir="rtl"`، ومظبوطة للموبايل.
-- **الاستضافة:** GitHub Pages من فرع `main` ← `https://mohamedsamirmms-cloud.github.io/workers-app/`
+- **الاستضافة:** GitHub Pages من فرع `main` ← `https://tdc-construction.github.io/workers-app/` (حساب GitHub اسمه **`TDC-CONSTRUCTION`** من 28 نوفمبر 2026، وكان اسمه قبل كده `mohamedsamirmms-cloud`. الريبو `TDC-CONSTRUCTION/workers-app`، وGitHub بيحوّل من الاسم القديم للريبو، بس مش للموقع. وفي Supabase لازم Site URL و Redirect URLs يبقوا على اللينك الجديد)
 - **قاعدة البيانات والدخول والملفات:** Supabase (مشروع `workers-housing`، ref `xbckfzqifaywhrpuqkyo`، منطقة `ap-southeast-2`). المفتاح اللي في `index.html` هو الـ publishable key (عادي يبقى ظاهر).
 - **المكتبات (CDN):** supabase-js 2.45.4، tesseract.js 5.1.1 (قراءة الصور)، xlsx 0.18.5 (Excel)، pdf.js 3.11.174 (بيتحمّل وقت الحاجة بس).
 
