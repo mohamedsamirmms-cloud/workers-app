@@ -31,7 +31,7 @@
 | `dashboard` | لوحة التحكم: 5 مربعات بتفتح تفاصيل (ساكنين، حضور النهارده، وجبات، معدات، سيارات) + تنبيهات المستندات | `refreshDashboard`, `renderDashDocs`, `loadDashAtt`, `loadDashMeals`, `toggleDash` |
 | `residents` | الساكنين: كروت بتفلتر، تابات المساكن، مربعات الغرف، **بيانات الوحدة** (غرف/حمامات/مطبخ/غاز/سلندر/غسالة/تلاجة)، جدول، إضافة/تعديل/أرشفة/حذف | `showWorkers`, `showRooms`, `showRoomInfo`, `saveRoomInfo`, `openBuilding`, `dashOpen` |
 | `meals` | الوجبات: تابين (`setMealTab`). **🍳 فطار المجموعات** (الأساسي): 3 عروض. **🗂️ المجموعات** (كروت شكل 3 اللي صاحب المشروع اختاره: العدد في دايرة بتكمل على قد المبلغ، والاسم والمبلغ تحتها، ومعاها ملخص فوق. `gmCardsHtml`. وهو العرض الافتراضي): لما تدوس على أي كرت تفتح صفحة المجموعة (`showGroup`) فيها العدد والأسماء والإجمالي، وخط "سلّمة" لأيام الشهر (`gmStepChart`) بيطلع وينزل لما العدد يتغيّر، وعند كل تغيير ▲/▼ بالعدد والمبلغ، ولما تمر عليه بيظهر اليوم. لو فيه أيام مبلغ من غير عدد، بيرسم بالمبلغ. وتضيف أسماء (ساكن بالاسم أو رقم الإقامة، أو أي اسم) أو تشيلها. والعرضين التانيين: المجموعات بعددها وسعر الفرد، تسجيل يوم (− +)، كشف الشهر زي شيت صاحب المشروع، استيراد من شيت BREAKFAST، وExcel وطباعة. **👷 وجبات الأفراد**: عرض **🚪 بالوحدات** (الافتراضي، شكل 1 اللي صاحب المشروع اختاره): زرار "سجّل للكل"، ومربع لكل وحدة عليه كام من كام. دوسة على المربع بتسجّل أو تشيل الوحدة كلها، و"أسماء ▾" بيعدّل واحد واحد. فيه تبديل بين 🍛 الغداء و🍳 الفطار، والبحث بيطلّع الأسماء. الدوال: `renderMealRooms`, `mealSet`, `mealRoomToggle`. وعرض **📋 القايمة** (القديم): يومي (فطار/غداء لكل عامل)، + حساب شهري (كشف الأسماء الشهري مستخبي، وبيظهر بزرار `mealMonthNames`) | `loadGroupMeals`, `renderGmDay`, `renderGmMonth`, `gmSave`, `readGmImport`, `doGmImport`, `exportGroupMeals`, `GM_PRICES` · `showMeals`, `toggleMeal`, `showMealMonth` |
-| `timesheet` | التايم شيت: يومي + **كشف شهري لكل عامل** (تقويم/جدول) + **كشف شهري لكل العمال** (ملخص/بالأيام) | `showTimesheet`, `markPresent`, `saveTime`, `openTsMonth`, `showTsMonth`, `openTsAll`, `loadTsAll`, `exportTsAll` |
+| `timesheet` | التايم شيت: يومي + **كشف شهري لكل عامل** (تقويم/جدول) + **كشف شهري لكل العمال** (ملخص/بالأيام). **تابين فوق (`tsView` في localStorage):** 🗂️ **الأقسام والمجموعات** (الافتراضي، شكل 1 اللي صاحب المشروع اختاره: كروت الأقسام ← كروت مجموعات المشرفين بدايرة حاضر/الكل ← قايمة عمال المجموعة نفسها بالحضور والانصراف، وفيها «✅ حضّر المجموعة» و«➕ ضيف أو شيل عمال» و«✏️ تعديل المجموعة»، وكارت «بدون مجموعة»)، و📋 **كل العمال** (العرض القديم). جنب كل عامل «🔀 اسم المشرف» بينقله لمجموعة تانية. البحث من الأقسام بيدوّر في كل العمال. الأقسام هي نفس أقسام المعدات (`deptList`) وأي قسم جديد. الدوال: `loadTsGroups`, `renderTsDepts`, `openTsDept`, `openTsGroup`, `tsGroupBack`, `openTgEdit`, `saveTg`, `deleteTg`, `openTgPick`, `saveTgPick`, `saveTgMembers`, `openTgMove`, `saveTgMove`. **لسه مستنيين شيت صاحب المشروع عشان نعمل استيراد للأقسام والمجموعات.** | `showTimesheet`, `markPresent`, `saveTime`, `openTsMonth`, `showTsMonth`, `openTsAll`, `loadTsAll`, `exportTsAll` |
 | `moves` | **معدات المشروع** (الاسم القديم في الكود `moves`): مستندات بأرقام وتواريخ ومرفقات، صورة لكل معدة، **رسومات لأنواع المعدات** (25 نوع بتتعرف من الاسم. الجديدة: رولر تاندم، رولر نيوماتيك، رولر سنجل درام هزاز (قبل "فرادة أسفلت" و"رولر")، تلي هاندلر، مان لفت، مضخة خرسانة، فرادة أسفلت، تانكر ديزل (`test`: ديزل/وقود + تانكر/وايت/truck)، تريلا. ولو النوع متسجّل "other" بيتعرف من الاسم تاني)، قراءة PDF/صورة تلقائيًا | `showEquipment`, `openEq`, `readEqFile`, `parseEqText`, `EQ_DOCS`, `EQ_KINDS`, `detectKind` |
 | `maintenance` | **صيانة السكن**: بلاغ عطل (السكن، والغرفة، والنوع من 8 أنواع، وعادي أو 🔥 عاجل، ووصف، وصورة في bucket iqama تحت mnt/) ← 🔴 جديد ← 🟡 جاري ← 🟢 اتصلّح (بالتكلفة). وفيه أرقام الشهر ومتوسط وقت الإصلاح. وصفحة الوحدة في الساكنين بتوري الأعطال المفتوحة، وفيها زرار "بلّغ عن عطل" | `loadMnt`, `renderMnt`, `openMnt`, `saveMnt`, `setMntStatus`, `MNT_CATS` |
 | `cars` | سيارات المشروع: استمارة وتأمين وصيانة وعداد | `showCars`, `openCar`, `exportCars` |
@@ -78,6 +78,8 @@
 | `purchases` | `id, entry_date, kind ('out'/'in'), department, amount, description, pv_no, created_by` — القراية والكتابة بصلاحية `purchases` بس |
 | `equipment_log` | `id, equipment_id (cascade), log_date, kind ('diesel'/'overtime'/'deduction'), qty, unit (لتر/ساعة/يوم/ريال), note, created_by` — القراية للكل، والكتابة بصلاحية `moves` |
 | `maintenance` | `id, building, room, category, description, priority (normal/urgent), status (new/progress/done), photo, reported_by, assigned_to, cost, note, opened_at, closed_at` — القراية للكل، والكتابة بـ `maintenance` أو `residents` |
+| `ts_groups` | `id, department, supervisor, sort` — مجموعات التايم شيت (مجموعة لكل مشرف في قسم) |
+| `ts_group_members` | `worker_id (PK، cascade مع الساكن), group_id (cascade)` — كل عامل في مجموعة واحدة بس. الكتابة بصلاحية `timesheet` |
 | `app_users` | `id, email, name, role, pages (text[]), active, last_login, created_at` |
 | `app_settings` | `key='main'`, `value` jsonb: `name, sub, breakfast, lunch, hours, timeIn, warnDays, countries[], sponsors[]` |
 
@@ -87,7 +89,7 @@
 - `setup.sql`: بيعمل/يكمّل كل الجداول والأعمدة. آمن يتشغّل كذا مرة، ومش بيفتح القواعد لو الأمان متشغّل.
 - `security.sql`: قواعد RLS (شوف 5).
 - `security-rollback.sql`: يرجّع كل حاجة مفتوحة لو حصلت مشكلة.
-- `check.sql`: جدول ✅/❌ (27 بند) يأكد إن كله متجهز.
+- `check.sql`: جدول ✅/❌ (28 بند، بند 28 مجموعات التايم شيت) يأكد إن كله متجهز.
 - **الحالة الحالية (آخر تحديث 27 نوفمبر 2026):** `check.sql` فيه 27 بند. صاحب المشروع أكّد إن اللي جرّبه شغال (الأسرّة، والمشتريات، ورخصة السير، والديزل، والسكن الثالث، وغيرهم). وفي 28 نوفمبر بعت صورة `check.sql`: البنود من 17 لـ 27 كلها ✅، ومنهم **بند 18 (منع تكرار الإقامة)** و**بند 27 (الصيانة)**. قاعدة البيانات متجهزة.
 
 ## 5. الصلاحيات والأمان
@@ -96,7 +98,7 @@
 - **في البرنامج:** القائمة ومربعات لوحة التحكم بتظهر حسب الصفحات (`myPages`, `canOpen`). أول حد يدخل والجدول فاضي بيبقى مدير، والبرنامج بيسأل السيرفر بـ `rpc('app_users_empty')`.
 - **في قاعدة البيانات (`security.sql`):** دوال `app_email()`, `app_active()`, `app_is_admin()`, `app_can(page)`, `app_users_empty()`.
   - القراءة: أي مستخدم متسجّل وشغال.
-  - الكتابة حسب الصفحة: `workers` ← residents/archive، `rooms` ← residents، `timesheet` ← timesheet، `meals` ← meals، `cars` ← cars، `equipment` ← moves، `app_settings` ← settings، `meal_groups`/`group_meals` ← meals، `app_users` ← المدير (والشخص يعدّل اسمه بس).
+  - الكتابة حسب الصفحة: `workers` ← residents/archive، `rooms` ← residents، `timesheet` ← timesheet، `meals` ← meals، `cars` ← cars، `equipment` ← moves، `app_settings` ← settings، `meal_groups`/`group_meals` ← meals، `ts_groups`/`ts_group_members` ← timesheet، `app_users` ← المدير (والشخص يعدّل اسمه بس).
   - Trigger `app_users_guard` بيمنع غير المدير يغيّر الصلاحيات (التعديل من SQL Editor مسموح للتصليح).
   - الزوار (anon) ملهمش أي صلاحية.
 - اتجرّب على PostgreSQL محلي (60 اختبار).

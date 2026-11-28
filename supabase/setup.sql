@@ -267,3 +267,34 @@ do $$ begin
 end $$;
 revoke all on public.maintenance from anon;
 
+
+-- 11) مجموعات التايم شيت: كل قسم (ميكانيكا، كهرباء، مدني...) فيه مجموعات باسم المشرف، وكل عامل في مجموعة واحدة
+create table if not exists public.ts_groups (
+  id bigint generated always as identity primary key,
+  department text not null,
+  supervisor text not null,
+  sort int default 0,
+  created_at timestamptz default now()
+);
+create table if not exists public.ts_group_members (
+  worker_id bigint primary key references public.workers (id) on delete cascade,
+  group_id bigint not null references public.ts_groups (id) on delete cascade
+);
+create index if not exists ts_group_members_group on public.ts_group_members (group_id);
+alter table public.ts_groups enable row level security;
+alter table public.ts_group_members enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('ts_groups', 'ts_group_members')) then
+    if to_regprocedure('public.app_can(text)') is not null then
+      create policy rls_read  on public.ts_groups        for select to authenticated using (app_active());
+      create policy rls_write on public.ts_groups        for all    to authenticated using (app_can('timesheet')) with check (app_can('timesheet'));
+      create policy rls_read  on public.ts_group_members for select to authenticated using (app_active());
+      create policy rls_write on public.ts_group_members for all    to authenticated using (app_can('timesheet')) with check (app_can('timesheet'));
+    else
+      create policy "logged in users" on public.ts_groups        for all to authenticated using (true) with check (true);
+      create policy "logged in users" on public.ts_group_members for all to authenticated using (true) with check (true);
+    end if;
+  end if;
+end $$;
+revoke all on public.ts_groups from anon;
+revoke all on public.ts_group_members from anon;

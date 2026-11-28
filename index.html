@@ -652,6 +652,31 @@
     .dept-card small { display: block; color: #64748b; font-size: 12px; }
     .dept-card .db { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 6px; min-height: 20px; }
     .dept-card.none { --dc: #94a3b8; opacity: 0.85; }
+    /* مجموعات التايم شيت */
+    .tg-bar { height: 7px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+    .tg-bar i { display: block; height: 100%; background: #16a34a; border-radius: 99px; }
+    .dept-card .dn small { font-size: 13px; color: #64748b; font-weight: normal; display: inline; }
+    .tg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .tg-card { position: relative; background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px; display: flex; gap: 12px; align-items: center; cursor: pointer; border-inline-start: 5px solid var(--dc, #1e3a5f); transition: transform 0.1s, box-shadow 0.1s; }
+    .tg-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30,58,95,0.13); }
+    .tg-card .tg-ring { width: 62px; height: 62px; flex: none; }
+    .tg-card b { display: block; color: #1e3a5f; font-size: 15px; overflow-wrap: anywhere; }
+    .tg-card small { display: block; color: #64748b; font-size: 12px; margin-top: 2px; }
+    .tg-card .tg-edit { position: absolute; top: 6px; left: 6px; background: #eef1f5; color: #1e3a5f; border-radius: 8px; padding: 3px 7px; font-size: 12px; }
+    .tg-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+    .tg-actions button { font-size: 13px; padding: 7px 12px; }
+    .tg-empty { background: white; border-radius: 16px; padding: 22px 16px; text-align: center; color: #475569; line-height: 1.8; }
+    .tg-empty b { font-size: 34px; display: block; }
+    .tg-link { color: #2563eb; cursor: pointer; text-decoration: none; white-space: nowrap; }
+    .tg-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: flex; align-items: center; justify-content: center; padding: 15px; }
+    .tg-modal[hidden] { display: none; }
+    .tg-modal > div { background: white; border-radius: 12px; padding: 18px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-sizing: border-box; display: grid; gap: 10px; }
+    .tg-modal h3 { margin: 0; color: #1e3a5f; }
+    .tg-modal label:not(.dp-row) { display: grid; gap: 4px; font-size: 14px; color: #475569; }
+    .tg-modal input:not([type=checkbox]), .tg-modal select { box-sizing: border-box; width: 100%; }
+    .tg-modal .dp-row { display: flex !important; flex-direction: row; align-items: center; gap: 10px; }
+    .tg-modal .dp-row input { width: 20px; height: 20px; flex: none; margin: 0; }
+    .tg-modal .dp-row span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
     .dept-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; border-right: 5px solid var(--dc, #1e3a5f); }
     .dept-banner b { font-size: 17px; color: #1e3a5f; flex: 1; }
     .dept-banner button { font-size: 13px; padding: 7px 12px; }
@@ -1606,6 +1631,7 @@
   </section>
     <section id="page-timesheet" class="page" hidden>
     <h2>⏱️ التايم شيت</h2>
+    <div class="ts-chips" id="tsViewTabs"></div>
     <div id="tsBar">
       <div class="ts-day">
         <button onclick="shiftTsDate(-1)" title="اليوم اللي قبله">→</button>
@@ -1615,13 +1641,54 @@
         <span id="tsDayName"></span>
       </div>
       <input id="tsSearch" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="tsPage = 0; showTimesheet()">
-      <button onclick="markAll()" style="background:#16a34a">✅ حضّر الكل</button>
+      <button id="tsMarkAll" onclick="markAll()" style="background:#16a34a">✅ حضّر الكل</button>
       <button onclick="openTsAll()" style="background:#7c3aed">📅 الكشف الشهري لكل العمال</button>
     </div>
+    <div id="tsDepts"></div>
     <div id="tsStats"></div>
     <div id="tsAbsent"></div>
     <div class="ts-chips" id="tsChips"></div>
     <div id="tsList"></div>
+    <div id="tgEditBox" class="tg-modal" hidden onclick="if (event.target === this) this.hidden = true">
+      <div>
+        <h3 id="tgEditTitle"></h3>
+        <label>القسم <select id="tg_dept" onchange="document.getElementById('tg_dept_new').hidden = this.value !== '__new'"></select></label>
+        <input id="tg_dept_new" placeholder="اسم القسم الجديد" hidden>
+        <label>اسم المشرف <input id="tg_sup" list="tgSupList" placeholder="مثلًا: أحمد فتحي"></label>
+        <datalist id="tgSupList"></datalist>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button onclick="saveTg()" style="background:#16a34a">💾 حفظ</button>
+          <button id="tgDelBtn" onclick="deleteTg()" style="background:#c0392b">🗑️ حذف المجموعة</button>
+          <button onclick="document.getElementById('tgEditBox').hidden = true" style="background:#64748b">إلغاء</button>
+        </div>
+        <span id="tgEditMsg" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div id="tgPickBox" class="tg-modal" hidden onclick="if (event.target === this) this.hidden = true">
+      <div>
+        <h3 id="tgPickTitle"></h3>
+        <small style="color:#64748b">علّم على عمال المجموعة ودوس حفظ. العامل اللي في مجموعة تانية هيتنقل للمجموعة دي.</small>
+        <input id="tgPickSearch" placeholder="🔍 ابحث بالاسم أو الإقامة أو الغرفة" oninput="renderTgPick()">
+        <b id="tgPickCount" style="font-size:13px; color:#1e3a5f"></b>
+        <div id="tgPickList" style="display:grid; gap:5px"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button onclick="saveTgPick()" style="background:#16a34a">💾 حفظ</button>
+          <button onclick="document.getElementById('tgPickBox').hidden = true" style="background:#64748b">إلغاء</button>
+        </div>
+        <span id="tgPickMsg" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div id="tgMoveBox" class="tg-modal" hidden onclick="if (event.target === this) this.hidden = true">
+      <div>
+        <h3 id="tgMoveTitle"></h3>
+        <select id="tgMoveSel"></select>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button onclick="saveTgMove()" style="background:#16a34a">🔀 نقل</button>
+          <button onclick="document.getElementById('tgMoveBox').hidden = true" style="background:#64748b">إلغاء</button>
+        </div>
+        <span id="tgMoveMsg" style="font-size:13px"></span>
+      </div>
+    </div>
         <div id="tsMonthBox" hidden onclick="if (event.target === this) navBack()">
       <div id="tsMonthInner">
         <div class="tsm-head">
@@ -2196,6 +2263,7 @@
       loadSettings();
                          document.getElementById("tsDate").value = new Date().toLocaleDateString("en-CA");
       loadTimesheet();
+      loadTsGroups();
       document.getElementById("mealDate").value = document.getElementById("tsDate").value;
       document.getElementById("mealMonth").value = document.getElementById("tsDate").value.slice(0, 7);
       loadMeals();
@@ -4757,6 +4825,239 @@
       showTimesheet();
     }
 
+    // ===== مجموعات التايم شيت: قسم ← مجموعة باسم المشرف ← العمال =====
+    let tsGroups = [], tsMember = {}, tsGroupsReady = false, tsGroupsLoaded = false;
+    let tsView = (() => { try { return localStorage.getItem("tsView") || "depts"; } catch (e) { return "depts"; } })();
+    let tsDept = "", tsGroupSel = null;   // null: كروت — رقم: مجموعة — "none": بدون مجموعة
+    let tgEditing = null, tgPickSel = new Set(), tgMoving = null;
+    async function loadTsGroups() {
+      const [g, m] = await Promise.all([
+        db.from("ts_groups").select("*").order("sort").order("id"),
+        fetchAll(() => db.from("ts_group_members").select("worker_id,group_id").order("worker_id"))
+      ]);
+      tsGroupsReady = !g.error && !m.error;
+      tsGroupsLoaded = true;
+      tsGroups = tsGroupsReady ? g.data : [];
+      tsMember = {};
+      if (tsGroupsReady) m.data.forEach(r => tsMember[r.worker_id] = r.group_id);
+      if (tsGroupSel !== null && tsGroupSel !== "none" && !tgOf(tsGroupSel)) tsGroupSel = null;
+      renderIfOpen("timesheet", showTimesheet);
+    }
+    const tgOf = id => tsGroups.find(g => g.id === id);
+    const tgWorkers = id => workers.filter(w => id === "none" ? !tgOf(tsMember[w.id]) : tsMember[w.id] === id);
+    const tgDeptWorkers = name => workers.filter(w => { const g = tgOf(tsMember[w.id]); return g && g.department === name; });
+    function tgDeptList() {
+      const base = deptList();
+      const extra = [...new Set(tsGroups.map(g => g.department))].filter(d => !base.some(x => x.name === d)).map(name => ({ name, icon: "📁", color: "#64748b" }));
+      return base.concat(extra);
+    }
+    const tgDept = name => tgDeptList().find(d => d.name === name) || { name, icon: "📁", color: "#64748b" };
+    const tsIsIn = w => !!(tsRecords[w.id] && tsRecords[w.id].time_in);
+    function tgRing(list) {
+      const n = list.length, p = list.filter(tsIsIn).length, c = 2 * Math.PI * 24, f = n ? p / n : 0;
+      return `<svg class="tg-ring" viewBox="0 0 60 60"><circle cx="30" cy="30" r="24" fill="none" stroke="#e2e8f0" stroke-width="7"/><circle cx="30" cy="30" r="24" fill="none" stroke="#16a34a" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c * f} ${c}" transform="rotate(-90 30 30)"/><text x="30" y="35" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e3a5f">${p}/${n}</text></svg>`;
+    }
+    const tgBarHtml = list => `<div class="tg-bar"><i style="width:${list.length ? Math.round(list.filter(tsIsIn).length / list.length * 100) : 0}%"></i></div>`;
+    function setTsView(v) {
+      tsView = v;
+      try { localStorage.setItem("tsView", v); } catch (e) {}
+      tsDept = ""; tsGroupSel = null; tsFilter = "all"; tsPage = 0;
+      showTimesheet();
+    }
+    function openTsDept(name) { tsDept = name; tsGroupSel = null; showTimesheet(); }
+    function openTsGroup(id) {
+      tsGroupSel = id; tsFilter = "all"; tsPage = 0;
+      if (id !== "none") tsDept = tgOf(id).department;
+      document.getElementById("tsSearch").value = "";
+      showTimesheet();
+    }
+    function tsGroupBack() {
+      if (tsGroupSel !== null) tsGroupSel = tsGroupSel === "none" ? (tsDept = "", null) : null;
+      else tsDept = "";
+      tsFilter = "all"; tsPage = 0;
+      showTimesheet();
+    }
+
+    // الأقسام والمجموعات فوق التايم شيت. بترجّع true لو قايمة العمال لازم تظهر
+    function renderTsDepts() {
+      const tabs = document.getElementById("tsViewTabs"), box = document.getElementById("tsDepts");
+      const q = document.getElementById("tsSearch").value.trim();
+      tabs.innerHTML = `<button class="chip ${tsView === "depts" ? "on" : ""}" onclick="setTsView('depts')">🗂️ الأقسام والمجموعات</button>` +
+        `<button class="chip ${tsView === "all" ? "on" : ""}" onclick="setTsView('all')">📋 كل العمال (${workers.length})</button>`;
+      if (tsView !== "depts") { box.innerHTML = ""; return true; }
+      if (!tsGroupsLoaded) { box.innerHTML = '<div class="tg-empty">⏳ جاري تحميل المجموعات...</div>'; return false; }
+      if (!tsGroupsReady) {
+        box.innerHTML = '<div class="no-access" style="margin-bottom:12px; padding:16px"><b style="font-size:28px">🛠️</b>الأقسام والمجموعات محتاجة سطر SQL صغير في Supabase عشان تتحفظ. شغّله وبعدين اعمل refresh. لحد كده، تحت كل العمال زي الأول.</div>';
+        return true;
+      }
+      // جوه مجموعة
+      if (tsGroupSel !== null) {
+        const g = tsGroupSel === "none" ? null : tgOf(tsGroupSel);
+        const d = g ? tgDept(g.department) : { icon: "❔", color: "#94a3b8", name: "" };
+        const list = tgWorkers(tsGroupSel), p = list.filter(tsIsIn).length;
+        box.innerHTML = `<div class="dept-banner" style="--dc:${d.color}"><span style="font-size:26px">${d.icon}</span>
+            <b>${g ? "👷 مجموعة " + gmEsc(g.supervisor) : "❔ عمال بدون مجموعة"} <small style="color:#64748b; font-weight:normal">· ${g ? gmEsc(g.department) + " · " : ""}${p} حاضر من ${list.length}</small></b>
+            <button onclick="tsGroupBack()" style="background:#eef1f5; color:#1e3a5f">↩️ ${g ? gmEsc(d.name) : "الأقسام"}</button></div>
+          <div class="tg-actions">
+            ${list.length ? `<button onclick="markAll()" style="background:#16a34a">✅ حضّر المجموعة</button>` : ""}
+            ${g ? `<button onclick="openTgPick(${g.id})" style="background:#2563eb">➕ ضيف أو شيل عمال</button>
+            <button onclick="openTgEdit(${g.id})" style="background:#eef1f5; color:#1e3a5f">✏️ تعديل المجموعة</button>` : ""}
+          </div>
+          ${g && !list.length ? `<div class="tg-empty"><b>👷</b>المجموعة لسه فاضية.<br><button onclick="openTgPick(${g.id})" style="background:#2563eb">➕ ضيف عمال للمجموعة</button></div>` : ""}`;
+        return list.length > 0;
+      }
+      if (q) { box.innerHTML = ""; return true; }   // البحث بيدوّر في كل العمال
+      // جوه قسم: كروت المجموعات
+      if (tsDept) {
+        const d = tgDept(tsDept), groups = tsGroups.filter(g => g.department === tsDept), l = tgDeptWorkers(tsDept);
+        box.innerHTML = `<div class="dept-banner" style="--dc:${d.color}"><span style="font-size:26px">${d.icon}</span>
+            <b>قسم ${gmEsc(d.name)} <small style="color:#64748b; font-weight:normal">· ${l.filter(tsIsIn).length} حاضر من ${l.length}</small></b>
+            <button onclick="openTgEdit(null, '${gmEsc(tsDept)}')" style="background:#16a34a">➕ مجموعة جديدة</button>
+            <button onclick="tsGroupBack()" style="background:#eef1f5; color:#1e3a5f">↩️ كل الأقسام</button></div>
+          ${groups.length ? `<div class="tg-grid">${groups.map(g => { const gl = tgWorkers(g.id), ab = gl.filter(w => !tsIsIn(w)).length; return `<div class="tg-card" style="--dc:${d.color}" onclick="openTsGroup(${g.id})">
+              ${tgRing(gl)}<div><b>👷 ${gmEsc(g.supervisor)}</b><small>${gl.length} عامل${gl.length ? (ab ? " · 🚫 " + ab + " غايب" : " · ✅ الكل حاضر") : ""}</small></div>
+              <span class="tg-edit" onclick="event.stopPropagation(); openTgEdit(${g.id})" title="تعديل">✏️</span></div>`; }).join("")}</div>`
+            : `<div class="tg-empty"><b>👷</b>مفيش مجموعات في القسم ده لسه.</div>`}`;
+        return false;
+      }
+      // كروت الأقسام
+      const depts = tgDeptList().filter(d => tsGroups.some(g => g.department === d.name));
+      const none = tgWorkers("none");
+      const card = (d, l, ngroups, onclick, cls) => `<div class="dept-card ${cls || ""}" style="--dc:${d.color}" onclick="${onclick}">
+          <div class="di">${d.icon}</div><b>${gmEsc(d.name)}</b>
+          <div class="dn">${l.filter(tsIsIn).length} <small>من ${l.length}</small></div>
+          <small>${ngroups !== null ? ngroups + " مجموعة · " : ""}${l.length - l.filter(tsIsIn).length} غايب</small>${tgBarHtml(l)}</div>`;
+      box.innerHTML = `<div class="tg-actions"><button onclick="openTgEdit(null)" style="background:#16a34a">➕ مجموعة جديدة</button></div>` +
+        (tsGroups.length
+          ? `<div class="dept-grid">${depts.map(d => card(d, tgDeptWorkers(d.name), tsGroups.filter(g => g.department === d.name).length, `openTsDept('${gmEsc(d.name)}')`)).join("")}
+             ${none.length ? card({ name: "بدون مجموعة", icon: "❔", color: "#94a3b8" }, none, null, "openTsGroup('none')", "none") : ""}</div>
+             <p class="gm-hint">💡 دوس على القسم تشوف مجموعاته، وعلى المجموعة تحضّر عمالها. وتقدر تدوّر على أي عامل من خانة البحث.</p>`
+          : `<div class="tg-empty"><b>🗂️</b>لسه مفيش مجموعات.<br>اعمل مجموعة لكل مشرف (في قسمه)، وبعدين ضيف عمالها.<br><button onclick="openTgEdit(null)" style="background:#16a34a">➕ أول مجموعة</button></div>`);
+      return false;
+    }
+
+    // إضافة وتعديل مجموعة
+    function openTgEdit(id, dept) {
+      tgEditing = id ? tgOf(id) : null;
+      const sel = document.getElementById("tg_dept");
+      const cur = tgEditing ? tgEditing.department : (dept || tsDept || "");
+      sel.innerHTML = '<option value="">— اختار القسم —</option>' + tgDeptList().map(d => `<option value="${gmEsc(d.name)}">${d.icon} ${gmEsc(d.name)}</option>`).join("") + '<option value="__new">➕ قسم جديد...</option>';
+      sel.value = cur;
+      document.getElementById("tg_dept_new").value = "";
+      document.getElementById("tg_dept_new").hidden = true;
+      document.getElementById("tg_sup").value = tgEditing ? tgEditing.supervisor : "";
+      document.getElementById("tgSupList").innerHTML = workers.map(w => `<option value="${gmEsc(w.name)}">`).join("");
+      document.getElementById("tgEditTitle").textContent = tgEditing ? "✏️ تعديل مجموعة " + tgEditing.supervisor : "➕ مجموعة جديدة";
+      document.getElementById("tgDelBtn").hidden = !tgEditing;
+      document.getElementById("tgEditMsg").textContent = "";
+      document.getElementById("tgEditBox").hidden = false;
+      document.getElementById("tg_sup").focus();
+    }
+    async function saveTg() {
+      const msg = document.getElementById("tgEditMsg");
+      let dept = document.getElementById("tg_dept").value;
+      if (dept === "__new") dept = document.getElementById("tg_dept_new").value.trim();
+      const sup = document.getElementById("tg_sup").value.trim();
+      if (!dept) { msg.textContent = "⚠️ اختار القسم"; return; }
+      if (!sup) { msg.textContent = "⚠️ اكتب اسم المشرف"; return; }
+      if (tsGroups.some(g => g !== tgEditing && g.department === dept && g.supervisor.toLowerCase() === sup.toLowerCase())) { msg.textContent = "⚠️ فيه مجموعة بنفس الاسم في القسم ده"; return; }
+      msg.textContent = "⏳ جاري الحفظ...";
+      const row = { department: dept, supervisor: sup };
+      const res = tgEditing
+        ? await db.from("ts_groups").update(row).eq("id", tgEditing.id).select()
+        : await db.from("ts_groups").insert({ ...row, sort: tsGroups.length }).select();
+      if (res.error) { msg.textContent = "❌ محصلش حفظ: " + res.error.message; return; }
+      const saved = res.data && res.data[0];
+      if (tgEditing) Object.assign(tgEditing, row);
+      else if (saved) tsGroups.push(saved);
+      document.getElementById("tgEditBox").hidden = true;
+      if (!tgEditing && saved) { openTsGroup(saved.id); openTgPick(saved.id); }
+      else { if (tsGroupSel !== null && tgEditing) tsDept = dept; showTimesheet(); }
+    }
+    async function deleteTg() {
+      const g = tgEditing;
+      if (!g) return;
+      const n = tgWorkers(g.id).length;
+      if (!confirm(`متأكد إنك عايز تحذف مجموعة ${g.supervisor}؟` + (n ? `\nالـ ${n} عامل اللي فيها هيبقوا "بدون مجموعة".` : "") + "\nالحضور المتسجّل مش هيتمسح.")) return;
+      const { error } = await db.from("ts_groups").delete().eq("id", g.id);
+      if (error) { document.getElementById("tgEditMsg").textContent = "❌ محصلش حذف: " + error.message; return; }
+      tsGroups = tsGroups.filter(x => x.id !== g.id);
+      Object.keys(tsMember).forEach(k => { if (tsMember[k] === g.id) delete tsMember[k]; });
+      document.getElementById("tgEditBox").hidden = true;
+      if (tsGroupSel === g.id) tsGroupSel = null;
+      showTimesheet();
+    }
+
+    // اختيار عمال المجموعة (علامات صح)
+    function openTgPick(id) {
+      tgEditing = tgOf(id);
+      tgPickSel = new Set(tgWorkers(id).map(w => w.id));
+      document.getElementById("tgPickTitle").textContent = "👷 عمال مجموعة " + tgEditing.supervisor;
+      document.getElementById("tgPickSearch").value = "";
+      document.getElementById("tgPickMsg").textContent = "";
+      renderTgPick();
+      document.getElementById("tgPickBox").hidden = false;
+    }
+    function renderTgPick() {
+      const q = document.getElementById("tgPickSearch").value.trim().toLowerCase();
+      const gid = tgEditing.id;
+      const rank = w => tgPickSel.has(w.id) ? 0 : !tgOf(tsMember[w.id]) ? 1 : 2;
+      const list = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q))
+        .sort((a, b) => rank(a) - rank(b) || (a.room || "").localeCompare(b.room || "", "en", { numeric: true }));
+      document.getElementById("tgPickCount").textContent = "✔ متعلّم عليهم: " + tgPickSel.size + (list.length > 300 ? " · بيظهر أول 300، دوّر بالاسم أو الغرفة" : "");
+      document.getElementById("tgPickList").innerHTML = list.slice(0, 300).map(w => {
+        const other = tgOf(tsMember[w.id]);
+        return `<label class="dp-row"><input type="checkbox" ${tgPickSel.has(w.id) ? "checked" : ""} onchange="this.checked ? tgPickSel.add(${w.id}) : tgPickSel.delete(${w.id}); document.getElementById('tgPickCount').textContent = '✔ متعلّم عليهم: ' + tgPickSel.size">
+          <span><b>${gmEsc(w.name)}</b><br><small>🚪 ${gmEsc(shortB(w.building))} ${gmEsc(w.room || "-")}${w.job ? " · " + gmEsc(w.job) : ""}${other && other.id !== gid ? " · 👷 مع " + gmEsc(other.supervisor) : ""}</small></span></label>`;
+      }).join("") || '<p style="color:#64748b">مفيش نتايج</p>';
+    }
+    async function saveTgMembers(adds, removes, gid) {
+      for (let i = 0; i < adds.length; i += 500) {
+        const { error } = await db.from("ts_group_members").upsert(adds.slice(i, i + 500).map(id => ({ worker_id: id, group_id: gid })), { onConflict: "worker_id" });
+        if (error) return error;
+      }
+      for (let i = 0; i < removes.length; i += 200) {
+        const { error } = await db.from("ts_group_members").delete().in("worker_id", removes.slice(i, i + 200));
+        if (error) return error;
+      }
+      adds.forEach(id => tsMember[id] = gid);
+      removes.forEach(id => delete tsMember[id]);
+      return null;
+    }
+    async function saveTgPick() {
+      const gid = tgEditing.id, msg = document.getElementById("tgPickMsg");
+      const before = new Set(tgWorkers(gid).map(w => w.id));
+      const adds = [...tgPickSel].filter(id => !before.has(id));
+      const removes = [...before].filter(id => !tgPickSel.has(id));
+      if (!adds.length && !removes.length) { document.getElementById("tgPickBox").hidden = true; return; }
+      msg.textContent = "⏳ جاري الحفظ...";
+      const error = await saveTgMembers(adds, removes, gid);
+      if (error) { msg.textContent = "❌ محصلش حفظ: " + error.message; return; }
+      document.getElementById("tgPickBox").hidden = true;
+      showTimesheet();
+    }
+
+    // نقل عامل واحد لمجموعة تانية
+    function openTgMove(id) {
+      tgMoving = findWorker(id);
+      const cur = tsMember[id] || "";
+      document.getElementById("tgMoveTitle").textContent = "🔀 نقل " + tgMoving.name;
+      document.getElementById("tgMoveSel").innerHTML = '<option value="">❔ بدون مجموعة</option>' +
+        tgDeptList().filter(d => tsGroups.some(g => g.department === d.name)).map(d => `<optgroup label="${d.icon} ${gmEsc(d.name)}">${tsGroups.filter(g => g.department === d.name).map(g => `<option value="${g.id}">👷 ${gmEsc(g.supervisor)}</option>`).join("")}</optgroup>`).join("");
+      document.getElementById("tgMoveSel").value = cur;
+      document.getElementById("tgMoveMsg").textContent = "";
+      document.getElementById("tgMoveBox").hidden = false;
+    }
+    async function saveTgMove() {
+      const v = document.getElementById("tgMoveSel").value, msg = document.getElementById("tgMoveMsg");
+      const id = tgMoving.id;
+      msg.textContent = "⏳ جاري الحفظ...";
+      const error = v ? await saveTgMembers([id], [], Number(v)) : await saveTgMembers([], [id], null);
+      if (error) { msg.textContent = "❌ محصلش حفظ: " + error.message; return; }
+      document.getElementById("tgMoveBox").hidden = true;
+      showTimesheet();
+    }
+
     // التنقل بين الأيام: -1 امبارح، 1 بكره، 0 النهارده
     function shiftTsDate(n) {
       const input = document.getElementById("tsDate");
@@ -4824,19 +5125,24 @@
       document.getElementById("tsDayName").textContent = date
         ? new Date(date + "T12:00:00").toLocaleDateString("ar-EG", { weekday: "long" }) : "";
 
+      const showList = renderTsDepts();
+      const inGroup = tsView === "depts" && tsGroupsReady && tsGroupSel !== null;
+      const scope = inGroup ? tgWorkers(tsGroupSel) : workers;
+      document.getElementById("tsMarkAll").hidden = !showList || inGroup;
       const q = document.getElementById("tsSearch").value.trim().toLowerCase();
-      const searched = workers.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
+      const searched = scope.filter(w => !q || (w.name + " " + (w.idNo || "") + " " + (w.room || "")).toLowerCase().includes(q));
       const isIn = w => !!(tsRecords[w.id] && tsRecords[w.id].time_in);
       const duty = w => !date || onDuty(w, date);
-      tsResult = searched.filter(w => tsFilter === "all" || (tsFilter === "present" ? isIn(w) : duty(w) && !isIn(w)));
+      tsResult = showList ? searched.filter(w => tsFilter === "all" || (tsFilter === "present" ? isIn(w) : duty(w) && !isIn(w))) : [];
       if (tsPage * PAGE_SIZE >= tsResult.length) tsPage = 0;
 
-      // الأرقام فوق
-      const recs = Object.values(tsRecords).filter(r => r.time_in);
+      // الأرقام فوق (جوه المجموعة: أرقام المجموعة بس)
+      const recs = inGroup ? scope.map(w => tsRecords[w.id]).filter(r => r && r.time_in) : Object.values(tsRecords).filter(r => r.time_in);
       const present = recs.length;
       const totalHours = Math.round(recs.reduce((s, r) => s + Number(r.hours || 0), 0) * 100) / 100;
       const totalOt = Math.round(recs.reduce((s, r) => s + Number(r.overtime || 0), 0) * 100) / 100;
-      const absent = date ? absentOn(date, tsRecords) : [];
+      const scopeIds = inGroup ? new Set(scope.map(w => w.id)) : null;
+      const absent = date ? absentOn(date, tsRecords).filter(w => !scopeIds || scopeIds.has(w.id)) : [];
       const isToday = date === todayIso();
       document.getElementById("tsStats").innerHTML = `
         <div class="stat green"><b>${present}</b>✅ حاضر</div>
@@ -4850,7 +5156,14 @@
         chip("all", "الكل (" + searched.length + ")") +
         chip("present", "✅ الحاضرين (" + presentShown + ")") +
         chip("absent", "🚫 الغايبين (" + searched.filter(w => duty(w) && !isIn(w)).length + ")");
-      renderAbsentBox(date, absent);
+      if (!showList) {
+        document.getElementById("tsChips").innerHTML = "";
+        document.getElementById("tsAbsent").innerHTML = "";
+        document.getElementById("tsList").innerHTML = "";
+        return;
+      }
+      if (inGroup) document.getElementById("tsAbsent").innerHTML = "";
+      else renderAbsentBox(date, absent);
 
       if (tsResult.length === 0) {
         document.getElementById("tsList").innerHTML = "<div><p>لا يوجد عمال هنا</p></div>";
@@ -4867,7 +5180,7 @@
           <td class="ts-num">${tsPage * PAGE_SIZE + i + 1}</td>
           <td class="ts-who">
             <b class="ts-name" onclick="openTsMonth(${w.id})" title="الكشف الشهري">${w.name}</b>
-            <small>🚪 غرفة ${w.room || "-"}${w.idNo ? " · " + w.idNo : ""} · <a href="#" onclick="openTsMonth(${w.id}); return false;">📅 الكشف</a></small>
+            <small>🚪 غرفة ${w.room || "-"}${w.idNo ? " · " + w.idNo : ""} · <a href="#" onclick="openTsMonth(${w.id}); return false;">📅 الكشف</a>${tsGroupsReady ? ` · <a class="tg-link" onclick="openTgMove(${w.id})" title="نقل لمجموعة تانية">🔀 ${tgOf(tsMember[w.id]) ? gmEsc(tgOf(tsMember[w.id]).supervisor) : "بدون مجموعة"}</a>` : ""}</small>
           </td>
           <td class="ts-state" data-label="الحالة"><div class="ts-status">
             ${here

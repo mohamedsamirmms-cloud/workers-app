@@ -39,6 +39,8 @@ select item as "البند", case when ok then '✅' else '❌' end as "الحا
   (26, 'ديزل وأوفر تايم وخصم المعدات',       to_regclass('public.equipment_log') is not null
                                             and (select count(*) from pg_policies where schemaname = 'public' and tablename = 'equipment_log') >= 1),
   (27, 'صيانة السكن',                        to_regclass('public.maintenance') is not null
-                                            and (select count(*) from pg_policies where schemaname = 'public' and tablename = 'maintenance') >= 1)
+                                            and (select count(*) from pg_policies where schemaname = 'public' and tablename = 'maintenance') >= 1),
+  (28, 'مجموعات التايم شيت (الأقسام والمشرفين)', to_regclass('public.ts_groups') is not null and to_regclass('public.ts_group_members') is not null
+                                            and (select count(*) from pg_policies where schemaname = 'public' and tablename in ('ts_groups', 'ts_group_members')) >= 2)
 ) as t(n, item, ok)
 order by n;

@@ -66,7 +66,7 @@ begin
   for r in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals', 'meal_group_members', 'purchases', 'equipment_log', 'maintenance')
+      and tablename in ('workers', 'rooms', 'timesheet', 'meals', 'cars', 'equipment', 'app_users', 'app_settings', 'meal_groups', 'group_meals', 'meal_group_members', 'purchases', 'equipment_log', 'maintenance', 'ts_groups', 'ts_group_members')
   loop
     execute format('drop policy %I on public.%I', r.policyname, r.tablename);
   end loop;
@@ -96,6 +96,8 @@ alter table if exists public.meal_group_members enable row level security;
 alter table if exists public.purchases enable row level security;
 alter table if exists public.equipment_log enable row level security;
 alter table if exists public.maintenance enable row level security;
+alter table if exists public.ts_groups enable row level security;
+alter table if exists public.ts_group_members enable row level security;
 
 -- ---------- 4) القواعد الجديدة ----------
 -- القراءة: أي مستخدم متسجّل وشغال (لوحة التحكم والتقارير والملف بيقروا من كذا جدول)
@@ -155,6 +157,16 @@ do $$ begin
     create policy rls_read  on public.maintenance for select to authenticated using (app_active());
     create policy rls_write on public.maintenance for all    to authenticated using (app_can('maintenance') or app_can('residents')) with check (app_can('maintenance') or app_can('residents'));
     revoke all on public.maintenance from anon;
+  end if;
+end $$;
+do $$ begin
+  if to_regclass('public.ts_groups') is not null then
+    create policy rls_read  on public.ts_groups        for select to authenticated using (app_active());
+    create policy rls_write on public.ts_groups        for all    to authenticated using (app_can('timesheet')) with check (app_can('timesheet'));
+    create policy rls_read  on public.ts_group_members for select to authenticated using (app_active());
+    create policy rls_write on public.ts_group_members for all    to authenticated using (app_can('timesheet')) with check (app_can('timesheet'));
+    revoke all on public.ts_groups from anon;
+    revoke all on public.ts_group_members from anon;
   end if;
 end $$;
 
